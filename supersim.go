@@ -3,25 +3,30 @@ package supersim
 import (
 	"context"
 
+	"github.com/ethereum-optimism/supersim/anvil"
+
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type Supersim struct {
 	log log.Logger
+
+	anvil *anvil.Anvil
 }
 
 func NewSupersim(log log.Logger) *Supersim {
-	return &Supersim{log}
+	anvil := anvil.New(log, &anvil.Config{ChainId: 10, Port: 9545})
+	return &Supersim{log, anvil}
 }
 
-func (s *Supersim) Start(ctx context.Context) error {
+func (s *Supersim) Start(_ context.Context) error {
 	s.log.Info("starting supersim")
-	return nil
+	return s.anvil.Start()
 }
 
-func (s *Supersim) Stop(ctx context.Context) error {
+func (s *Supersim) Stop(_ context.Context) error {
 	s.log.Info("stopping supersim")
-	return nil
+	return s.anvil.Stop()
 }
 
 func (s *Supersim) Stopped() bool {
