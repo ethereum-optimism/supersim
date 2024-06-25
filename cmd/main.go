@@ -52,5 +52,5 @@ func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Li
 	}
 
 	// use config and setup supersim
-	return supersim.NewSupersim(log), nil
+	return supersim.NewSupersim(log, &supersim.DefaultConfig), nil
 }
