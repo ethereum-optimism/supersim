@@ -19,9 +19,9 @@ func NewSupersim(log log.Logger) *Supersim {
 	return &Supersim{log, anvil}
 }
 
-func (s *Supersim) Start(_ context.Context) error {
+func (s *Supersim) Start(ctx context.Context) error {
 	s.log.Info("starting supersim")
-	return s.anvil.Start()
+	return s.anvil.Start(ctx)
 }
 
 func (s *Supersim) Stop(_ context.Context) error {
@@ -30,5 +30,5 @@ func (s *Supersim) Stop(_ context.Context) error {
 }
 
 func (s *Supersim) Stopped() bool {
-	return false
+	return s.anvil.Stopped()
 }

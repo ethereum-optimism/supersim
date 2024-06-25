@@ -40,7 +40,7 @@ func New(log log.Logger, cfg *Config) *Anvil {
 	}
 }
 
-func (a *Anvil) Start() error {
+func (a *Anvil) Start(ctx context.Context) error {
 	if a.cmd != nil {
 		return errors.New("anvil already started")
 	}
@@ -56,6 +56,10 @@ func (a *Anvil) Start() error {
 	}
 
 	a.cmd = exec.CommandContext(a.resourceCtx, "anvil", args...)
+	go func() {
+		<-ctx.Done()
+		a.resourceCancel()
+	}()
 
 	// Handle stdout/stderr
 	//  - TODO: Figure out best way to dump into logger. Some hex isn't showing appropriately
