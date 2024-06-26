@@ -10,24 +10,24 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-
-
 type Config struct {
-	l1Chain anvil.Config
+	l1Chain  anvil.Config
 	l2Chains []anvil.Config
 }
 
 var DefaultConfig = Config{
-	l1Chain: anvil.Config{ChainId: 1, Port: 8545},
-	l2Chains: []anvil.Config{{ChainId: 10, Port: 9545}, {ChainId: 30, Port: 9555}},
+	l1Chain: anvil.Config{ChainId: 1, Port: 8545, GenesisPath: "genesis/genesis-l1.json"},
+	l2Chains: []anvil.Config{
+		{ChainId: 10, Port: 9545, GenesisPath: "genesis/genesis-l2.json"},
+		{ChainId: 30, Port: 9555, GenesisPath: "genesis/genesis-l2.json"},
+	},
 }
 
 type Supersim struct {
 	log log.Logger
 
-	l1Chain *anvil.Anvil
+	l1Chain  *anvil.Anvil
 	l2Chains map[uint64]*anvil.Anvil
-
 }
 
 func NewSupersim(log log.Logger, config *Config) *Supersim {
@@ -49,7 +49,7 @@ func (s *Supersim) Start(ctx context.Context) error {
 	}
 
 	for _, l2Chain := range s.l2Chains {
-		if err := l2Chain.Start(ctx); err!= nil {
+		if err := l2Chain.Start(ctx); err != nil {
 			return fmt.Errorf("l2 chain failed to start: %w", err)
 		}
 	}
@@ -61,7 +61,7 @@ func (s *Supersim) Stop(_ context.Context) error {
 	s.log.Info("stopping supersim")
 
 	for _, l2Chain := range s.l2Chains {
-		if err := l2Chain.Stop(); err!= nil {
+		if err := l2Chain.Stop(); err != nil {
 			return fmt.Errorf("l2 chain failed to stop: %w", err)
 		}
 	}
@@ -70,7 +70,8 @@ func (s *Supersim) Stop(_ context.Context) error {
 		return fmt.Errorf("l1 chain failed to stop: %w", err)
 	}
 
-	return nil}
+	return nil
+}
 
 func (s *Supersim) Stopped() bool {
 	return s.l1Chain.Stopped()
