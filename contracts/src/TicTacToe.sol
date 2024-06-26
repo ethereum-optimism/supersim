@@ -24,7 +24,6 @@ contract TicTacToe {
         address player1;
         address player2;
         PlayerTurn currentTurn;
-        address winner;
         uint8 numOfTurns;
         uint8[3][3] board;
     }
@@ -51,7 +50,6 @@ contract TicTacToe {
             player1: player1,
             player2: address(0),
             currentTurn: PlayerTurn.PlayerOne,
-            winner: address(0),
             numOfTurns: 0,
             board: [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
         });
