@@ -23,13 +23,13 @@ jobs:
   contracts-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup
-        uses: ./.github/actions/setup
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Setup
+        uses: ./.github/actions/setup
 
       - name: Run Forge build
         run: |
@@ -44,11 +44,11 @@ jobs:
   go-tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup
-        uses: ./.github/actions/setup
-
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Setup
+        uses: ./.github/actions/setup
 
       - name: Install dependencies
         run: go mod download
