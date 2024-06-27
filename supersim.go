@@ -1,6 +1,7 @@
 package supersim
 
 import (
+	_ "embed"
 	"fmt"
 
 	"context"
@@ -15,11 +16,17 @@ type Config struct {
 	l2Chains []anvil.Config
 }
 
+//go:embed genesis/genesis-l1.json
+var genesisL1JSON []byte
+
+//go:embed genesis/genesis-l2.json
+var genesisL2JSON []byte
+
 var DefaultConfig = Config{
-	l1Chain: anvil.Config{ChainId: 1, Port: 8545, GenesisPath: "genesis/genesis-l1.json"},
+	l1Chain: anvil.Config{ChainId: 1, Port: 8545, Genesis: genesisL1JSON},
 	l2Chains: []anvil.Config{
-		{ChainId: 10, Port: 9545, GenesisPath: "genesis/genesis-l2.json"},
-		{ChainId: 30, Port: 9555, GenesisPath: "genesis/genesis-l2.json"},
+		{ChainId: 10, Port: 9545, Genesis: genesisL2JSON},
+		{ChainId: 30, Port: 9555, Genesis: genesisL2JSON},
 	},
 }
 

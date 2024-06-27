@@ -1,8 +1,9 @@
-package testutils
+package utils
 
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/ethereum/go-ethereum/rpc"
@@ -20,9 +21,16 @@ func WaitForAnvilClientToBeReady(rpcUrl string, timeout time.Duration) (*rpc.Cli
 		case <-ctx.Done():
 			return nil, fmt.Errorf("timed out waiting for response from %s", rpcUrl)
 		case <-ticker.C:
-			client, err := rpc.Dial(rpcUrl)
+			_, err := http.Get(rpcUrl)
+
 			if err != nil {
 				fmt.Printf("Error making request: %v\n", err)
+				continue
+			}
+
+			client, err := rpc.Dial(rpcUrl)
+			if err != nil {
+				fmt.Printf("Error creating rpc client: %v\n", err)
 				continue
 			}
 
