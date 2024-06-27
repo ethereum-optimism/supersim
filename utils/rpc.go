@@ -3,13 +3,27 @@ package utils
 import (
 	"context"
 	"fmt"
-	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-func WaitForAnvilClientToBeReady(rpcUrl string, timeout time.Duration) (*rpc.Client, error) {
+func WaitForAnvilEndpointToBeReady(endpoint string, timeout time.Duration) error {
+	client, clientCreateErr := rpc.Dial(endpoint)
+	if clientCreateErr != nil {
+		return fmt.Errorf("failed to create client: %v", clientCreateErr)
+	}
+
+	err := WaitForAnvilClientToBeReady(client, timeout)
+	if err != nil {
+		return fmt.Errorf("failed to connect to RPC server: %v", err)
+	}
+
+	return nil
+}
+
+func WaitForAnvilClientToBeReady(client *rpc.Client, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -19,23 +33,20 @@ func WaitForAnvilClientToBeReady(rpcUrl string, timeout time.Duration) (*rpc.Cli
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, fmt.Errorf("timed out waiting for response from %s", rpcUrl)
+			return fmt.Errorf("timed out waiting for response from client")
 		case <-ticker.C:
-			res, err := http.Get(rpcUrl)
+			var result string
+			callErr := client.Call(&result, "web3_clientVersion")
 
-			if err != nil {
-				fmt.Printf("Error making request: %v\n", err)
-				continue
-			}
-			defer res.Body.Close()
-
-			client, err := rpc.Dial(rpcUrl)
-			if err != nil {
-				fmt.Printf("Error creating rpc client: %v\n", err)
+			if callErr != nil {
 				continue
 			}
 
-			return client, nil
+			if strings.HasPrefix(result, "anvil") {
+				return nil
+			}
+
+			return fmt.Errorf("unexpected client version: %s", result)
 		}
 	}
 }

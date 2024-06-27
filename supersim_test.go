@@ -10,6 +10,8 @@ import (
 
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	"github.com/ethereum-optimism/supersim/utils"
+
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 const (
@@ -33,7 +35,14 @@ func TestGenesisState(t *testing.T) {
 	}()
 
 	for _, l2ChainConfig := range DefaultConfig.l2Chains {
-		client, err := utils.WaitForAnvilClientToBeReady(fmt.Sprintf("http://127.0.0.1:%d", l2ChainConfig.Port), anvilClientTimeout)
+		rpcUrl := fmt.Sprintf("http://127.0.0.1:%d", l2ChainConfig.Port)
+		client, clientCreateErr := rpc.Dial(rpcUrl)
+
+		if clientCreateErr != nil {
+			t.Fatalf("Failed to create client: %v", clientCreateErr)
+		}
+
+		err := utils.WaitForAnvilClientToBeReady(client, anvilClientTimeout)
 		if err != nil {
 			t.Fatalf("Failed to connect to RPC server: %v", err)
 		}
