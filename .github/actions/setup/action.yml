@@ -3,9 +3,9 @@ runs:
   using: composite
   steps:
     - name: Setup Foundry
-    uses: foundry-rs/foundry-toolchain@v1
-    with:
-      version: nightly
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
 
     - name: Setup Go
       uses: actions/setup-go@v4
