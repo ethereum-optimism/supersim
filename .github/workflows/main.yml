@@ -23,45 +23,35 @@ jobs:
   contracts-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Setup
+        uses: ./.github/actions/setup
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-
       - name: Run Forge build
         run: |
-          forge --version
-          forge build --sizes --root ./contracts
+          just build-contracts
         id: build
 
       - name: Run Forge tests
         run: |
-          forge test -vvv --root ./contracts
+          just test-contracts
         id: test
   
   go-tests:
     runs-on: ubuntu-latest
     steps:
+      - name: Setup
+        uses: ./.github/actions/setup
+
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '^1.22'
 
       - name: Install dependencies
         run: go mod download
 
       - name: Run tests
-        run: go test ./... -v
+        run: just test-go
