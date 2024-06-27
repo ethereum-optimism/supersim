@@ -12,8 +12,9 @@ import (
 )
 
 type Config struct {
-	ChainId uint64
-	Port    uint64
+	ChainId     uint64
+	Port        uint64
+	GenesisPath string
 }
 
 type Anvil struct {
@@ -53,6 +54,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--host", "127.0.0.1",
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainId),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
+		"--init", fmt.Sprintf("%s", a.cfg.GenesisPath),
 	}
 
 	a.cmd = exec.CommandContext(a.resourceCtx, "anvil", args...)
