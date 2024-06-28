@@ -5,16 +5,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"sync/atomic"
+	"time"
 
+	"github.com/ethereum-optimism/supersim/utils"
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type Config struct {
-	ChainId     uint64
-	Port        uint64
-	GenesisPath string
+	ChainId uint64
+	Port    uint64
+	Genesis []byte
 }
 
 type Anvil struct {
@@ -29,6 +32,10 @@ type Anvil struct {
 	stopped   atomic.Bool
 	stoppedCh chan struct{}
 }
+
+const (
+	host = "127.0.0.1"
+)
 
 func New(log log.Logger, cfg *Config) *Anvil {
 	resCtx, resCancel := context.WithCancel(context.Background())
@@ -49,12 +56,23 @@ func (a *Anvil) Start(ctx context.Context) error {
 	anvilLog := a.log.New("chain.id", a.cfg.ChainId)
 	anvilLog.Info("starting anvil")
 
+	tempFile, err := os.CreateTemp("", "genesis-*.json")
+	if err != nil {
+		return fmt.Errorf("Error creating temporary genesis file: %v", err)
+	}
+	defer os.Remove(tempFile.Name())
+
+	_, err = tempFile.Write(a.cfg.Genesis)
+	if err != nil {
+		return fmt.Errorf("Error writing to genesis file: %v", err)
+	}
+
 	// Prep args
 	args := []string{
-		"--host", "127.0.0.1",
+		"--host", host,
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainId),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
-		"--init", fmt.Sprintf("%s", a.cfg.GenesisPath),
+		"--init", fmt.Sprintf("%s", tempFile.Name()),
 	}
 
 	a.cmd = exec.CommandContext(a.resourceCtx, "anvil", args...)
@@ -90,6 +108,11 @@ func (a *Anvil) Start(ctx context.Context) error {
 	if err := a.cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start anvil: %w", err)
 	}
+
+	if _, err := utils.WaitForAnvilClientToBeReady(fmt.Sprintf("http://%s:%d", host, a.cfg.Port), 5*time.Second); err != nil {
+		return fmt.Errorf("failed to start anvil: %w", err)
+	}
+
 	go func() {
 		if err := a.cmd.Wait(); err != nil {
 			anvilLog.Error("anvil terminated with an error", "error", err)

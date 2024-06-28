@@ -9,7 +9,7 @@ import (
 	"time"
 
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/supersim/testutils"
+	"github.com/ethereum-optimism/supersim/utils"
 )
 
 const (
@@ -27,7 +27,7 @@ func TestGenesisState(t *testing.T) {
 	defer supersim.Stop(context.Background())
 
 	for _, l2ChainConfig := range DefaultConfig.l2Chains {
-		client, err := testutils.WaitForAnvilClientToBeReady(fmt.Sprintf("http://127.0.0.1:%d", l2ChainConfig.Port), anvilClientTimeout)
+		client, err := utils.WaitForAnvilClientToBeReady(fmt.Sprintf("http://127.0.0.1:%d", l2ChainConfig.Port), anvilClientTimeout)
 		if err != nil {
 			t.Fatalf("Failed to connect to RPC server: %v", err)
 		}
