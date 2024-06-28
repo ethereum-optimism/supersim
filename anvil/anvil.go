@@ -8,9 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"sync/atomic"
-	"time"
 
-	"github.com/ethereum-optimism/supersim/utils"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -58,13 +56,12 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 	tempFile, err := os.CreateTemp("", "genesis-*.json")
 	if err != nil {
-		return fmt.Errorf("Error creating temporary genesis file: %v", err)
+		return fmt.Errorf("error creating temporary genesis file: %v", err)
 	}
-	defer os.Remove(tempFile.Name())
 
 	_, err = tempFile.Write(a.cfg.Genesis)
 	if err != nil {
-		return fmt.Errorf("Error writing to genesis file: %v", err)
+		return fmt.Errorf("error writing to genesis file: %v", err)
 	}
 
 	// Prep args
@@ -72,7 +69,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--host", host,
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainId),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
-		"--init", fmt.Sprintf("%s", tempFile.Name()),
+		"--init", tempFile.Name(),
 	}
 
 	a.cmd = exec.CommandContext(a.resourceCtx, "anvil", args...)
@@ -109,11 +106,9 @@ func (a *Anvil) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start anvil: %w", err)
 	}
 
-	if _, err := utils.WaitForAnvilClientToBeReady(fmt.Sprintf("http://%s:%d", host, a.cfg.Port), 5*time.Second); err != nil {
-		return fmt.Errorf("failed to start anvil: %w", err)
-	}
-
 	go func() {
+		defer os.Remove(tempFile.Name())
+
 		if err := a.cmd.Wait(); err != nil {
 			anvilLog.Error("anvil terminated with an error", "error", err)
 		} else {
@@ -140,4 +135,12 @@ func (a *Anvil) Stop() error {
 
 func (a *Anvil) Stopped() bool {
 	return a.stopped.Load()
+}
+
+func (a *Anvil) Endpoint() string {
+	return fmt.Sprintf("http://%s:%d", host, a.cfg.Port)
+}
+
+func (a *Anvil) ChainId() uint64 {
+	return a.cfg.ChainId
 }
