@@ -20,3 +20,16 @@ if ! command -v just > /dev/null 2>&1; then
 else
     echo "skipping just install, it already exists."
 fi
+
+##################
+#   Go Setup   #
+##################
+
+echo "Checking go setup"
+
+if ! command -v golangci-lint > /dev/null 2>&1; then
+    # binary will be $(go env GOPATH)/bin/golangci-lint
+    echo "Instaling golangci-lint"
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
+    golangci-lint --version
+fi

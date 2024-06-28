@@ -21,12 +21,13 @@ func WaitForAnvilClientToBeReady(rpcUrl string, timeout time.Duration) (*rpc.Cli
 		case <-ctx.Done():
 			return nil, fmt.Errorf("timed out waiting for response from %s", rpcUrl)
 		case <-ticker.C:
-			_, err := http.Get(rpcUrl)
+			res, err := http.Get(rpcUrl)
 
 			if err != nil {
 				fmt.Printf("Error making request: %v\n", err)
 				continue
 			}
+			defer res.Body.Close()
 
 			client, err := rpc.Dial(rpcUrl)
 			if err != nil {
