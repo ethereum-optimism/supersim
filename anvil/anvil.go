@@ -58,13 +58,13 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 	tempFile, err := os.CreateTemp("", "genesis-*.json")
 	if err != nil {
-		return fmt.Errorf("Error creating temporary genesis file: %v", err)
+		return fmt.Errorf("Error creating temporary genesis file: %w", err)
 	}
 	defer os.Remove(tempFile.Name())
 
 	_, err = tempFile.Write(a.cfg.Genesis)
 	if err != nil {
-		return fmt.Errorf("Error writing to genesis file: %v", err)
+		return fmt.Errorf("Error writing to genesis file: %w", err)
 	}
 
 	// Prep args
@@ -72,7 +72,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--host", host,
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainId),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
-		"--init", fmt.Sprintf("%s", tempFile.Name()),
+		"--init", tempFile.Name(),
 	}
 
 	a.cmd = exec.CommandContext(a.resourceCtx, "anvil", args...)

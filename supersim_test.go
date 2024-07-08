@@ -23,8 +23,14 @@ const (
 func TestGenesisState(t *testing.T) {
 	logger := oplog.NewLogger(os.Stderr, oplog.DefaultCLIConfig())
 	supersim := NewSupersim(logger, &DefaultConfig)
-	supersim.Start(context.Background())
-	defer supersim.Stop(context.Background())
+	_ = supersim.Start(context.Background())
+
+	defer func() {
+		err := supersim.Stop(context.Background())
+		if err != nil {
+			t.Fatalf("Failed to stop supersim: %v", err)
+		}
+	}()
 
 	for _, l2ChainConfig := range DefaultConfig.l2Chains {
 		client, err := utils.WaitForAnvilClientToBeReady(fmt.Sprintf("http://127.0.0.1:%d", l2ChainConfig.Port), anvilClientTimeout)
