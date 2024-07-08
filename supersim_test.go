@@ -38,7 +38,7 @@ func TestGenesisState(t *testing.T) {
 	}
 
 	for _, l2ChainConfig := range DefaultConfig.l2Chains {
-		rpcUrl := fmt.Sprintf("http://127.0.0.1:%d", l2ChainConfig.Port)
+		rpcUrl := fmt.Sprintf("http://127.0.0.1:%d", l2ChainConfig.opSimConfig.Port)
 		client, clientCreateErr := rpc.Dial(rpcUrl)
 
 		if clientCreateErr != nil {
