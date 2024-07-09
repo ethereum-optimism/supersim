@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -38,7 +39,8 @@ type Anvil struct {
 }
 
 const (
-	host = "127.0.0.1"
+	host                 = "127.0.0.1"
+	anvilListeningLogStr = "Listening on"
 )
 
 func New(log log.Logger, cfg *Config) *Anvil {
@@ -57,23 +59,23 @@ func (a *Anvil) Start(ctx context.Context) error {
 		return errors.New("anvil already started")
 	}
 
-	tempFile, err := os.CreateTemp("", "genesis-*.json")
-	if err != nil {
-		return fmt.Errorf("error creating temporary genesis file: %w", err)
-	}
-
-	_, err = tempFile.Write(a.cfg.Genesis)
-	if err != nil {
-		return fmt.Errorf("error writing to genesis file: %w", err)
-	}
-
-	// Prep args
 	args := []string{
-		"--silent",
+		//"--silent",
 		"--host", host,
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainId),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
-		"--init", tempFile.Name(),
+	}
+
+	if len(a.cfg.Genesis) > 0 {
+		tempFile, err := os.CreateTemp("", "genesis-*.json")
+		if err != nil {
+			return fmt.Errorf("error creating temporary genesis file: %w", err)
+		}
+		if _, err = tempFile.Write(a.cfg.Genesis); err != nil {
+			return fmt.Errorf("error writing to genesis file: %w", err)
+		}
+
+		args = append(args, "--init", tempFile.Name())
 	}
 
 	anvilLog := a.log.New("role", "anvil", "chain.id", a.cfg.ChainId)
@@ -83,6 +85,10 @@ func (a *Anvil) Start(ctx context.Context) error {
 		<-ctx.Done()
 		a.resourceCancel()
 	}()
+
+	// In the event anvil is started with port 0, we'll need to block
+	// and see what port anvil eventually binds to when started
+	anvilPortCh := make(chan uint64)
 
 	// Handle stdout/stderr
 	//  - TODO: Figure out best way to dump into logger. Some hex isn't showing appropriately
@@ -97,7 +103,17 @@ func (a *Anvil) Start(ctx context.Context) error {
 	go func() {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
-			anvilLog.Info(scanner.Text())
+			txt := scanner.Text()
+			anvilLog.Info(txt)
+
+			// scan for port if applicable
+			if a.cfg.Port == 0 && strings.HasPrefix(txt, anvilListeningLogStr) {
+				port, err := strconv.ParseInt(strings.Split(txt, ":")[1], 10, 64)
+				if err != nil {
+					panic(fmt.Errorf("unexpected anvil listening port log: %w", err))
+				}
+				anvilPortCh <- uint64(port)
+			}
 		}
 	}()
 	go func() {
@@ -112,16 +128,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start anvil: %w", err)
 	}
 
-	rpcClient, err := rpc.Dial(a.Endpoint())
-	if err != nil {
-		return fmt.Errorf("failed to create RPC client: %w", err)
-	}
-	a.rpcClient = rpcClient
-
 	go func() {
-		defer os.Remove(tempFile.Name())
-		defer a.rpcClient.Close()
-
 		if err := a.cmd.Wait(); err != nil {
 			anvilLog.Error("anvil terminated with an error", "error", err)
 		} else {
@@ -130,6 +137,23 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 		a.stoppedCh <- struct{}{}
 	}()
+
+	// wait & update the port if applicable. Since we're in the same routine to which `Start`
+	// is called, we're safe to overrwrite the `Port` field which the caller can observe
+	if a.cfg.Port == 0 {
+		done := ctx.Done()
+		select {
+		case a.cfg.Port = <-anvilPortCh:
+		case <-done:
+			return ctx.Err()
+		}
+	}
+
+	rpcClient, err := rpc.Dial(a.Endpoint())
+	if err != nil {
+		return fmt.Errorf("failed to create RPC client: %w", err)
+	}
+	a.rpcClient = rpcClient
 
 	return nil
 }
@@ -142,6 +166,7 @@ func (a *Anvil) Stop() error {
 		return nil // someone else stopped
 	}
 
+	a.rpcClient.Close()
 	a.resourceCancel()
 	<-a.stoppedCh
 	return nil
@@ -181,12 +206,9 @@ func (a *Anvil) WaitUntilReady(ctx context.Context) error {
 			return fmt.Errorf("timed out waiting for response from client")
 		case <-ticker.C:
 			var result string
-			callErr := a.rpcClient.Call(&result, "web3_clientVersion")
-
-			if callErr != nil {
+			if err := a.rpcClient.Call(&result, "web3_clientVersion"); err != nil {
 				continue
 			}
-
 			if strings.HasPrefix(result, "anvil") {
 				return nil
 			}

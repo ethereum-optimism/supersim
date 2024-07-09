@@ -9,11 +9,16 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync/atomic"
 
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum/go-ethereum/log"
+)
+
+const (
+	host = "127.0.0.1"
 )
 
 type Config struct {
@@ -30,10 +35,6 @@ type OpSimulator struct {
 	cfg *Config
 }
 
-const (
-	host = "127.0.0.1"
-)
-
 func New(log log.Logger, cfg *Config, anvil *anvil.Anvil) *OpSimulator {
 	return &OpSimulator{
 		log:   log,
@@ -47,17 +48,26 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("error creating reverse proxy: %w", err)
 	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/", proxy)
-	endpoint := net.JoinHostPort(host, strconv.Itoa(int(opSim.cfg.Port)))
 
-	hs, err := ophttp.StartHTTPServer(endpoint, mux)
+	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(host, fmt.Sprintf("%d", opSim.cfg.Port)), mux)
 	if err != nil {
 		return fmt.Errorf("failed to start HTTP RPC server: %w", err)
 	}
-	opSim.log.Info(fmt.Sprintf("listening on %v", endpoint), "chain.id", opSim.ChainId())
 
+	opSim.log.Info("started op-simulator", "chain.id", opSim.ChainId(), "addr", hs.Addr())
 	opSim.httpServer = hs
+
+	if opSim.cfg.Port == 0 {
+		port, err := strconv.ParseInt(strings.Split(hs.Addr().String(), ":")[1], 10, 64)
+		if err != nil {
+			panic(fmt.Errorf("unexpected op-simulator listening port: %w", err))
+		}
+
+		opSim.cfg.Port = uint64(port)
+	}
 
 	return nil
 }
