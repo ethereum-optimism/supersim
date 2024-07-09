@@ -3,6 +3,8 @@ package supersim
 import (
 	_ "embed"
 	"fmt"
+	"strings"
+	"sync"
 
 	"context"
 
@@ -41,8 +43,8 @@ func NewSupersim(log log.Logger, config *Config) *Supersim {
 	l1Chain := anvil.New(log, &config.l1Chain)
 
 	l2Chains := make(map[uint64]*anvil.Anvil)
-	for _, l2Chain := range config.l2Chains {
-		l2Chains[l2Chain.ChainId] = anvil.New(log, &l2Chain)
+	for _, l2ChainConfig := range config.l2Chains {
+		l2Chains[l2ChainConfig.ChainId] = anvil.New(log, &l2ChainConfig)
 	}
 
 	return &Supersim{log, l1Chain, l2Chains}
@@ -60,6 +62,13 @@ func (s *Supersim) Start(ctx context.Context) error {
 			return fmt.Errorf("l2 chain failed to start: %w", err)
 		}
 	}
+
+	if err := s.WaitUntilReady(); err != nil {
+		return fmt.Errorf("supersim failed to get ready: %w", err)
+	}
+
+	s.log.Info("supersim is ready")
+	s.log.Info(s.ConfigAsString())
 
 	return nil
 }
@@ -82,4 +91,53 @@ func (s *Supersim) Stop(_ context.Context) error {
 
 func (s *Supersim) Stopped() bool {
 	return s.l1Chain.Stopped()
+}
+
+func (s *Supersim) WaitUntilReady() error {
+	var once sync.Once
+	var err error
+	ctx, cancel := context.WithCancel(context.Background())
+
+	handleErr := func(e error) {
+		if e != nil {
+			once.Do(func() {
+				err = e
+				cancel()
+			})
+		}
+	}
+
+	var wg sync.WaitGroup
+
+	waitForAnvil := func(anvil *anvil.Anvil) {
+		defer wg.Done()
+		handleErr(anvil.WaitUntilReady(ctx))
+	}
+
+	wg.Add(1)
+	go waitForAnvil(s.l1Chain)
+
+	for _, l2Chain := range s.l2Chains {
+		wg.Add(1)
+		go waitForAnvil(l2Chain)
+	}
+
+	wg.Wait()
+
+	return err
+}
+
+func (s *Supersim) ConfigAsString() string {
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "\nSupersim Config:\n")
+	fmt.Fprintf(&b, "L1:\n")
+	fmt.Fprintf(&b, "  Chain ID: %d    RPC: %s\n", s.l1Chain.ChainId(), s.l1Chain.Endpoint())
+
+	fmt.Fprintf(&b, "L2:\n")
+	for _, l2Chain := range s.l2Chains {
+		fmt.Fprintf(&b, "  Chain ID: %d    RPC: %s\n", l2Chain.ChainId(), l2Chain.Endpoint())
+	}
+
+	return b.String()
 }
