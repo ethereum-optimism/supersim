@@ -86,6 +86,8 @@ func (s *Supersim) Start(ctx context.Context) error {
 		return fmt.Errorf("supersim failed to get ready: %w", err)
 	}
 
+	s.EnableLogging()
+
 	s.log.Info("supersim is ready")
 	s.log.Info(s.ConfigAsString())
 
@@ -165,17 +167,28 @@ func (s *Supersim) WaitUntilReady() error {
 		handleErr(anvil.WaitUntilReady(ctx))
 	}
 
-	wg.Add(1)
-	go waitForAnvil(s.l1Anvil)
-
-	for _, l2Anvil := range s.l2Anvils {
+	s.IterateChains(func(chain *anvil.Anvil) {
 		wg.Add(1)
-		go waitForAnvil(l2Anvil)
-	}
+		go waitForAnvil(chain)
+	})
 
 	wg.Wait()
 
 	return err
+}
+
+func (s *Supersim) EnableLogging() {
+	s.IterateChains(func(chain *anvil.Anvil) {
+		chain.EnableLogging()
+	})
+}
+
+func (s *Supersim) IterateChains(fn func(anvil *anvil.Anvil)) {
+	fn(s.l1Anvil)
+
+	for _, l2Anvil := range s.l2Anvils {
+		fn(l2Anvil)
+	}
 }
 
 func (s *Supersim) ConfigAsString() string {
