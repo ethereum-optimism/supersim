@@ -9,7 +9,6 @@ import (
 	"time"
 
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/supersim/utils"
 
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -25,7 +24,7 @@ const (
 func TestGenesisState(t *testing.T) {
 	logger := oplog.NewLogger(os.Stderr, oplog.DefaultCLIConfig())
 	supersim := NewSupersim(logger, &DefaultConfig)
-	_ = supersim.Start(context.Background())
+	err := supersim.Start(context.Background())
 
 	defer func() {
 		err := supersim.Stop(context.Background())
@@ -33,6 +32,10 @@ func TestGenesisState(t *testing.T) {
 			t.Fatalf("Failed to stop supersim: %v", err)
 		}
 	}()
+
+	if err != nil {
+		t.Fatalf("Failed to start supersim: %v", err)
+	}
 
 	for _, l2ChainConfig := range DefaultConfig.l2Chains {
 		rpcUrl := fmt.Sprintf("http://127.0.0.1:%d", l2ChainConfig.Port)
@@ -42,14 +45,10 @@ func TestGenesisState(t *testing.T) {
 			t.Fatalf("Failed to create client: %v", clientCreateErr)
 		}
 
-		err := utils.WaitForAnvilClientToBeReady(client, anvilClientTimeout)
-		if err != nil {
-			t.Fatalf("Failed to connect to RPC server: %v", err)
-		}
 		defer client.Close()
 
 		var code string
-		err = client.CallContext(context.Background(), &code, "eth_getCode", crossL2InboxAddress, "latest")
+		err := client.CallContext(context.Background(), &code, "eth_getCode", crossL2InboxAddress, "latest")
 		if err != nil {
 			log.Fatalf("Failed to get code: %v", err)
 		}

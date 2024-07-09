@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"context"
 
 	"github.com/ethereum-optimism/supersim/anvil"
-	"github.com/ethereum-optimism/supersim/utils"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -59,25 +57,17 @@ func (s *Supersim) Start(ctx context.Context) error {
 		return fmt.Errorf("l1 chain failed to start: %w", err)
 	}
 
-	var wg sync.WaitGroup
-	waitForAnvil := func(anvil *anvil.Anvil) {
-		defer wg.Done()
-		wg.Add(1)
-		utils.WaitForAnvilEndpointToBeReady(anvil.Endpoint(), 10*time.Second)
-	}
-
-	go waitForAnvil(s.l1Chain)
-
 	for _, l2Chain := range s.l2Chains {
 		if err := l2Chain.Start(ctx); err != nil {
 			return fmt.Errorf("l2 chain failed to start: %w", err)
 		}
-		go waitForAnvil(l2Chain)
 	}
 
-	wg.Wait()
+	if err := s.WaitUntilReady(); err != nil {
+		return fmt.Errorf("supersim failed to get ready: %w", err)
+	}
 
-	s.log.Info("Supersim is ready")
+	s.log.Info("supersim is ready")
 	s.log.Info(s.ConfigAsString())
 
 	return nil
@@ -101,6 +91,40 @@ func (s *Supersim) Stop(_ context.Context) error {
 
 func (s *Supersim) Stopped() bool {
 	return s.l1Chain.Stopped()
+}
+
+func (s *Supersim) WaitUntilReady() error {
+	var once sync.Once
+	var err error
+	ctx, cancel := context.WithCancel(context.Background())
+
+	handleErr := func(e error) {
+		if e != nil {
+			once.Do(func() {
+				err = e
+				cancel()
+			})
+		}
+	}
+
+	var wg sync.WaitGroup
+
+	waitForAnvil := func(anvil *anvil.Anvil) {
+		defer wg.Done()
+		handleErr(anvil.WaitUntilReady(ctx))
+	}
+
+	wg.Add(1)
+	go waitForAnvil(s.l1Chain)
+
+	for _, l2Chain := range s.l2Chains {
+		wg.Add(1)
+		go waitForAnvil(l2Chain)
+	}
+
+	wg.Wait()
+
+	return err
 }
 
 func (s *Supersim) ConfigAsString() string {

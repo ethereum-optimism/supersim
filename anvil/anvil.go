@@ -7,7 +7,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"sync/atomic"
+	"time"
+
+	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -141,6 +145,55 @@ func (a *Anvil) Endpoint() string {
 	return fmt.Sprintf("http://%s:%d", host, a.cfg.Port)
 }
 
+func (a *Anvil) WaitUntilReady(ctx context.Context) error {
+	return waitForAnvilEndpointToBeReady(ctx, a.Endpoint(), 10*time.Second)
+}
+
 func (a *Anvil) ChainId() uint64 {
 	return a.cfg.ChainId
+}
+
+func waitForAnvilEndpointToBeReady(ctx context.Context, endpoint string, timeout time.Duration) error {
+	client, err := rpc.Dial(endpoint)
+	if err != nil {
+		return fmt.Errorf("failed to create client: %w", err)
+	}
+
+	defer client.Close()
+
+	if err := waitForAnvilClientToBeReady(ctx, client, timeout); err != nil {
+		return fmt.Errorf("failed to connect to RPC server: %w", err)
+	}
+
+	return nil
+}
+
+func waitForAnvilClientToBeReady(ctx context.Context, client *rpc.Client, timeout time.Duration) error {
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("context cancelled")
+		case <-timeoutCtx.Done():
+			return fmt.Errorf("timed out waiting for response from client")
+		case <-ticker.C:
+			var result string
+			callErr := client.Call(&result, "web3_clientVersion")
+
+			if callErr != nil {
+				continue
+			}
+
+			if strings.HasPrefix(result, "anvil") {
+				return nil
+			}
+
+			return fmt.Errorf("unexpected client version: %s", result)
+		}
+	}
 }
