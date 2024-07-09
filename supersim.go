@@ -31,8 +31,20 @@ var genesisL1JSON []byte
 var genesisL2JSON []byte
 
 var DefaultConfig = Config{
-	l1Chain:  Chain{anvilConfig: anvil.Config{ChainId: 1, Port: 8545, Genesis: genesisL1JSON}, opSimConfig: op_simulator.Config{Port: 8546}},
-	l2Chains: []Chain{{anvilConfig: anvil.Config{ChainId: 10, Port: 9545, Genesis: genesisL2JSON}, opSimConfig: op_simulator.Config{Port: 9546}}, {anvilConfig: anvil.Config{ChainId: 30, Port: 9555, Genesis: genesisL2JSON}, opSimConfig: op_simulator.Config{Port: 9556}}},
+	l1Chain: Chain{
+		anvilConfig: anvil.Config{ChainId: 1, Port: 8545, Genesis: genesisL1JSON},
+		opSimConfig: op_simulator.Config{Port: 8546},
+	},
+	l2Chains: []Chain{
+		{
+			anvilConfig: anvil.Config{ChainId: 10, Port: 9545, Genesis: genesisL2JSON},
+			opSimConfig: op_simulator.Config{Port: 9546},
+		},
+		{
+			anvilConfig: anvil.Config{ChainId: 30, Port: 9555, Genesis: genesisL2JSON},
+			opSimConfig: op_simulator.Config{Port: 9556},
+		},
+	},
 }
 
 type Supersim struct {
