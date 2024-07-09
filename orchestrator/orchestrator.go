@@ -20,7 +20,10 @@ type ChainConfig struct {
 	ChainID uint64
 	// The base chain ID when the chain is a rollup.
 	// If set to 0, the chain is considered an L1 chain
-	SourceChainID uint64
+	SourceChainID  uint64
+	Accounts       uint64
+	Mnemonic       string
+	DerivationPath string
 }
 
 type OrchestratorConfig struct {
@@ -64,7 +67,7 @@ func NewOrchestrator(log log.Logger, config *OrchestratorConfig) (*Orchestrator,
 		if err != nil {
 			return nil, fmt.Errorf("unable to update chain id on %v", chainConfig.ChainID)
 		}
-		anvil := anvil.New(log, &anvil.Config{ChainID: chainConfig.ChainID, SourceChainID: chainConfig.SourceChainID, Genesis: updatedGenesis})
+		anvil := anvil.New(log, &anvil.Config{ChainID: chainConfig.ChainID, SourceChainID: chainConfig.SourceChainID, Genesis: updatedGenesis, Accounts: chainConfig.Accounts, Mnemonic: chainConfig.Mnemonic, DerivationPath: chainConfig.DerivationPath})
 		anvilInstances = append(anvilInstances, anvil)
 		// Only create Op Simulators for L2 chains.
 		if chainConfig.SourceChainID != 0 {
