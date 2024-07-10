@@ -13,7 +13,7 @@ import (
 )
 
 func TestAnvil(t *testing.T) {
-	cfg := Config{ChainId: 10, Port: 0}
+	cfg := Config{ChainID: 10, Port: 0}
 	testlog := testlog.Logger(t, log.LevelInfo)
 	anvil := New(testlog, &cfg)
 
@@ -28,5 +28,5 @@ func TestAnvil(t *testing.T) {
 	// query chainId
 	var chainId math.HexOrDecimal64
 	require.NoError(t, client.CallContext(context.Background(), &chainId, "eth_chainId"))
-	require.Equal(t, uint64(chainId), cfg.ChainId)
+	require.Equal(t, uint64(chainId), cfg.ChainID)
 }

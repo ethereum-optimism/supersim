@@ -22,7 +22,8 @@ const (
 )
 
 type Config struct {
-	Port uint64
+	Port          uint64
+	SourceChainID uint64
 }
 
 type OpSimulator struct {
@@ -57,7 +58,7 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start HTTP RPC server: %w", err)
 	}
 
-	opSim.log.Info("started op-simulator", "chain.id", opSim.ChainId(), "addr", hs.Addr())
+	opSim.log.Info("started op-simulator", "chain.id", opSim.ChainID(), "addr", hs.Addr())
 	opSim.httpServer = hs
 
 	if opSim.cfg.Port == 0 {
@@ -104,6 +105,16 @@ func (opSim *OpSimulator) Endpoint() string {
 	return fmt.Sprintf("http://%s:%d", host, opSim.cfg.Port)
 }
 
-func (opSim *OpSimulator) ChainId() uint64 {
-	return opSim.anvil.ChainId()
+func (opSim *OpSimulator) ChainID() uint64 {
+	return opSim.anvil.ChainID()
+}
+
+func (opSim *OpSimulator) SourceChainID() uint64 {
+	return opSim.cfg.SourceChainID
+}
+
+func (opSim *OpSimulator) String() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Chain ID: %d    RPC: %s    LogPath: %s", opSim.ChainID(), opSim.Endpoint(), opSim.anvil.LogPath())
+	return b.String()
 }
