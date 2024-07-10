@@ -98,8 +98,6 @@ func (s *Supersim) Start(ctx context.Context) error {
 		return fmt.Errorf("supersim failed to get ready: %w", err)
 	}
 
-	s.EnableLogging()
-
 	s.log.Info("supersim is ready")
 	s.log.Info(s.ConfigAsString())
 
@@ -183,12 +181,6 @@ func (s *Supersim) WaitUntilReady() error {
 	wg.Wait()
 
 	return err
-}
-
-func (s *Supersim) EnableLogging() {
-	s.IterateChains(func(chain *anvil.Anvil) {
-		chain.EnableLogging()
-	})
 }
 
 func (s *Supersim) IterateChains(fn func(anvil *anvil.Anvil)) {
