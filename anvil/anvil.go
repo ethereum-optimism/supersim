@@ -57,9 +57,6 @@ func (a *Anvil) Start(ctx context.Context) error {
 		return errors.New("anvil already started")
 	}
 
-	anvilLog := a.log.New("chain.id", a.cfg.ChainId)
-	anvilLog.Info("starting anvil")
-
 	tempFile, err := os.CreateTemp("", "genesis-*.json")
 	if err != nil {
 		return fmt.Errorf("error creating temporary genesis file: %w", err)
@@ -79,6 +76,8 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--init", tempFile.Name(),
 	}
 
+	anvilLog := a.log.New("role", "anvil", "chain.id", a.cfg.ChainId)
+	anvilLog.Info("starting anvil", "args", args)
 	a.cmd = exec.CommandContext(a.resourceCtx, "anvil", args...)
 	go func() {
 		<-ctx.Done()

@@ -2,14 +2,14 @@ package supersim
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"os"
 	"testing"
 	"time"
 
-	oplog "github.com/ethereum-optimism/optimism/op-service/log"
+	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/stretchr/testify/require"
 
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
@@ -21,57 +21,79 @@ const (
 	l1BlockAddress                    = "0x4200000000000000000000000000000000000015"
 )
 
-func TestGenesisState(t *testing.T) {
-	logger := oplog.NewLogger(os.Stderr, oplog.DefaultCLIConfig())
-	supersim := NewSupersim(logger, &DefaultConfig)
-	err := supersim.Start(context.Background())
+type TestSuite struct {
+	t *testing.T
 
-	defer func() {
-		err := supersim.Stop(context.Background())
-		if err != nil {
-			t.Fatalf("Failed to stop supersim: %v", err)
+	Cfg      *Config
+	Supersim *Supersim
+}
+
+func createTestSuite(t *testing.T) *TestSuite {
+	cfg := &DefaultConfig
+
+	testlog := testlog.Logger(t, log.LevelInfo)
+	supersim := NewSupersim(testlog, cfg)
+	t.Cleanup(func() {
+		if err := supersim.Stop(context.Background()); err != nil {
+			t.Errorf("failed to stop supersim: %s", err)
 		}
-	}()
+	})
 
-	if err != nil {
-		t.Fatalf("Failed to start supersim: %v", err)
+	if err := supersim.Start(context.Background()); err != nil {
+		t.Fatalf("unable to start supersim: %s", err)
+		return nil
 	}
 
-	for _, l2ChainConfig := range DefaultConfig.l2Chains {
-		rpcUrl := fmt.Sprintf("http://127.0.0.1:%d", l2ChainConfig.opSimConfig.Port)
-		client, clientCreateErr := rpc.Dial(rpcUrl)
+	return &TestSuite{
+		t:        t,
+		Cfg:      cfg,
+		Supersim: supersim,
+	}
+}
 
-		if clientCreateErr != nil {
-			t.Fatalf("Failed to create client: %v", clientCreateErr)
-		}
+func TestStartup(t *testing.T) {
+	testSuite := createTestSuite(t)
 
+	var chainId math.HexOrDecimal64
+
+	// test that all chains can be queried
+	l1Client, err := rpc.Dial(testSuite.Supersim.l1OpSim.Endpoint())
+	require.NoError(t, err)
+	require.NoError(t, l1Client.CallContext(context.Background(), &chainId, "eth_chainId"))
+	require.Equal(t, uint64(chainId), testSuite.Supersim.l1OpSim.ChainId())
+	l1Client.Close()
+
+	for id, l2Chain := range testSuite.Supersim.l2OpSims {
+		require.Equal(t, id, l2Chain.ChainId())
+
+		l2Client, err := rpc.Dial(l2Chain.Endpoint())
+		require.NoError(t, err)
+		require.NoError(t, l2Client.CallContext(context.Background(), &chainId, "eth_chainId"))
+
+		// Commented out due to a bug in foundry that sets the chain id to 1 whenever genesis.json file is supplied
+		//require.Equal(t, l2Chain.ChainId(), uint64(chainId))
+
+		l2Client.Close()
+	}
+}
+
+func TestGenesisState(t *testing.T) {
+	testSuite := createTestSuite(t)
+
+	// assert that the predeploys exists on the l2 anvil instances
+	for _, l2Chain := range testSuite.Supersim.l2OpSims {
+		client, err := rpc.Dial(l2Chain.Endpoint())
+		require.NoError(t, err)
 		defer client.Close()
 
 		var code string
-		err := client.CallContext(context.Background(), &code, "eth_getCode", crossL2InboxAddress, "latest")
-		if err != nil {
-			log.Fatalf("Failed to get code: %v", err)
-		}
+		require.NoError(t, client.CallContext(context.Background(), &code, "eth_getCode", crossL2InboxAddress, "latest"))
+		require.NotEqual(t, emptyCode, code, "CrossL2Inbox is not deployed")
 
-		if code == emptyCode {
-			t.Error("CrossL2Inbox is not deployed")
-		}
+		require.NoError(t, client.CallContext(context.Background(), &code, "eth_getCode", l2toL2CrossDomainMessengerAddress, "latest"))
+		require.NotEqual(t, emptyCode, code, "L2ToL2CrosSDomainMessenger is not deployed")
 
-		err = client.CallContext(context.Background(), &code, "eth_getCode", l2toL2CrossDomainMessengerAddress, "latest")
-		if err != nil {
-			log.Fatalf("Failed to get code: %v", err)
-		}
-		if code == emptyCode {
-			t.Error("L2toL2CrossDomainMessenger is not deployed")
-		}
-
-		err = client.CallContext(context.Background(), &code, "eth_getCode", l1BlockAddress, "latest")
-		if err != nil {
-			log.Fatalf("Failed to get code: %v", err)
-		}
-		if code == emptyCode {
-			t.Error("L1Block is not deployed")
-		}
+		require.NoError(t, client.CallContext(context.Background(), &code, "eth_getCode", l1BlockAddress, "latest"))
+		require.NotEqual(t, emptyCode, code, "L1Block is not deployed")
 	}
-
 }
