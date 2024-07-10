@@ -60,7 +60,6 @@ func (a *Anvil) Start(ctx context.Context) error {
 	}
 
 	args := []string{
-		"--silent",
 		"--host", host,
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainId),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
