@@ -19,7 +19,7 @@ func TestAnvil(t *testing.T) {
 
 	require.NoError(t, anvil.Start(context.Background()))
 
-	// port overriden on startup
+	// port overridden on startup
 	require.NotEqual(t, cfg.Port, 0)
 
 	client, err := rpc.Dial(anvil.Endpoint())
