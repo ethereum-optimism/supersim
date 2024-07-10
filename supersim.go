@@ -204,11 +204,11 @@ func (s *Supersim) ConfigAsString() string {
 
 	fmt.Fprintf(&b, "\nSupersim Config:\n")
 	fmt.Fprintf(&b, "L1:\n")
-	fmt.Fprintf(&b, "  Chain ID: %d    RPC: %s\n", s.l1OpSim.ChainId(), s.l1OpSim.Endpoint())
+	fmt.Fprintf(&b, "  Chain ID: %d     RPC: %s    LogPath: %s\n", s.l1OpSim.ChainId(), s.l1OpSim.Endpoint(), s.l1Anvil.LogPath())
 
 	fmt.Fprintf(&b, "L2:\n")
-	for _, l2OpSim := range s.l2OpSims {
-		fmt.Fprintf(&b, "  Chain ID: %d    RPC: %s\n", l2OpSim.ChainId(), l2OpSim.Endpoint())
+	for id, l2OpSim := range s.l2OpSims {
+		fmt.Fprintf(&b, "  Chain ID: %d    RPC: %s    LogPath: %s\n", l2OpSim.ChainId(), l2OpSim.Endpoint(), s.l2Anvils[id].LogPath())
 	}
 
 	return b.String()
