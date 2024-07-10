@@ -9,19 +9,19 @@ import (
 	"context"
 
 	"github.com/ethereum-optimism/supersim/anvil"
-	op_simulator "github.com/ethereum-optimism/supersim/op-simulator"
+	opsim "github.com/ethereum-optimism/supersim/op-simulator"
 
 	"github.com/ethereum/go-ethereum/log"
 )
 
 type Config struct {
-	l1Chain  Chain
-	l2Chains []Chain
+	l1Chain  ChainConfig
+	l2Chains []ChainConfig
 }
 
-type Chain struct {
+type ChainConfig struct {
 	anvilConfig anvil.Config
-	opSimConfig op_simulator.Config
+	opSimConfig opsim.Config
 }
 
 //go:embed genesis/genesis-l1.json
@@ -31,18 +31,18 @@ var genesisL1JSON []byte
 var genesisL2JSON []byte
 
 var DefaultConfig = Config{
-	l1Chain: Chain{
+	l1Chain: ChainConfig{
 		anvilConfig: anvil.Config{ChainId: 1, Port: 8545, Genesis: genesisL1JSON},
-		opSimConfig: op_simulator.Config{Port: 8546},
+		opSimConfig: opsim.Config{Port: 8546},
 	},
-	l2Chains: []Chain{
+	l2Chains: []ChainConfig{
 		{
 			anvilConfig: anvil.Config{ChainId: 10, Port: 9545, Genesis: genesisL2JSON},
-			opSimConfig: op_simulator.Config{Port: 9546},
+			opSimConfig: opsim.Config{Port: 9546},
 		},
 		{
 			anvilConfig: anvil.Config{ChainId: 30, Port: 9555, Genesis: genesisL2JSON},
-			opSimConfig: op_simulator.Config{Port: 9556},
+			opSimConfig: opsim.Config{Port: 9556},
 		},
 	},
 }
@@ -50,25 +50,27 @@ var DefaultConfig = Config{
 type Supersim struct {
 	log log.Logger
 
-	l1Anvil  *anvil.Anvil
+	l1Anvil *anvil.Anvil
+	l1OpSim *opsim.OpSimulator
+
 	l2Anvils map[uint64]*anvil.Anvil
-	l1OpSim  *op_simulator.OpSimulator
-	l2OpSims map[uint64]*op_simulator.OpSimulator
+	l2OpSims map[uint64]*opsim.OpSimulator
 }
 
 func NewSupersim(log log.Logger, config *Config) *Supersim {
 	l1Anvil := anvil.New(log, &config.l1Chain.anvilConfig)
-	l1OpSim := op_simulator.New(log, &config.l1Chain.opSimConfig, l1Anvil)
+	l1OpSim := opsim.New(log, &config.l1Chain.opSimConfig, l1Anvil)
 
 	l2Anvils := make(map[uint64]*anvil.Anvil)
-	l2OpSims := make(map[uint64]*op_simulator.OpSimulator)
-	for _, l2ChainConfig := range config.l2Chains {
+	l2OpSims := make(map[uint64]*opsim.OpSimulator)
+	for i := range config.l2Chains {
+		l2ChainConfig := config.l2Chains[i]
 		l2Anvil := anvil.New(log, &l2ChainConfig.anvilConfig)
 		l2Anvils[l2ChainConfig.anvilConfig.ChainId] = l2Anvil
-		l2OpSims[l2ChainConfig.anvilConfig.ChainId] = op_simulator.New(log, &l2ChainConfig.opSimConfig, l2Anvil)
+		l2OpSims[l2ChainConfig.anvilConfig.ChainId] = opsim.New(log, &l2ChainConfig.opSimConfig, l2Anvil)
 	}
 
-	return &Supersim{log, l1Anvil, l2Anvils, l1OpSim, l2OpSims}
+	return &Supersim{log, l1Anvil, l1OpSim, l2Anvils, l2OpSims}
 }
 
 func (s *Supersim) Start(ctx context.Context) error {
@@ -77,17 +79,15 @@ func (s *Supersim) Start(ctx context.Context) error {
 	if err := s.l1Anvil.Start(ctx); err != nil {
 		return fmt.Errorf("l1 anvil failed to start: %w", err)
 	}
+	if err := s.l1OpSim.Start(ctx); err != nil {
+		return fmt.Errorf("l1 op simulator failed to start: %w", err)
+	}
 
 	for _, l2Anvil := range s.l2Anvils {
 		if err := l2Anvil.Start(ctx); err != nil {
 			return fmt.Errorf("l2 anvil failed to start: %w", err)
 		}
 	}
-
-	if err := s.l1OpSim.Start(ctx); err != nil {
-		return fmt.Errorf("l1 op simulator failed to start: %w", err)
-	}
-
 	for _, l2OpSim := range s.l2OpSims {
 		if err := l2OpSim.Start(ctx); err != nil {
 			return fmt.Errorf("l2 op simulator failed to start: %w", err)
@@ -109,32 +109,35 @@ func (s *Supersim) Start(ctx context.Context) error {
 func (s *Supersim) Stop(ctx context.Context) error {
 	s.log.Info("stopping supersim")
 
+	for _, l2OpSim := range s.l2OpSims {
+		if err := l2OpSim.Stop(ctx); err != nil {
+			return fmt.Errorf("l2 op simulator failed to stop: %w", err)
+		}
+		s.log.Info("stopped op simulator", "chain.id", l2OpSim.ChainId())
+	}
 	for _, l2Anvil := range s.l2Anvils {
 		if err := l2Anvil.Stop(); err != nil {
 			return fmt.Errorf("l2 anvil failed to stop: %w", err)
 		}
 	}
 
-	if err := s.l1Anvil.Stop(); err != nil {
-		return fmt.Errorf("l1 anvil failed to stop: %w", err)
-	}
-
 	if err := s.l1OpSim.Stop(ctx); err != nil {
 		return fmt.Errorf("l1 op simulator failed to stop: %w", err)
 	}
-	s.log.Info("Stopped op simulator", "chain.id", s.l1OpSim.ChainId())
-
-	for _, l2OpSim := range s.l2OpSims {
-		if err := l2OpSim.Stop(ctx); err != nil {
-			return fmt.Errorf("l2 op simulator failed to stop: %w", err)
-		}
-		s.log.Info("Stopped op simulator", "chain.id", l2OpSim.ChainId())
+	if err := s.l1Anvil.Stop(); err != nil {
+		return fmt.Errorf("l1 anvil failed to stop: %w", err)
 	}
+	s.log.Info("stopped op simulator", "chain.id", s.l1OpSim.ChainId())
 
 	return nil
 }
 
 func (s *Supersim) Stopped() bool {
+	for _, l2OpSim := range s.l2OpSims {
+		if stopped := l2OpSim.Stopped(); !stopped {
+			return stopped
+		}
+	}
 	for _, l2Anvil := range s.l2Anvils {
 		if stopped := l2Anvil.Stopped(); !stopped {
 			return stopped
@@ -144,13 +147,6 @@ func (s *Supersim) Stopped() bool {
 	if stopped := s.l1Anvil.Stopped(); !stopped {
 		return stopped
 	}
-
-	for _, l2OpSim := range s.l2OpSims {
-		if stopped := l2OpSim.Stopped(); !stopped {
-			return stopped
-		}
-	}
-
 	if stopped := s.l1OpSim.Stopped(); !stopped {
 		return stopped
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -53,17 +54,26 @@ func createTestSuite(t *testing.T) *TestSuite {
 func TestStartup(t *testing.T) {
 	testSuite := createTestSuite(t)
 
-	// test that all chains can be queried
-	client, err := rpc.Dial(testSuite.Supersim.l1OpSim.Endpoint())
-	require.NoError(t, err)
-	require.NoError(t, client.CallContext(context.Background(), nil, "eth_chainId"))
-	client.Close()
+	var chainId math.HexOrDecimal64
 
-	for _, l2Chain := range testSuite.Supersim.l2OpSims {
-		client, err := rpc.Dial(l2Chain.Endpoint())
+	// test that all chains can be queried
+	l1Client, err := rpc.Dial(testSuite.Supersim.l1OpSim.Endpoint())
+	require.NoError(t, err)
+	require.NoError(t, l1Client.CallContext(context.Background(), &chainId, "eth_chainId"))
+	require.Equal(t, uint64(chainId), testSuite.Supersim.l1OpSim.ChainId())
+	l1Client.Close()
+
+	for id, l2Chain := range testSuite.Supersim.l2OpSims {
+		require.Equal(t, id, l2Chain.ChainId())
+
+		l2Client, err := rpc.Dial(l2Chain.Endpoint())
 		require.NoError(t, err)
-		require.NoError(t, client.CallContext(context.Background(), nil, "eth_chainId"))
-		client.Close()
+		require.NoError(t, l2Client.CallContext(context.Background(), &chainId, "eth_chainId"))
+
+		// Commented out due to a bug in foundry that sets the chain id to 1 whenever genesis.json file is supplied
+		//require.Equal(t, l2Chain.ChainId(), uint64(chainId))
+
+		l2Client.Close()
 	}
 }
 
@@ -78,12 +88,12 @@ func TestGenesisState(t *testing.T) {
 
 		var code string
 		require.NoError(t, client.CallContext(context.Background(), &code, "eth_getCode", crossL2InboxAddress, "latest"))
-		require.NotEqual(t, code, emptyCode, "CrossL2Inbox is not deployed")
+		require.NotEqual(t, emptyCode, code, "CrossL2Inbox is not deployed")
 
 		require.NoError(t, client.CallContext(context.Background(), &code, "eth_getCode", l2toL2CrossDomainMessengerAddress, "latest"))
-		require.NotEqual(t, code, emptyCode, "L2ToL2CrosSDomainMessenger is not deployed")
+		require.NotEqual(t, emptyCode, code, "L2ToL2CrosSDomainMessenger is not deployed")
 
 		require.NoError(t, client.CallContext(context.Background(), &code, "eth_getCode", l1BlockAddress, "latest"))
-		require.NotEqual(t, code, emptyCode, "L1Block is not deployed")
+		require.NotEqual(t, emptyCode, code, "L1Block is not deployed")
 	}
 }
