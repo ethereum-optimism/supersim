@@ -32,17 +32,17 @@ var genesisL2JSON []byte
 
 var DefaultConfig = Config{
 	l1Chain: ChainConfig{
-		anvilConfig: anvil.Config{ChainId: 1, Port: 8545, Genesis: genesisL1JSON},
-		opSimConfig: opsim.Config{Port: 8546},
+		anvilConfig: anvil.Config{ChainId: 1, Port: 0, Genesis: genesisL1JSON},
+		opSimConfig: opsim.Config{Port: 0},
 	},
 	l2Chains: []ChainConfig{
 		{
-			anvilConfig: anvil.Config{ChainId: 10, Port: 9545, Genesis: genesisL2JSON},
-			opSimConfig: opsim.Config{Port: 9546},
+			anvilConfig: anvil.Config{ChainId: 10, Port: 0, Genesis: genesisL2JSON},
+			opSimConfig: opsim.Config{Port: 0},
 		},
 		{
-			anvilConfig: anvil.Config{ChainId: 30, Port: 9555, Genesis: genesisL2JSON},
-			opSimConfig: opsim.Config{Port: 9556},
+			anvilConfig: anvil.Config{ChainId: 30, Port: 0, Genesis: genesisL2JSON},
+			opSimConfig: opsim.Config{Port: 0},
 		},
 	},
 }

@@ -30,7 +30,6 @@ type TestSuite struct {
 
 func createTestSuite(t *testing.T) *TestSuite {
 	cfg := &DefaultConfig
-
 	testlog := testlog.Logger(t, log.LevelInfo)
 	supersim := NewSupersim(testlog, cfg)
 	t.Cleanup(func() {
