@@ -1,4 +1,4 @@
-package op_simulator
+package opsimulator
 
 import (
 	"context"
@@ -58,13 +58,13 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start HTTP RPC server: %w", err)
 	}
 
-	opSim.log.Info("started op-simulator", "chain.id", opSim.ChainID(), "addr", hs.Addr())
+	opSim.log.Info("started opsimulator", "chain.id", opSim.ChainID(), "addr", hs.Addr())
 	opSim.httpServer = hs
 
 	if opSim.cfg.Port == 0 {
 		port, err := strconv.ParseInt(strings.Split(hs.Addr().String(), ":")[1], 10, 64)
 		if err != nil {
-			panic(fmt.Errorf("unexpected op-simulator listening port: %w", err))
+			panic(fmt.Errorf("unexpected opsimulator listening port: %w", err))
 		}
 
 		opSim.cfg.Port = uint64(port)

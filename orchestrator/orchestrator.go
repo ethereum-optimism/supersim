@@ -4,11 +4,13 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"math/big"
 	"strings"
 	"sync"
 
 	"github.com/ethereum-optimism/supersim/anvil"
-	op_simulator "github.com/ethereum-optimism/supersim/op-simulator"
+	genesisapplier "github.com/ethereum-optimism/supersim/genesisapplier"
+	opsimulator "github.com/ethereum-optimism/supersim/opsimulator"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -28,7 +30,7 @@ type OrchestratorConfig struct {
 type Orchestrator struct {
 	log log.Logger
 
-	OpSimInstances []*op_simulator.OpSimulator
+	OpSimInstances []*opsimulator.OpSimulator
 	anvilInstances []*anvil.Anvil
 }
 
@@ -39,7 +41,7 @@ var genesisL1JSON []byte
 var genesisL2JSON []byte
 
 func NewOrchestrator(log log.Logger, config *OrchestratorConfig) (*Orchestrator, error) {
-	var opSimInstances []*op_simulator.OpSimulator
+	var opSimInstances []*opsimulator.OpSimulator
 	var anvilInstances []*anvil.Anvil
 
 	l1Count := 0
@@ -58,11 +60,15 @@ func NewOrchestrator(log log.Logger, config *OrchestratorConfig) (*Orchestrator,
 		if chainConfig.SourceChainID == 0 {
 			genesis = genesisL1JSON
 		}
-		anvil := anvil.New(log, &anvil.Config{ChainID: chainConfig.ChainID, SourceChainID: chainConfig.SourceChainID, Genesis: genesis})
+		updatedGenesis, err := genesisapplier.UpdateGenesisWithConfig(genesis, genesisapplier.Config{ChainID: new(big.Int).SetUint64(chainConfig.ChainID)})
+		if err != nil {
+			return nil, fmt.Errorf("unable to update chain id on %v", chainConfig.ChainID)
+		}
+		anvil := anvil.New(log, &anvil.Config{ChainID: chainConfig.ChainID, SourceChainID: chainConfig.SourceChainID, Genesis: updatedGenesis})
 		anvilInstances = append(anvilInstances, anvil)
 		// Only create Op Simulators for L2 chains.
 		if chainConfig.SourceChainID != 0 {
-			opSimInstances = append(opSimInstances, op_simulator.New(log, &op_simulator.Config{Port: chainConfig.Port, SourceChainID: chainConfig.SourceChainID}, anvil))
+			opSimInstances = append(opSimInstances, opsimulator.New(log, &opsimulator.Config{Port: chainConfig.Port, SourceChainID: chainConfig.SourceChainID}, anvil))
 		}
 	}
 
