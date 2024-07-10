@@ -23,6 +23,8 @@ type Config struct {
 }
 
 type Anvil struct {
+	rpcClient *rpc.Client
+
 	log log.Logger
 
 	cfg *Config
@@ -70,6 +72,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 	// Prep args
 	args := []string{
+		"--silent",
 		"--host", host,
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainId),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
@@ -110,14 +113,22 @@ func (a *Anvil) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start anvil: %w", err)
 	}
 
+	rpcClient, err := rpc.Dial(a.Endpoint())
+	if err != nil {
+		return fmt.Errorf("failed to create RPC client: %w", err)
+	}
+	a.rpcClient = rpcClient
+
 	go func() {
 		defer os.Remove(tempFile.Name())
+		defer a.rpcClient.Close()
 
 		if err := a.cmd.Wait(); err != nil {
 			anvilLog.Error("anvil terminated with an error", "error", err)
 		} else {
 			anvilLog.Info("anvil terminated")
 		}
+
 		a.stoppedCh <- struct{}{}
 	}()
 
@@ -145,31 +156,19 @@ func (a *Anvil) Endpoint() string {
 	return fmt.Sprintf("http://%s:%d", host, a.cfg.Port)
 }
 
-func (a *Anvil) WaitUntilReady(ctx context.Context) error {
-	return waitForAnvilEndpointToBeReady(ctx, a.Endpoint(), 10*time.Second)
-}
-
 func (a *Anvil) ChainId() uint64 {
 	return a.cfg.ChainId
 }
 
-func waitForAnvilEndpointToBeReady(ctx context.Context, endpoint string, timeout time.Duration) error {
-	client, err := rpc.Dial(endpoint)
-	if err != nil {
-		return fmt.Errorf("failed to create client: %w", err)
+func (a *Anvil) EnableLogging() {
+	var result string
+	if err := a.rpcClient.Call(&result, "anvil_setLoggingEnabled", true); err != nil {
+		a.log.Error("failed to enable logging", "error", err)
 	}
-
-	defer client.Close()
-
-	if err := waitForAnvilClientToBeReady(ctx, client, timeout); err != nil {
-		return fmt.Errorf("failed to connect to RPC server: %w", err)
-	}
-
-	return nil
 }
 
-func waitForAnvilClientToBeReady(ctx context.Context, client *rpc.Client, timeout time.Duration) error {
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
+func (a *Anvil) WaitUntilReady(ctx context.Context) error {
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	ticker := time.NewTicker(100 * time.Millisecond)
@@ -183,7 +182,7 @@ func waitForAnvilClientToBeReady(ctx context.Context, client *rpc.Client, timeou
 			return fmt.Errorf("timed out waiting for response from client")
 		case <-ticker.C:
 			var result string
-			callErr := client.Call(&result, "web3_clientVersion")
+			callErr := a.rpcClient.Call(&result, "web3_clientVersion")
 
 			if callErr != nil {
 				continue
