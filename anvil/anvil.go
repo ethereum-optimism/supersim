@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -26,7 +27,8 @@ type Config struct {
 type Anvil struct {
 	rpcClient *rpc.Client
 
-	log log.Logger
+	log         log.Logger
+	logFilePath string
 
 	cfg *Config
 	cmd *exec.Cmd
@@ -90,7 +92,12 @@ func (a *Anvil) Start(ctx context.Context) error {
 	anvilPortCh := make(chan uint64)
 
 	// Handle stdout/stderr
-	//  - TODO: Figure out best way to dump into logger. Some hex isn't showing appropriately
+	logFile, err := os.CreateTemp("", fmt.Sprintf("anvil-chain-%d-", a.cfg.ChainId))
+	if err != nil {
+		return fmt.Errorf("failed to create temp log file: %w", err)
+	}
+	a.logFilePath = logFile.Name()
+
 	stdout, err := a.cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("failed to get handle on stdout: %w", err)
@@ -103,9 +110,11 @@ func (a *Anvil) Start(ctx context.Context) error {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			txt := scanner.Text()
-			anvilLog.Info(txt)
+			if _, err := fmt.Fprintln(logFile, txt); err != nil {
+				anvilLog.Warn("err piping stdout to log file", "err", err)
+			}
 
-			// scan for port if applicable
+			// If configured with port 0, extract the port from the log
 			if a.cfg.Port == 0 && strings.HasPrefix(txt, anvilListeningLogStr) {
 				port, err := strconv.ParseInt(strings.Split(txt, ":")[1], 10, 64)
 				if err != nil {
@@ -116,9 +125,8 @@ func (a *Anvil) Start(ctx context.Context) error {
 		}
 	}()
 	go func() {
-		scanner := bufio.NewScanner(stderr)
-		for scanner.Scan() {
-			anvilLog.Error(scanner.Text())
+		if _, err := io.Copy(logFile, stderr); err != nil {
+			anvilLog.Warn("err piping stderr to log file", "err", err)
 		}
 	}()
 
@@ -183,11 +191,8 @@ func (a *Anvil) ChainId() uint64 {
 	return a.cfg.ChainId
 }
 
-func (a *Anvil) EnableLogging() {
-	var result string
-	if err := a.rpcClient.Call(&result, "anvil_setLoggingEnabled", true); err != nil {
-		a.log.Error("failed to enable logging", "error", err)
-	}
+func (a *Anvil) LogPath() string {
+	return a.logFilePath
 }
 
 func (a *Anvil) WaitUntilReady(ctx context.Context) error {
