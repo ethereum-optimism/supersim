@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
+	"regexp"
+	"time"
 
 	"github.com/ethereum-optimism/supersim"
 
@@ -21,6 +25,10 @@ var (
 	GitCommit    = ""
 	GitDate      = ""
 	EnvVarPrefix = "SUPERSIM"
+)
+
+const (
+	minAnvilTimestamp = "2024-07-12T00:22:06.921038000Z"
 )
 
 func main() {
@@ -45,6 +53,15 @@ func main() {
 
 func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Lifecycle, error) {
 	log := oplog.NewLogger(oplog.AppOut(ctx), oplog.ReadCLIConfig(ctx))
+	ok, minAnvilErr := isMinAnvilInstalled(log)
+
+	if !ok {
+		return nil, fmt.Errorf("anvil version timestamp of %s or higher is required, please use foundryup to update to the latest version.", minAnvilTimestamp)
+	}
+
+	if minAnvilErr != nil {
+		return nil, fmt.Errorf("error determining installed anvil version: %w.", minAnvilErr)
+	}
 
 	_, err := supersim.ReadCLIConfig(ctx)
 	if err != nil {
@@ -58,4 +75,46 @@ func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Li
 	}
 
 	return s, nil
+}
+
+func isMinAnvilInstalled(log log.Logger) (bool, error) {
+	cmd := exec.Command("anvil", "--version")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return false, err
+	}
+
+	output := out.String()
+
+	// anvil does not use semver until 1.0.0 is released so using timestamp to determine version.
+	timestampRegex := regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z`)
+	timestamp := timestampRegex.FindString(output)
+
+	if timestamp == "" {
+		return false, fmt.Errorf("failed to parse anvil timestamp from anvil --version")
+	}
+
+	ok, dateErr := isTimestampGreaterOrEqual(timestamp, minAnvilTimestamp)
+	if dateErr != nil {
+		return false, dateErr
+	}
+
+	return ok, nil
+}
+
+// compares two timestamps in the format "YYYY-MM-DDTHH:MM:SS.sssZ".
+func isTimestampGreaterOrEqual(timestamp, minTimestamp string) (bool, error) {
+	parsedTimestamp, err := time.Parse(time.RFC3339Nano, timestamp)
+	if err != nil {
+		return false, fmt.Errorf("Error parsing timestamp: %w", err)
+	}
+
+	parsedMinTimestamp, err := time.Parse(time.RFC3339Nano, minTimestamp)
+	if err != nil {
+		return false, fmt.Errorf("Error parsing minimum required timestamp: %w", err)
+	}
+
+	return !parsedTimestamp.Before(parsedMinTimestamp), nil
 }
