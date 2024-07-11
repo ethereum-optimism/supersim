@@ -61,11 +61,20 @@ func TestStartup(t *testing.T) {
 		var chainId math.HexOrDecimal64
 		require.NoError(t, l2Client.CallContext(context.Background(), &chainId, "eth_chainId"))
 
-		// Commented out due to a bug in foundry that sets the chain id to 1 whenever genesis.json file is supplied
-		//require.Equal(t, l2Chain.ChainId(), uint64(chainId))
+		require.Equal(t, opSim.ChainID(), uint64(chainId))
 
 		l2Client.Close()
 	}
+
+	// test that l1 anvil can be queried
+	l1Client, err := rpc.Dial(testSuite.Supersim.Orchestrator.L1Anvil().Endpoint())
+	require.NoError(t, err)
+	var chainId math.HexOrDecimal64
+	require.NoError(t, l1Client.CallContext(context.Background(), &chainId, "eth_chainId"))
+
+	require.Equal(t, testSuite.Supersim.Orchestrator.L1Anvil().ChainID(), uint64(chainId))
+
+	l1Client.Close()
 }
 
 func TestGenesisState(t *testing.T) {
