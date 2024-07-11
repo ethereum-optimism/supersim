@@ -19,9 +19,10 @@ import (
 )
 
 type Config struct {
-	ChainId uint64
-	Port    uint64
-	Genesis []byte
+	ChainID       uint64
+	SourceChainID uint64
+	Port          uint64
+	Genesis       []byte
 }
 
 type Anvil struct {
@@ -63,7 +64,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 	args := []string{
 		"--host", host,
-		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainId),
+		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainID),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
 	}
 
@@ -79,7 +80,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		args = append(args, "--init", tempFile.Name())
 	}
 
-	anvilLog := a.log.New("role", "anvil", "chain.id", a.cfg.ChainId)
+	anvilLog := a.log.New("role", "anvil", "chain.id", a.cfg.ChainID)
 	anvilLog.Info("starting anvil", "args", args)
 	a.cmd = exec.CommandContext(a.resourceCtx, "anvil", args...)
 	go func() {
@@ -92,7 +93,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 	anvilPortCh := make(chan uint64)
 
 	// Handle stdout/stderr
-	logFile, err := os.CreateTemp("", fmt.Sprintf("anvil-chain-%d-", a.cfg.ChainId))
+	logFile, err := os.CreateTemp("", fmt.Sprintf("anvil-chain-%d-", a.cfg.ChainID))
 	if err != nil {
 		return fmt.Errorf("failed to create temp log file: %w", err)
 	}
@@ -187,8 +188,12 @@ func (a *Anvil) Endpoint() string {
 	return fmt.Sprintf("http://%s:%d", host, a.cfg.Port)
 }
 
-func (a *Anvil) ChainId() uint64 {
-	return a.cfg.ChainId
+func (a *Anvil) ChainID() uint64 {
+	return a.cfg.ChainID
+}
+
+func (a *Anvil) SourceChainID() uint64 {
+	return a.cfg.SourceChainID
 }
 
 func (a *Anvil) LogPath() string {
@@ -220,4 +225,10 @@ func (a *Anvil) WaitUntilReady(ctx context.Context) error {
 			return fmt.Errorf("unexpected client version: %s", result)
 		}
 	}
+}
+
+func (a *Anvil) String() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Chain ID: %d    RPC: %s    LogPath: %s", a.ChainID(), a.Endpoint(), a.LogPath())
+	return b.String()
 }

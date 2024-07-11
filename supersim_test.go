@@ -31,7 +31,7 @@ type TestSuite struct {
 func createTestSuite(t *testing.T) *TestSuite {
 	cfg := &DefaultConfig
 	testlog := testlog.Logger(t, log.LevelInfo)
-	supersim := NewSupersim(testlog, cfg)
+	supersim, _ := NewSupersim(testlog, cfg)
 	t.Cleanup(func() {
 		if err := supersim.Stop(context.Background()); err != nil {
 			t.Errorf("failed to stop supersim: %s", err)
@@ -53,20 +53,12 @@ func createTestSuite(t *testing.T) *TestSuite {
 func TestStartup(t *testing.T) {
 	testSuite := createTestSuite(t)
 
-	var chainId math.HexOrDecimal64
-
-	// test that all chains can be queried
-	l1Client, err := rpc.Dial(testSuite.Supersim.l1OpSim.Endpoint())
-	require.NoError(t, err)
-	require.NoError(t, l1Client.CallContext(context.Background(), &chainId, "eth_chainId"))
-	require.Equal(t, uint64(chainId), testSuite.Supersim.l1OpSim.ChainId())
-	l1Client.Close()
-
-	for id, l2Chain := range testSuite.Supersim.l2OpSims {
-		require.Equal(t, id, l2Chain.ChainId())
-
-		l2Client, err := rpc.Dial(l2Chain.Endpoint())
+	require.True(t, len(testSuite.Supersim.Orchestrator.OpSimInstances) > 0)
+	// test that all op simulators can be queried
+	for _, opSim := range testSuite.Supersim.Orchestrator.OpSimInstances {
+		l2Client, err := rpc.Dial(opSim.Endpoint())
 		require.NoError(t, err)
+		var chainId math.HexOrDecimal64
 		require.NoError(t, l2Client.CallContext(context.Background(), &chainId, "eth_chainId"))
 
 		// Commented out due to a bug in foundry that sets the chain id to 1 whenever genesis.json file is supplied
@@ -79,9 +71,10 @@ func TestStartup(t *testing.T) {
 func TestGenesisState(t *testing.T) {
 	testSuite := createTestSuite(t)
 
+	require.True(t, len(testSuite.Supersim.Orchestrator.OpSimInstances) > 0)
 	// assert that the predeploys exists on the l2 anvil instances
-	for _, l2Chain := range testSuite.Supersim.l2OpSims {
-		client, err := rpc.Dial(l2Chain.Endpoint())
+	for _, l2OpSim := range testSuite.Supersim.Orchestrator.OpSimInstances {
+		client, err := rpc.Dial(l2OpSim.Endpoint())
 		require.NoError(t, err)
 		defer client.Close()
 
