@@ -13,6 +13,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ethereum-optimism/supersim/chainapi"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -31,6 +36,8 @@ type Config struct {
 type Anvil struct {
 	rpcClient *rpc.Client
 
+	ethClient *ethclient.Client
+
 	log         log.Logger
 	logFilePath string
 
@@ -48,6 +55,8 @@ const (
 	host                 = "127.0.0.1"
 	anvilListeningLogStr = "Listening on"
 )
+
+var _ chainapi.Chain = &Anvil{}
 
 func New(log log.Logger, cfg *Config) *Anvil {
 	resCtx, resCancel := context.WithCancel(context.Background())
@@ -163,11 +172,13 @@ func (a *Anvil) Start(ctx context.Context) error {
 		}
 	}
 
-	rpcClient, err := rpc.Dial(a.Endpoint())
+	rpcClient, err := rpc.Dial(a.wsEndpoint())
 	if err != nil {
 		return fmt.Errorf("failed to create RPC client: %w", err)
 	}
 	a.rpcClient = rpcClient
+
+	a.ethClient = ethclient.NewClient(rpcClient)
 
 	return nil
 }
@@ -192,6 +203,10 @@ func (a *Anvil) Stopped() bool {
 
 func (a *Anvil) Endpoint() string {
 	return fmt.Sprintf("http://%s:%d", host, a.cfg.Port)
+}
+
+func (a *Anvil) wsEndpoint() string {
+	return fmt.Sprintf("ws://%s:%d", host, a.cfg.Port)
 }
 
 func (a *Anvil) ChainID() uint64 {
@@ -221,7 +236,9 @@ func (a *Anvil) WaitUntilReady(ctx context.Context) error {
 			return fmt.Errorf("timed out waiting for response from client")
 		case <-ticker.C:
 			var result string
-			if err := a.rpcClient.Call(&result, "web3_clientVersion"); err != nil {
+			result, err := a.Web3ClientVersion(ctx)
+
+			if err != nil {
 				continue
 			}
 			if strings.HasPrefix(result, "anvil") {
@@ -237,4 +254,27 @@ func (a *Anvil) String() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Chain ID: %d    RPC: %s    LogPath: %s", a.ChainID(), a.Endpoint(), a.LogPath())
 	return b.String()
+}
+
+// web3_ API
+func (a *Anvil) Web3ClientVersion(ctx context.Context) (string, error) {
+	var result string
+	if err := a.rpcClient.CallContext(ctx, &result, "web3_clientVersion"); err != nil {
+		return "", err
+	}
+	return result, nil
+}
+
+// eth_ API
+func (a *Anvil) EthGetLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
+	return a.ethClient.FilterLogs(ctx, q)
+}
+
+func (a *Anvil) EthSendTransaction(ctx context.Context, tx *types.Transaction) error {
+	return a.ethClient.SendTransaction(ctx, tx)
+}
+
+// subscription API
+func (a *Anvil) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
+	return a.ethClient.SubscribeFilterLogs(ctx, q, ch)
 }
