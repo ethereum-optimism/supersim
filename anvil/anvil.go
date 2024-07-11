@@ -19,10 +19,13 @@ import (
 )
 
 type Config struct {
-	ChainID       uint64
-	SourceChainID uint64
-	Port          uint64
-	Genesis       []byte
+	ChainID        uint64
+	SourceChainID  uint64
+	Port           uint64
+	Accounts       uint64
+	Mnemonic       string
+	DerivationPath string
+	Genesis        []byte
 }
 
 type Anvil struct {
@@ -64,6 +67,9 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 	args := []string{
 		"--host", host,
+		"--accounts", fmt.Sprintf("%d", a.cfg.Accounts),
+		"--mnemonic", a.cfg.Mnemonic,
+		"--derivation-path", a.cfg.DerivationPath,
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainID),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
 	}
