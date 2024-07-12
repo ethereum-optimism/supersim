@@ -23,6 +23,11 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
+type ForkConfig struct {
+	RPCUrl      string
+	BlockNumber uint64
+}
+
 type Config struct {
 	ChainID        uint64
 	SourceChainID  uint64
@@ -30,7 +35,10 @@ type Config struct {
 	Accounts       uint64
 	Mnemonic       string
 	DerivationPath string
-	Genesis        []byte
+
+	// Genesis is not applied if the fork config is set
+	Genesis    []byte
+	ForkConfig *ForkConfig
 }
 
 type Anvil struct {
@@ -83,7 +91,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
 	}
 
-	if len(a.cfg.Genesis) > 0 {
+	if len(a.cfg.Genesis) > 0 && a.cfg.ForkConfig == nil {
 		tempFile, err := os.CreateTemp("", "genesis-*.json")
 		if err != nil {
 			return fmt.Errorf("error creating temporary genesis file: %w", err)
@@ -91,12 +99,17 @@ func (a *Anvil) Start(ctx context.Context) error {
 		if _, err = tempFile.Write(a.cfg.Genesis); err != nil {
 			return fmt.Errorf("error writing to genesis file: %w", err)
 		}
-
 		args = append(args, "--init", tempFile.Name())
+	}
+	if a.cfg.ForkConfig != nil {
+		args = append(args,
+			"--fork-url", a.cfg.ForkConfig.RPCUrl,
+			"--fork-block-number", fmt.Sprintf("%d", a.cfg.ForkConfig.BlockNumber))
 	}
 
 	anvilLog := a.log.New("role", "anvil", "chain.id", a.cfg.ChainID)
-	anvilLog.Info("starting anvil", "args", args)
+	anvilLog.Debug("generated cmd arguments", "args", args)
+
 	a.cmd = exec.CommandContext(a.resourceCtx, "anvil", args...)
 	go func() {
 		<-ctx.Done()
@@ -112,7 +125,9 @@ func (a *Anvil) Start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create temp log file: %w", err)
 	}
+
 	a.logFilePath = logFile.Name()
+	anvilLog.Debug("piping logs to file", "file.path", a.logFilePath)
 
 	stdout, err := a.cmd.StdoutPipe()
 	if err != nil {
@@ -147,6 +162,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 	}()
 
 	// Start anvil
+	anvilLog.Info("starting anvil")
 	if err := a.cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start anvil: %w", err)
 	}

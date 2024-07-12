@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/supersim"
+	"github.com/ethereum-optimism/supersim/config"
 
 	"github.com/ethereum-optimism/optimism/op-service/cliapp"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
@@ -33,6 +34,7 @@ const (
 
 func main() {
 	oplog.SetupDefaults()
+	logFlags := oplog.CLIFlags(EnvVarPrefix)
 
 	app := cli.NewApp()
 	app.Version = params.VersionWithCommit(GitCommit, GitDate)
@@ -41,9 +43,18 @@ func main() {
 	app.Description = "Local multichain optimism development environment"
 	app.Action = cliapp.LifecycleCmd(SupersimMain)
 
-	logFlags := oplog.CLIFlags(EnvVarPrefix)
-	supersimFlags := supersim.CLIFlags(EnvVarPrefix)
-	app.Flags = append(logFlags, supersimFlags...)
+	// Vanilla mode has no specific flags for now
+	app.Flags = logFlags
+
+	// Subcommands
+	app.Commands = []*cli.Command{
+		{
+			Name:   config.ForkCommandName,
+			Usage:  "Locally fork a network in the superchain registry",
+			Flags:  append(config.ForkCLIFlags(EnvVarPrefix), logFlags...),
+			Action: cliapp.LifecycleCmd(SupersimMain),
+		},
+	}
 
 	ctx := opio.WithInterruptBlocker(context.Background())
 	if err := app.RunContext(ctx, os.Args); err != nil {
@@ -63,15 +74,15 @@ func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Li
 		return nil, fmt.Errorf("error determining installed anvil version: %w.", minAnvilErr)
 	}
 
-	_, err := supersim.ReadCLIConfig(ctx)
+	cfg, err := config.ReadCLIConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("invalid cli config: %w", err)
 	}
 
 	// use config and setup supersim
-	s, err := supersim.NewSupersim(log, &supersim.DefaultConfig)
+	s, err := supersim.NewSupersim(log, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create supersim")
+		return nil, fmt.Errorf("failed to create supersim: %w", err)
 	}
 
 	return s, nil
