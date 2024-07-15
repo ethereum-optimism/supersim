@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
-	"github.com/ethereum-optimism/supersim/anvil"
+	"github.com/ethereum-optimism/supersim/chainapi"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -28,7 +28,8 @@ type Config struct {
 
 type OpSimulator struct {
 	log        log.Logger
-	anvil      *anvil.Anvil
+	l1Chain    chainapi.Chain
+	l2Chain    chainapi.Chain
 	httpServer *ophttp.HTTPServer
 
 	stopped atomic.Bool
@@ -36,11 +37,12 @@ type OpSimulator struct {
 	cfg *Config
 }
 
-func New(log log.Logger, cfg *Config, anvil *anvil.Anvil) *OpSimulator {
+func New(log log.Logger, cfg *Config, l1Chain chainapi.Chain, l2Chain chainapi.Chain) *OpSimulator {
 	return &OpSimulator{
-		log:   log,
-		cfg:   cfg,
-		anvil: anvil,
+		log:     log,
+		cfg:     cfg,
+		l1Chain: l1Chain,
+		l2Chain: l2Chain,
 	}
 }
 
@@ -89,7 +91,7 @@ func (a *OpSimulator) Stopped() bool {
 }
 
 func (opSim *OpSimulator) createReverseProxy() (*httputil.ReverseProxy, error) {
-	targetURL, err := url.Parse(opSim.anvil.Endpoint())
+	targetURL, err := url.Parse(opSim.l2Chain.Endpoint())
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse target URL: %w", err)
 	}
@@ -106,7 +108,7 @@ func (opSim *OpSimulator) Endpoint() string {
 }
 
 func (opSim *OpSimulator) ChainID() uint64 {
-	return opSim.anvil.ChainID()
+	return opSim.l2Chain.ChainID()
 }
 
 func (opSim *OpSimulator) SourceChainID() uint64 {
@@ -115,6 +117,6 @@ func (opSim *OpSimulator) SourceChainID() uint64 {
 
 func (opSim *OpSimulator) String() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Chain ID: %d    RPC: %s    LogPath: %s", opSim.ChainID(), opSim.Endpoint(), opSim.anvil.LogPath())
+	fmt.Fprintf(&b, "Chain ID: %d    RPC: %s    LogPath: %s", opSim.ChainID(), opSim.Endpoint(), opSim.l2Chain.LogPath())
 	return b.String()
 }

@@ -33,8 +33,9 @@ type OrchestratorConfig struct {
 type Orchestrator struct {
 	log log.Logger
 
-	OpSimInstances []*opsimulator.OpSimulator
-	anvilInstances []*anvil.Anvil
+	OpSimInstances         []*opsimulator.OpSimulator
+	anvilInstances         []*anvil.Anvil
+	anvilInstanceByChainID map[uint64]*anvil.Anvil
 }
 
 //go:embed genesisstates/genesis-l1.json
@@ -58,6 +59,8 @@ func NewOrchestrator(log log.Logger, config *OrchestratorConfig) (*Orchestrator,
 		return nil, fmt.Errorf("supersim does not support more than one l1")
 	}
 
+	var anvilInstanceByChainID = make(map[uint64]*anvil.Anvil)
+	var l1Chain *anvil.Anvil
 	for _, chainConfig := range config.ChainConfigs {
 		genesis := genesisL2JSON
 		if chainConfig.SourceChainID == 0 {
@@ -69,13 +72,21 @@ func NewOrchestrator(log log.Logger, config *OrchestratorConfig) (*Orchestrator,
 		}
 		anvil := anvil.New(log, &anvil.Config{ChainID: chainConfig.ChainID, SourceChainID: chainConfig.SourceChainID, Genesis: updatedGenesis, Accounts: chainConfig.Accounts, Mnemonic: chainConfig.Mnemonic, DerivationPath: chainConfig.DerivationPath})
 		anvilInstances = append(anvilInstances, anvil)
-		// Only create Op Simulators for L2 chains.
-		if chainConfig.SourceChainID != 0 {
-			opSimInstances = append(opSimInstances, opsimulator.New(log, &opsimulator.Config{Port: chainConfig.Port, SourceChainID: chainConfig.SourceChainID}, anvil))
+		anvilInstanceByChainID[chainConfig.ChainID] = anvil
+
+		if chainConfig.SourceChainID == 0 {
+			l1Chain = anvil
 		}
 	}
 
-	return &Orchestrator{log, opSimInstances, anvilInstances}, nil
+	for _, chainConfig := range config.ChainConfigs {
+		// Only create Op Simulators for L2 chains.
+		if chainConfig.SourceChainID != 0 {
+			opSimInstances = append(opSimInstances, opsimulator.New(log, &opsimulator.Config{Port: chainConfig.Port, SourceChainID: chainConfig.SourceChainID}, l1Chain, anvilInstanceByChainID[chainConfig.ChainID]))
+		}
+	}
+
+	return &Orchestrator{log, opSimInstances, anvilInstances, anvilInstanceByChainID}, nil
 }
 
 func (o *Orchestrator) Start(ctx context.Context) error {
