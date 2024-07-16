@@ -54,6 +54,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.59
+          args: --timeout=5m
 
       - name: Install dependencies
         run: go mod download
