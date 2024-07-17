@@ -14,8 +14,8 @@ import (
 
 const blockTime = 2
 
-func ChainConfigsFromForkCLIConfig(cfg *config.ForkCLIConfig) ([]config.ChainConfig, error) {
-	superchain := registry.Superchains[cfg.Network]
+func ChainConfigsFromForkCLIConfig(forkConfig *config.ForkCLIConfig) ([]config.ChainConfig, error) {
+	superchain := registry.Superchains[forkConfig.Network]
 	chainConfigs := []config.ChainConfig{}
 
 	// L1
@@ -25,8 +25,8 @@ func ChainConfigsFromForkCLIConfig(cfg *config.ForkCLIConfig) ([]config.ChainCon
 	}
 
 	var l1ForkHeight *big.Int
-	if cfg.L1ForkHeight > 0 {
-		l1ForkHeight = new(big.Int).SetUint64(cfg.L1ForkHeight)
+	if forkConfig.L1ForkHeight > 0 {
+		l1ForkHeight = new(big.Int).SetUint64(forkConfig.L1ForkHeight)
 	}
 	l1Header, err := l1Client.HeaderByNumber(context.Background(), l1ForkHeight)
 	if err != nil {
@@ -34,9 +34,9 @@ func ChainConfigsFromForkCLIConfig(cfg *config.ForkCLIConfig) ([]config.ChainCon
 	}
 
 	chainConfigs = append(chainConfigs, config.ChainConfig{
-		Port:           0,
-		Name: cfg.Network,
-		ChainID:        superchain.Config.L1.ChainID,
+		Name:          forkConfig.Network,
+		Port:          0,
+		ChainID:       superchain.Config.L1.ChainID,
 		SecretsConfig: config.DefaultSecretsConfig,
 		ForkConfig: &config.ForkConfig{
 			RPCUrl:      superchain.Config.L1.PublicRPC,
@@ -45,7 +45,7 @@ func ChainConfigsFromForkCLIConfig(cfg *config.ForkCLIConfig) ([]config.ChainCon
 	})
 
 	// L2s
-	for _, chain := range cfg.Chains {
+	for _, chain := range forkConfig.Chains {
 		chainCfg := registry.OPChains[config.OpChainToId[chain]]
 		l2ForkHeight, err := latestL2HeightFromL1Header(chainCfg, l1Header)
 		if err != nil {
@@ -53,9 +53,9 @@ func ChainConfigsFromForkCLIConfig(cfg *config.ForkCLIConfig) ([]config.ChainCon
 		}
 
 		chainConfigs = append(chainConfigs, config.ChainConfig{
-			Name: chainCfg.Chain,
-			ChainID:        chainCfg.ChainID,
-			SourceChainID:  superchain.Config.L1.ChainID,
+			Name:          chainCfg.Chain,
+			ChainID:       chainCfg.ChainID,
+			SourceChainID: superchain.Config.L1.ChainID,
 			SecretsConfig: config.DefaultSecretsConfig,
 			ForkConfig: &config.ForkConfig{
 				RPCUrl:      chainCfg.PublicRPC,

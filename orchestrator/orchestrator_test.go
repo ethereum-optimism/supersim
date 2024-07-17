@@ -14,7 +14,7 @@ import (
 )
 
 type TestSuite struct {
-	t *testing.T
+	t            *testing.T
 	orchestrator *Orchestrator
 }
 
@@ -53,7 +53,7 @@ func TestStartup(t *testing.T) {
 }
 
 func TestTooManyL1sError(t *testing.T) {
-	chainConfigs := []config. ChainConfig{
+	chainConfigs := []config.ChainConfig{
 		{ChainID: 1, Port: 0},
 		{ChainID: 10, Port: 0},
 		{ChainID: 30, SourceChainID: 1, Port: 0},

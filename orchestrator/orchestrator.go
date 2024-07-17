@@ -50,7 +50,7 @@ func NewOrchestrator(log log.Logger, chainConfigs []config.ChainConfig) (*Orches
 	for _, chainConfig := range chainConfigs {
 		anvilConfig := &anvil.Config{ChainConfig: chainConfig}
 		if chainConfig.SourceChainID != 0 {
-			anvilConfig.Port = 0  // internally allocate anvil port as op-simulator port is exposed externally
+			anvilConfig.Port = 0 // internally allocate anvil port as op-simulator port is exposed externally
 		}
 
 		// Apply genesis if not forking from a live network

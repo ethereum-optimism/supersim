@@ -18,9 +18,8 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/rpc"
-
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 var _ config.Chain = &Anvil{}
@@ -34,7 +33,7 @@ type Config struct {
 	config.ChainConfig
 
 	// only applicable when ForkConfig is not set
-	Genesis    []byte
+	Genesis []byte
 }
 
 type Anvil struct {

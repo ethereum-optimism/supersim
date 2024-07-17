@@ -1,15 +1,15 @@
 package config
 
 import (
+	"context"
 	"fmt"
-	"context" 
 	"strings"
 
 	"github.com/ethereum-optimism/supersim/hdaccount"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum"
 )
 
 var (
@@ -20,23 +20,23 @@ var (
 	}
 
 	DefaultChainConfigs = []ChainConfig{
-			{
-				Name: "SourceChain",
-				ChainID:        1,
-				SecretsConfig: DefaultSecretsConfig,
-			},
-			{
-				Name: "OPChainA",
-				ChainID:        10,
-				SourceChainID:  1,
-				SecretsConfig: DefaultSecretsConfig,
-			},
-			{
-				Name: "OPChainB",
-				ChainID:        30,
-				SourceChainID:  1,
-				SecretsConfig: DefaultSecretsConfig,
-			},
+		{
+			Name:          "SourceChain",
+			ChainID:       1,
+			SecretsConfig: DefaultSecretsConfig,
+		},
+		{
+			Name:          "OPChainA",
+			ChainID:       10,
+			SourceChainID: 1,
+			SecretsConfig: DefaultSecretsConfig,
+		},
+		{
+			Name:          "OPChainB",
+			ChainID:       30,
+			SourceChainID: 1,
+			SecretsConfig: DefaultSecretsConfig,
+		},
 	}
 )
 

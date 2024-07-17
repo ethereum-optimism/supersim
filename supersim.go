@@ -1,12 +1,11 @@
 package supersim
 
 import (
+	"context"
 	"fmt"
 	"strings"
-	"context"
 
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
-
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/orchestrator"
 
@@ -14,7 +13,7 @@ import (
 )
 
 type Supersim struct {
-	log            log.Logger
+	log          log.Logger
 	Orchestrator *orchestrator.Orchestrator
 }
 
