@@ -1,9 +1,12 @@
 package opsimulator
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -37,6 +40,13 @@ type OpSimulator struct {
 	cfg *Config
 }
 
+type JSONRPCRequest struct {
+	Method  string        `json:"method"`
+	Params  []interface{} `json:"params"`
+	ID      int           `json:"id"`
+	JSONRPC string        `json:"jsonrpc"`
+}
+
 func New(log log.Logger, cfg *Config, l1Chain chainapi.Chain, l2Chain chainapi.Chain) *OpSimulator {
 	return &OpSimulator{
 		log:     log,
@@ -53,7 +63,7 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/", proxy)
+	mux.Handle("/", handler(proxy))
 
 	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(host, fmt.Sprintf("%d", opSim.cfg.Port)), mux)
 	if err != nil {
@@ -88,6 +98,39 @@ func (opSim *OpSimulator) Stop(ctx context.Context) error {
 
 func (a *OpSimulator) Stopped() bool {
 	return a.stopped.Load()
+}
+
+func handler(proxy *httputil.ReverseProxy) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+			return
+		}
+		defer r.Body.Close()
+
+		var req JSONRPCRequest
+		err = json.Unmarshal(body, &req)
+		if err != nil {
+			http.Error(w, "Failed to parse JSON-RPC request", http.StatusBadRequest)
+			return
+		}
+
+		// TODO(https://github.com/ethereum-optimism/supersim/issues/55): support batch txs
+
+		if req.Method == "eth_sendRawTransaction" {
+			checkInteropInvariants()
+		}
+
+		r.Body = io.NopCloser(bytes.NewReader(body))
+
+		proxy.ServeHTTP(w, r)
+	}
+}
+
+// TODO(https://github.com/ethereum-optimism/supersim/issues/19): add logic for checking that an interop transaction is valid.
+func checkInteropInvariants() bool {
+	return true
 }
 
 func (opSim *OpSimulator) createReverseProxy() (*httputil.ReverseProxy, error) {
