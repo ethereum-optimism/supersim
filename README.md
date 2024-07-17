@@ -29,7 +29,28 @@ How to run in vanilla mode:
 TODO: insert command
 
 ### Forked mode
-TODO
+Locally fork any of the available chains in a superchain network of the [superchain registry](https://github.com/ethereum-optimism/superchain-registry), default mainnet. The fork height is determined by L1 block height (default latest), which
+determines the maximum timestamp for the forked L2 state of each chains to create some level of consistency.
+
+Help Text:
+```
+NAME:
+   supersim fork - Locally fork a network in the superchain registry
+
+USAGE:
+   supersim fork [command options] [arguments...]
+
+OPTIONS:
+
+          --l1.fork.height value              (default: 0)                       ($SUPERSIM_L1_FORK_HEIGHT)
+                L1 height to fork the superchain (bounds L2 time). `0` for latest
+
+          --chains value                                                         ($SUPERSIM_CHAINS)
+                chains to fork in the superchain, mainnet options: [base, lyra, metal, mode, op, orderly, pgn, zora]
+
+          --network value                     (default: "mainnet")               ($SUPERSIM_NETWORK)
+                superchain network. options: mainnet, sepolia, sepolia-dev-0
+```
 
 ## Examples
 TODO

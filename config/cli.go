@@ -31,7 +31,7 @@ func ForkCLIFlags(envPrefix string) []cli.Flag {
 		},
 		&cli.StringSliceFlag{
 			Name:     ChainsFlagName,
-			Usage:    fmt.Sprintf("chains to fork in the superchain, mainnet network: [%s]", mainnetMembers),
+			Usage:    fmt.Sprintf("chains to fork in the superchain, mainnet options: [%s]", mainnetMembers),
 			Required: true,
 			EnvVars:  opservice.PrefixEnvVar(envPrefix, "CHAINS"),
 		},
