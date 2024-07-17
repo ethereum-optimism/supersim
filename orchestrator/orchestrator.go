@@ -9,70 +9,12 @@ import (
 	"sync"
 
 	"github.com/ethereum-optimism/supersim/anvil"
+	"github.com/ethereum-optimism/supersim/config"
 	genesisapplier "github.com/ethereum-optimism/supersim/genesisapplier"
 	opsimulator "github.com/ethereum-optimism/supersim/opsimulator"
 
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/log"
 )
-
-var (
-	DefaultAccounts       uint64                  = 10
-	DefaultMnemonic       string                  = "test test test test test test test test test test test junk"
-	DefaultDerivationPath accounts.DerivationPath = accounts.DefaultRootDerivationPath
-
-	DefaultConfig = &OrchestratorConfig{
-		ChainConfigs: []ChainConfig{
-			{
-				ChainID:        1,
-				Port:           0,
-				Accounts:       DefaultAccounts,
-				Mnemonic:       DefaultMnemonic,
-				DerivationPath: DefaultDerivationPath.String(),
-			},
-			{
-				ChainID:        10,
-				SourceChainID:  1,
-				Port:           0,
-				Accounts:       DefaultAccounts,
-				Mnemonic:       DefaultMnemonic,
-				DerivationPath: DefaultDerivationPath.String(),
-			},
-			{
-				ChainID:        30,
-				SourceChainID:  1,
-				Port:           0,
-				Accounts:       DefaultAccounts,
-				Mnemonic:       DefaultMnemonic,
-				DerivationPath: DefaultDerivationPath.String(),
-			},
-		},
-	}
-)
-
-type ForkConfig struct {
-	RPCUrl      string
-	BlockNumber uint64
-}
-
-type ChainConfig struct {
-	Port    uint64
-	ChainID uint64
-
-	// The base chain ID when the chain is a rollup.
-	// If set to 0, the chain is considered an L1 chain
-	SourceChainID uint64
-
-	Accounts       uint64
-	Mnemonic       string
-	DerivationPath string
-
-	ForkConfig *ForkConfig
-}
-
-type OrchestratorConfig struct {
-	ChainConfigs []ChainConfig
-}
 
 type Orchestrator struct {
 	log log.Logger
@@ -88,12 +30,12 @@ var genesisL1JSON []byte
 //go:embed genesisstates/genesis-l2.json
 var genesisL2JSON []byte
 
-func NewOrchestrator(log log.Logger, config *OrchestratorConfig) (*Orchestrator, error) {
+func NewOrchestrator(log log.Logger, chainConfigs []config.ChainConfig) (*Orchestrator, error) {
 	var opSimInstances []*opsimulator.OpSimulator
 	var anvilInstances []*anvil.Anvil
 
 	l1Count := 0
-	for _, config := range config.ChainConfigs {
+	for _, config := range chainConfigs {
 		if config.SourceChainID == 0 {
 			l1Count++
 		}
@@ -102,18 +44,17 @@ func NewOrchestrator(log log.Logger, config *OrchestratorConfig) (*Orchestrator,
 		return nil, fmt.Errorf("supersim does not support more than one l1")
 	}
 
+	// Spin up anvil instances
 	var l1Chain *anvil.Anvil
 	var anvilInstanceByChainID = make(map[uint64]*anvil.Anvil)
-	for _, chainConfig := range config.ChainConfigs {
-		anvilConfig := &anvil.Config{
-			ChainID:       chainConfig.ChainID,
-			SourceChainID: chainConfig.SourceChainID,
-			Accounts:      chainConfig.Accounts, Mnemonic: chainConfig.Mnemonic, DerivationPath: chainConfig.DerivationPath,
+	for _, chainConfig := range chainConfigs {
+		anvilConfig := &anvil.Config{ChainConfig: chainConfig}
+		if chainConfig.SourceChainID != 0 {
+			anvilConfig.Port = 0  // internally allocate anvil port as op-simulator port is exposed externally
 		}
 
-		if chainConfig.ForkConfig != nil {
-			anvilConfig.ForkConfig = &anvil.ForkConfig{RPCUrl: chainConfig.ForkConfig.RPCUrl, BlockNumber: chainConfig.ForkConfig.BlockNumber}
-		} else {
+		// Apply genesis if not forking from a live network
+		if chainConfig.ForkConfig == nil {
 			genesis := genesisL2JSON
 			if chainConfig.SourceChainID == 0 {
 				genesis = genesisL1JSON
@@ -129,16 +70,16 @@ func NewOrchestrator(log log.Logger, config *OrchestratorConfig) (*Orchestrator,
 		anvil := anvil.New(log, anvilConfig)
 		anvilInstances = append(anvilInstances, anvil)
 		anvilInstanceByChainID[chainConfig.ChainID] = anvil
-
 		if chainConfig.SourceChainID == 0 {
 			l1Chain = anvil
 		}
 	}
 
-	for _, chainConfig := range config.ChainConfigs {
-		// Only create Op Simulators for L2 chains.
+	// Create Op Simulators to front L2 chains.
+	for _, chainConfig := range chainConfigs {
 		if chainConfig.SourceChainID != 0 {
-			opSimInstances = append(opSimInstances, opsimulator.New(log, &opsimulator.Config{Port: chainConfig.Port, SourceChainID: chainConfig.SourceChainID}, l1Chain, anvilInstanceByChainID[chainConfig.ChainID]))
+			opSim := opsimulator.New(log, chainConfig.Port, l1Chain, anvilInstanceByChainID[chainConfig.ChainID])
+			opSimInstances = append(opSimInstances, opSim)
 		}
 	}
 
@@ -148,14 +89,14 @@ func NewOrchestrator(log log.Logger, config *OrchestratorConfig) (*Orchestrator,
 func (o *Orchestrator) Start(ctx context.Context) error {
 	o.log.Info("starting orchestrator")
 
-	for _, anvilInstance := range o.anvilInstances {
-		if err := anvilInstance.Start(ctx); err != nil {
-			return fmt.Errorf("anvil instance chain.id=%v failed to start: %w", anvilInstance.ChainID(), err)
+	for _, anvil := range o.anvilInstances {
+		if err := anvil.Start(ctx); err != nil {
+			return fmt.Errorf("anvil instance %s failed to start: %w", anvil.Name(), err)
 		}
 	}
-	for _, opSimInstance := range o.OpSimInstances {
-		if err := opSimInstance.Start(ctx); err != nil {
-			return fmt.Errorf("op simulator instance chain.id=%v failed to start: %w", opSimInstance.ChainID(), err)
+	for _, opSim := range o.OpSimInstances {
+		if err := opSim.Start(ctx); err != nil {
+			return fmt.Errorf("op simulator instance %s failed to start: %w", opSim.Name(), err)
 		}
 	}
 
@@ -163,8 +104,7 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		return fmt.Errorf("orchestrator failed to get ready: %w", err)
 	}
 
-	o.log.Info("orchestrator is ready")
-
+	o.log.Debug("orchestrator is ready")
 	return nil
 }
 
@@ -175,17 +115,16 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 		if err := opSim.Stop(ctx); err != nil {
 			return fmt.Errorf("op simulator chain.id=%v failed to stop: %w", opSim.ChainID(), err)
 		}
-		o.log.Info("stopped op simulator", "chain.id", opSim.ChainID())
+		o.log.Debug("stopped op simulator", "chain.id", opSim.ChainID())
 	}
 	for _, anvil := range o.anvilInstances {
 		if err := anvil.Stop(); err != nil {
 			return fmt.Errorf("anvil chain.id=%v failed to stop: %w", anvil.ChainID(), err)
 		}
-		o.log.Info("stopped anvil", "chain.id", anvil.ChainID())
+		o.log.Debug("stopped anvil", "chain.id", anvil.ChainID())
 	}
 
-	o.log.Info("stopped orchestrator")
-
+	o.log.Debug("stopped orchestrator")
 	return nil
 }
 
@@ -200,7 +139,6 @@ func (o *Orchestrator) Stopped() bool {
 			return stopped
 		}
 	}
-
 	return true
 }
 

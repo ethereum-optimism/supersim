@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum-optimism/supersim/chainapi"
+	"github.com/ethereum-optimism/supersim/config"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -23,22 +23,18 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-type ForkConfig struct {
-	RPCUrl      string
-	BlockNumber uint64
-}
+var _ config.Chain = &Anvil{}
+
+const (
+	host                 = "127.0.0.1"
+	anvilListeningLogStr = "Listening on"
+)
 
 type Config struct {
-	ChainID        uint64
-	SourceChainID  uint64
-	Port           uint64
-	Accounts       uint64
-	Mnemonic       string
-	DerivationPath string
+	config.ChainConfig
 
-	// Genesis is not applied if the fork config is set
+	// only applicable when ForkConfig is not set
 	Genesis    []byte
-	ForkConfig *ForkConfig
 }
 
 type Anvil struct {
@@ -59,13 +55,6 @@ type Anvil struct {
 	stoppedCh chan struct{}
 }
 
-const (
-	host                 = "127.0.0.1"
-	anvilListeningLogStr = "Listening on"
-)
-
-var _ chainapi.Chain = &Anvil{}
-
 func New(log log.Logger, cfg *Config) *Anvil {
 	resCtx, resCancel := context.WithCancel(context.Background())
 	return &Anvil{
@@ -84,9 +73,9 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 	args := []string{
 		"--host", host,
-		"--accounts", fmt.Sprintf("%d", a.cfg.Accounts),
-		"--mnemonic", a.cfg.Mnemonic,
-		"--derivation-path", a.cfg.DerivationPath,
+		"--accounts", fmt.Sprintf("%d", a.cfg.SecretsConfig.Accounts),
+		"--mnemonic", a.cfg.SecretsConfig.Mnemonic,
+		"--derivation-path", a.cfg.SecretsConfig.DerivationPath.String(),
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainID),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
 	}
@@ -107,7 +96,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 			"--fork-block-number", fmt.Sprintf("%d", a.cfg.ForkConfig.BlockNumber))
 	}
 
-	anvilLog := a.log.New("role", "anvil", "chain.id", a.cfg.ChainID)
+	anvilLog := a.log.New("role", "anvil", "name", a.cfg.Name, "chain.id", a.cfg.ChainID)
 	anvilLog.Debug("generated cmd arguments", "args", args)
 
 	a.cmd = exec.CommandContext(a.resourceCtx, "anvil", args...)
@@ -162,7 +151,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 	}()
 
 	// Start anvil
-	anvilLog.Info("starting anvil")
+	anvilLog.Debug("starting anvil")
 	if err := a.cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start anvil: %w", err)
 	}
@@ -171,7 +160,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		if err := a.cmd.Wait(); err != nil {
 			anvilLog.Error("anvil terminated with an error", "error", err)
 		} else {
-			anvilLog.Info("anvil terminated")
+			anvilLog.Debug("anvil terminated")
 		}
 
 		a.stoppedCh <- struct{}{}
@@ -193,9 +182,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to create RPC client: %w", err)
 	}
 	a.rpcClient = rpcClient
-
 	a.ethClient = ethclient.NewClient(rpcClient)
-
 	return nil
 }
 
@@ -223,6 +210,10 @@ func (a *Anvil) Endpoint() string {
 
 func (a *Anvil) wsEndpoint() string {
 	return fmt.Sprintf("ws://%s:%d", host, a.cfg.Port)
+}
+
+func (a *Anvil) Name() string {
+	return a.cfg.Name
 }
 
 func (a *Anvil) ChainID() uint64 {
@@ -268,7 +259,7 @@ func (a *Anvil) WaitUntilReady(ctx context.Context) error {
 
 func (a *Anvil) String() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Chain ID: %d    RPC: %s    LogPath: %s", a.ChainID(), a.Endpoint(), a.LogPath())
+	fmt.Fprintf(&b, "Name: %s    Chain ID: %d    RPC: %s    LogPath: %s", a.Name(), a.ChainID(), a.Endpoint(), a.LogPath())
 	return b.String()
 }
 

@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
-	"github.com/ethereum-optimism/supersim/chainapi"
+	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -24,20 +24,16 @@ const (
 	host = "127.0.0.1"
 )
 
-type Config struct {
-	Port          uint64
-	SourceChainID uint64
-}
-
 type OpSimulator struct {
-	log        log.Logger
-	l1Chain    chainapi.Chain
-	l2Chain    chainapi.Chain
+	log log.Logger
+
+	l1Chain config.Chain
+	l2Chain config.Chain
+
+	port       uint64
 	httpServer *ophttp.HTTPServer
 
 	stopped atomic.Bool
-
-	cfg *Config
 }
 
 type JSONRPCRequest struct {
@@ -47,10 +43,10 @@ type JSONRPCRequest struct {
 	JSONRPC string        `json:"jsonrpc"`
 }
 
-func New(log log.Logger, cfg *Config, l1Chain chainapi.Chain, l2Chain chainapi.Chain) *OpSimulator {
+func New(log log.Logger, port uint64, l1Chain config.Chain, l2Chain config.Chain) *OpSimulator {
 	return &OpSimulator{
 		log:     log,
-		cfg:     cfg,
+		port:    port,
 		l1Chain: l1Chain,
 		l2Chain: l2Chain,
 	}
@@ -65,21 +61,21 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.Handle("/", handler(proxy))
 
-	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(host, fmt.Sprintf("%d", opSim.cfg.Port)), mux)
+	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(host, fmt.Sprintf("%d", opSim.port)), mux)
 	if err != nil {
 		return fmt.Errorf("failed to start HTTP RPC server: %w", err)
 	}
 
-	opSim.log.Info("started opsimulator", "chain.id", opSim.ChainID(), "addr", hs.Addr())
+	opSim.log.Debug("started opsimulator", "name", opSim.Name(), "chain.id", opSim.ChainID(), "addr", hs.Addr())
 	opSim.httpServer = hs
 
-	if opSim.cfg.Port == 0 {
+	if opSim.port == 0 {
 		port, err := strconv.ParseInt(strings.Split(hs.Addr().String(), ":")[1], 10, 64)
 		if err != nil {
 			panic(fmt.Errorf("unexpected opsimulator listening port: %w", err))
 		}
 
-		opSim.cfg.Port = uint64(port)
+		opSim.port = uint64(port)
 	}
 
 	return nil
@@ -147,7 +143,11 @@ func (opSim *OpSimulator) createReverseProxy() (*httputil.ReverseProxy, error) {
 }
 
 func (opSim *OpSimulator) Endpoint() string {
-	return fmt.Sprintf("http://%s:%d", host, opSim.cfg.Port)
+	return fmt.Sprintf("http://%s:%d", host, opSim.port)
+}
+
+func (opSim *OpSimulator) Name() string {
+	return opSim.l2Chain.Name()
 }
 
 func (opSim *OpSimulator) ChainID() uint64 {
@@ -155,11 +155,11 @@ func (opSim *OpSimulator) ChainID() uint64 {
 }
 
 func (opSim *OpSimulator) SourceChainID() uint64 {
-	return opSim.cfg.SourceChainID
+	return opSim.l1Chain.ChainID()
 }
 
 func (opSim *OpSimulator) String() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Chain ID: %d    RPC: %s    LogPath: %s", opSim.ChainID(), opSim.Endpoint(), opSim.l2Chain.LogPath())
+	fmt.Fprintf(&b, "Name: %s    Chain ID: %d    RPC: %s    LogPath: %s", opSim.Name(), opSim.ChainID(), opSim.Endpoint(), opSim.l2Chain.LogPath())
 	return b.String()
 }
