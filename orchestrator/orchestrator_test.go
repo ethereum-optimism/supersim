@@ -4,29 +4,29 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ethereum-optimism/supersim/config"
+
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	"github.com/stretchr/testify/require"
 
 	"github.com/ethereum/go-ethereum/log"
+
+	"github.com/stretchr/testify/require"
 )
 
 type TestSuite struct {
 	t *testing.T
-
-	Cfg          *OrchestratorConfig
 	orchestrator *Orchestrator
 }
 
 func createTestSuite(t *testing.T) *TestSuite {
-	cfg := &OrchestratorConfig{
-		ChainConfigs: []ChainConfig{
-			{ChainID: 1, Port: 0},
-			{ChainID: 10, SourceChainID: 1, Port: 0},
-			{ChainID: 30, SourceChainID: 1, Port: 0},
-		},
+	chainConfigs := []config.ChainConfig{
+		{ChainID: 1, Port: 0},
+		{ChainID: 10, SourceChainID: 1, Port: 0},
+		{ChainID: 30, SourceChainID: 1, Port: 0},
 	}
+
 	testlog := testlog.Logger(t, log.LevelInfo)
-	orchestrator, _ := NewOrchestrator(testlog, cfg)
+	orchestrator, _ := NewOrchestrator(testlog, chainConfigs)
 	t.Cleanup(func() {
 		if err := orchestrator.Stop(context.Background()); err != nil {
 			t.Errorf("failed to stop orchestrator: %s", err)
@@ -38,11 +38,7 @@ func createTestSuite(t *testing.T) *TestSuite {
 		return nil
 	}
 
-	return &TestSuite{
-		t:            t,
-		Cfg:          cfg,
-		orchestrator: orchestrator,
-	}
+	return &TestSuite{t, orchestrator}
 }
 
 func TestStartup(t *testing.T) {
@@ -57,15 +53,13 @@ func TestStartup(t *testing.T) {
 }
 
 func TestTooManyL1sError(t *testing.T) {
-	cfg := &OrchestratorConfig{
-		ChainConfigs: []ChainConfig{
-			{ChainID: 1, Port: 0},
-			{ChainID: 10, Port: 0},
-			{ChainID: 30, SourceChainID: 1, Port: 0},
-		},
+	chainConfigs := []config. ChainConfig{
+		{ChainID: 1, Port: 0},
+		{ChainID: 10, Port: 0},
+		{ChainID: 30, SourceChainID: 1, Port: 0},
 	}
 
 	testlog := testlog.Logger(t, log.LevelInfo)
-	_, err := NewOrchestrator(testlog, cfg)
+	_, err := NewOrchestrator(testlog, chainConfigs)
 	require.Error(t, err)
 }

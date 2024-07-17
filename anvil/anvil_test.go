@@ -5,15 +5,17 @@ import (
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	"github.com/stretchr/testify/require"
+	"github.com/ethereum-optimism/supersim/config"
 
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestAnvil(t *testing.T) {
-	cfg := Config{ChainID: 10, Port: 0}
+	cfg := Config{config.ChainConfig{ChainID: 10, Port: 0}, nil}
 	testlog := testlog.Logger(t, log.LevelInfo)
 	anvil := New(testlog, &cfg)
 
