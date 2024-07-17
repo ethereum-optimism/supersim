@@ -64,6 +64,7 @@ func TestTooManyL1sError(t *testing.T) {
 			{ChainID: 30, SourceChainID: 1, Port: 0},
 		},
 	}
+
 	testlog := testlog.Logger(t, log.LevelInfo)
 	_, err := NewOrchestrator(testlog, cfg)
 	require.Error(t, err)

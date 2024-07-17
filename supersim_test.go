@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	"github.com/stretchr/testify/require"
+	"github.com/ethereum-optimism/supersim/config"
 
 	"github.com/ethereum/go-ethereum/common/math"
-
 	"github.com/ethereum/go-ethereum/log"
-
 	"github.com/ethereum/go-ethereum/rpc"
+
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -40,12 +40,12 @@ var defaultTestAccounts = [...]string{
 type TestSuite struct {
 	t *testing.T
 
-	Cfg      *Config
+	Cfg      *config.CLIConfig
 	Supersim *Supersim
 }
 
 func createTestSuite(t *testing.T) *TestSuite {
-	cfg := &DefaultConfig
+	cfg := &config.CLIConfig{} // does not run in fork mode
 	testlog := testlog.Logger(t, log.LevelInfo)
 	supersim, _ := NewSupersim(testlog, cfg)
 	t.Cleanup(func() {

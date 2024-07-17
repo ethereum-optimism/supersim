@@ -6,6 +6,8 @@ import (
 
 	"context"
 
+	registry "github.com/ethereum-optimism/superchain-registry/superchain"
+	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/hdaccount"
 	"github.com/ethereum-optimism/supersim/orchestrator"
 
@@ -13,46 +15,11 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 )
 
-type Config struct {
-	orchestratorConfig orchestrator.OrchestratorConfig
-}
-
 var (
 	DefaultAccounts       uint64                  = 10
 	DefaultMnemonic       string                  = "test test test test test test test test test test test junk"
 	DefaultDerivationPath accounts.DerivationPath = accounts.DefaultRootDerivationPath
 )
-
-var DefaultConfig = Config{
-	orchestratorConfig: orchestrator.OrchestratorConfig{
-
-		ChainConfigs: []orchestrator.ChainConfig{
-			{
-				ChainID:        1,
-				Port:           0,
-				Accounts:       DefaultAccounts,
-				Mnemonic:       DefaultMnemonic,
-				DerivationPath: DefaultDerivationPath.String(),
-			},
-			{
-				ChainID:        10,
-				SourceChainID:  1,
-				Port:           0,
-				Accounts:       DefaultAccounts,
-				Mnemonic:       DefaultMnemonic,
-				DerivationPath: DefaultDerivationPath.String(),
-			},
-			{
-				ChainID:        30,
-				SourceChainID:  1,
-				Port:           0,
-				Accounts:       DefaultAccounts,
-				Mnemonic:       DefaultMnemonic,
-				DerivationPath: DefaultDerivationPath.String(),
-			},
-		},
-	},
-}
 
 type Supersim struct {
 	log            log.Logger
@@ -61,14 +28,35 @@ type Supersim struct {
 	Orchestrator *orchestrator.Orchestrator
 }
 
-func NewSupersim(log log.Logger, config *Config) (*Supersim, error) {
+func NewSupersim(log log.Logger, config *config.CLIConfig) (*Supersim, error) {
 	hdAccountStore, err := hdaccount.NewHdAccountStore(DefaultMnemonic, DefaultDerivationPath)
 	if err != nil {
-		// TODO: update NewSupersim to return an error
 		return nil, fmt.Errorf("failed to create HD account store")
 	}
 
-	o, err := orchestrator.NewOrchestrator(log, &DefaultConfig.orchestratorConfig)
+	oConfig := orchestrator.DefaultConfig
+	if config.ForkConfig != nil {
+		superchain := registry.Superchains[config.ForkConfig.Network]
+		log.Info("generating fork configuration", "superchain", superchain.Superchain)
+
+		oConfig, err = orchestrator.ConfigFromForkCLIConfig(config.ForkConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct fork configuration: %w", err)
+		}
+
+		// log generated configuration
+		for _, chainCfg := range oConfig.ChainConfigs {
+			var name string
+			if chainCfg.ChainID == superchain.Config.L1.ChainID {
+				name = superchain.Superchain
+			} else {
+				name = registry.OPChains[chainCfg.ChainID].Chain
+			}
+			log.Info("fork configuration", "name", name, "chain.id", chainCfg.ChainID, "fork.height", chainCfg.ForkConfig.BlockNumber)
+		}
+	}
+
+	o, err := orchestrator.NewOrchestrator(log, oConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create orchestrator")
 	}
@@ -122,7 +110,7 @@ func (s *Supersim) ConfigAsString() string {
 		fmt.Fprintf(&b, "(%d): %s\n", i, privateKeyHex)
 	}
 
-	fmt.Fprintf(&b, "\nSupersim Config:\n")
+	fmt.Fprintf(&b, "\nOrchestrator Config:\n")
 	fmt.Fprint(&b, s.Orchestrator.ConfigAsString())
 
 	return b.String()
