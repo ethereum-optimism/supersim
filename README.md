@@ -30,7 +30,7 @@ TODO: insert command
 
 ### Forked mode
 Locally fork any of the available chains in a superchain network of the [superchain registry](https://github.com/ethereum-optimism/superchain-registry), default mainnet. The fork height is determined by L1 block height (default latest), which
-determines the maximum timestamp for the forked L2 state of each chains to create some level of consistency.
+determines the maximum timestamp for the forked L2 state of each chain to create some level of consistency.
 
 Help Text:
 ```
