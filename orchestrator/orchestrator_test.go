@@ -21,8 +21,8 @@ type TestSuite struct {
 func createTestSuite(t *testing.T) *TestSuite {
 	chainConfigs := []config.ChainConfig{
 		{ChainID: 1, Port: 0},
-		{ChainID: 10, SourceChainID: 1, Port: 0},
-		{ChainID: 30, SourceChainID: 1, Port: 0},
+		{ChainID: 10, Port: 0, L2Config: &config.L2Config{L1ChainID: 1}},
+		{ChainID: 30, Port: 0, L2Config: &config.L2Config{L1ChainID: 1}},
 	}
 
 	testlog := testlog.Logger(t, log.LevelInfo)
@@ -56,7 +56,7 @@ func TestTooManyL1sError(t *testing.T) {
 	chainConfigs := []config.ChainConfig{
 		{ChainID: 1, Port: 0},
 		{ChainID: 10, Port: 0},
-		{ChainID: 30, SourceChainID: 1, Port: 0},
+		{ChainID: 30, Port: 0, L2Config: &config.L2Config{L1ChainID: 1}},
 	}
 
 	testlog := testlog.Logger(t, log.LevelInfo)

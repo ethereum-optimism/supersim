@@ -4,13 +4,11 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"math/big"
 	"strings"
 	"sync"
 
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
-	genesisapplier "github.com/ethereum-optimism/supersim/genesisapplier"
 	opsimulator "github.com/ethereum-optimism/supersim/opsimulator"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -19,16 +17,12 @@ import (
 type Orchestrator struct {
 	log log.Logger
 
+	l1Anvil *anvil.Anvil
+
 	OpSimInstances         []*opsimulator.OpSimulator
 	anvilInstances         []*anvil.Anvil
 	anvilInstanceByChainID map[uint64]*anvil.Anvil
 }
-
-//go:embed genesisstates/genesis-l1.json
-var genesisL1JSON []byte
-
-//go:embed genesisstates/genesis-l2.json
-var genesisL2JSON []byte
 
 func NewOrchestrator(log log.Logger, chainConfigs []config.ChainConfig) (*Orchestrator, error) {
 	var opSimInstances []*opsimulator.OpSimulator
@@ -36,7 +30,7 @@ func NewOrchestrator(log log.Logger, chainConfigs []config.ChainConfig) (*Orches
 
 	l1Count := 0
 	for _, config := range chainConfigs {
-		if config.SourceChainID == 0 {
+		if config.L2Config == nil {
 			l1Count++
 		}
 	}
@@ -48,42 +42,33 @@ func NewOrchestrator(log log.Logger, chainConfigs []config.ChainConfig) (*Orches
 	var l1Chain *anvil.Anvil
 	var anvilInstanceByChainID = make(map[uint64]*anvil.Anvil)
 	for _, chainConfig := range chainConfigs {
-		anvilConfig := &anvil.Config{ChainConfig: chainConfig}
-		if chainConfig.SourceChainID != 0 {
+		anvilConfig := chainConfig
+		if chainConfig.L2Config != nil {
 			anvilConfig.Port = 0 // internally allocate anvil port as op-simulator port is exposed externally
 		}
 
 		// Apply genesis if not forking from a live network
 		if chainConfig.ForkConfig == nil {
-			genesis := genesisL2JSON
-			if chainConfig.SourceChainID == 0 {
-				genesis = genesisL1JSON
-			}
-
-			genesis, err := genesisapplier.UpdateGenesisWithConfig(genesis, genesisapplier.Config{ChainID: new(big.Int).SetUint64(chainConfig.ChainID)})
-			if err != nil {
-				return nil, fmt.Errorf("unable to apply genesis chains for chain %d, %w", chainConfig.ChainID, err)
-			}
-			anvilConfig.Genesis = genesis
+			anvilConfig.GenesisJSON = chainConfig.GenesisJSON
 		}
 
-		anvil := anvil.New(log, anvilConfig)
+		anvil := anvil.New(log, &anvilConfig)
 		anvilInstances = append(anvilInstances, anvil)
 		anvilInstanceByChainID[chainConfig.ChainID] = anvil
-		if chainConfig.SourceChainID == 0 {
+		if chainConfig.L2Config == nil {
 			l1Chain = anvil
 		}
 	}
 
 	// Create Op Simulators to front L2 chains.
 	for _, chainConfig := range chainConfigs {
-		if chainConfig.SourceChainID != 0 {
-			opSim := opsimulator.New(log, chainConfig.Port, l1Chain, anvilInstanceByChainID[chainConfig.ChainID])
+		if chainConfig.L2Config != nil {
+			opSim := opsimulator.New(log, chainConfig.Port, l1Chain, anvilInstanceByChainID[chainConfig.ChainID], chainConfig.L2Config)
 			opSimInstances = append(opSimInstances, opSim)
 		}
 	}
 
-	return &Orchestrator{log, opSimInstances, anvilInstances, anvilInstanceByChainID}, nil
+	return &Orchestrator{log, l1Chain, opSimInstances, anvilInstances, anvilInstanceByChainID}, nil
 }
 
 func (o *Orchestrator) Start(ctx context.Context) error {
@@ -182,14 +167,7 @@ func (o *Orchestrator) iterateAnvilInstances(fn func(anvil *anvil.Anvil)) {
 }
 
 func (o *Orchestrator) L1Anvil() *anvil.Anvil {
-	var result *anvil.Anvil
-	for _, anvil := range o.anvilInstances {
-		if anvil.SourceChainID() == 0 {
-			result = anvil
-		}
-	}
-
-	return result
+	return o.l1Anvil
 }
 
 func (o *Orchestrator) ConfigAsString() string {

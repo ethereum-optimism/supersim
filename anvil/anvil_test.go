@@ -15,7 +15,7 @@ import (
 )
 
 func TestAnvil(t *testing.T) {
-	cfg := Config{config.ChainConfig{ChainID: 10, Port: 0}, nil}
+	cfg := config.ChainConfig{ChainID: 10, Port: 0}
 	testlog := testlog.Logger(t, log.LevelInfo)
 	anvil := New(testlog, &cfg)
 

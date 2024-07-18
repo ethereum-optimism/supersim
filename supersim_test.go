@@ -93,6 +93,22 @@ func TestStartup(t *testing.T) {
 	l1Client.Close()
 }
 
+func TestL1GenesisState(t *testing.T) {
+	testSuite := createTestSuite(t)
+
+	require.True(t, len(testSuite.Supersim.Orchestrator.OpSimInstances) > 0)
+
+	for _, l2OpSim := range testSuite.Supersim.Orchestrator.OpSimInstances {
+
+		var code []byte
+		code, _ = testSuite.Supersim.Orchestrator.L1Anvil().EthGetCode(context.Background(), l2OpSim.L2Config.L1DeploymentAddresses.AddressManager)
+		require.NotEqual(t, emptyCode, code, "AddressManager is not deployed")
+
+		code, _ = testSuite.Supersim.Orchestrator.L1Anvil().EthGetCode(context.Background(), l2OpSim.L2Config.L1DeploymentAddresses.OptimismPortalProxy)
+		require.NotEqual(t, emptyCode, code, "OptimismPortalProxy is not deployed")
+	}
+}
+
 func TestGenesisState(t *testing.T) {
 	testSuite := createTestSuite(t)
 

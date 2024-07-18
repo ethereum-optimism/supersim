@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
+	"github.com/ethereum-optimism/supersim/genesisdeployment"
 	"github.com/ethereum-optimism/supersim/hdaccount"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -22,20 +25,29 @@ var (
 	DefaultChainConfigs = []ChainConfig{
 		{
 			Name:          "SourceChain",
-			ChainID:       1,
+			ChainID:       genesisdeployment.GeneratedGenesisDeployment.L1.ChainID,
 			SecretsConfig: DefaultSecretsConfig,
+			GenesisJSON:   genesisdeployment.GeneratedGenesisDeployment.L1.GenesisJSON,
 		},
 		{
 			Name:          "OPChainA",
-			ChainID:       10,
-			SourceChainID: 1,
+			ChainID:       genesisdeployment.GeneratedGenesisDeployment.L2s[0].ChainID,
 			SecretsConfig: DefaultSecretsConfig,
+			GenesisJSON:   genesisdeployment.GeneratedGenesisDeployment.L2s[0].GenesisJSON,
+			L2Config: &L2Config{
+				L1ChainID:             genesisdeployment.GeneratedGenesisDeployment.L1.ChainID,
+				L1DeploymentAddresses: genesisdeployment.GeneratedGenesisDeployment.L2s[0].L1DeploymentAddresses,
+			},
 		},
 		{
 			Name:          "OPChainB",
-			ChainID:       30,
-			SourceChainID: 1,
+			ChainID:       genesisdeployment.GeneratedGenesisDeployment.L2s[1].ChainID,
 			SecretsConfig: DefaultSecretsConfig,
+			GenesisJSON:   genesisdeployment.GeneratedGenesisDeployment.L2s[1].GenesisJSON,
+			L2Config: &L2Config{
+				L1ChainID:             genesisdeployment.GeneratedGenesisDeployment.L1.ChainID,
+				L1DeploymentAddresses: genesisdeployment.GeneratedGenesisDeployment.L2s[1].L1DeploymentAddresses,
+			},
 		},
 	}
 )
@@ -51,17 +63,27 @@ type SecretsConfig struct {
 	DerivationPath accounts.DerivationPath
 }
 
+type L2Config struct {
+	L1ChainID             uint64
+	L1DeploymentAddresses *genesis.L1Deployments
+}
+
 type ChainConfig struct {
 	Name string
 	Port uint64
 
-	ChainID       uint64
-	SourceChainID uint64 // "L1"
+	ChainID uint64
+
+	GenesisJSON []byte
 
 	SecretsConfig SecretsConfig
 
 	// Optional Config
 	ForkConfig *ForkConfig
+
+	// Optional Config
+	// Chain is an L1 chain if L2Config is nil
+	L2Config *L2Config
 }
 
 type Chain interface {
@@ -71,8 +93,10 @@ type Chain interface {
 	LogPath() string
 
 	// API methods
-	EthSendTransaction(ctx context.Context, tx *types.Transaction) error
+	EthGetCode(ctx context.Context, account common.Address) ([]byte, error)
 	EthGetLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error)
+	EthSendTransaction(ctx context.Context, tx *types.Transaction) error
+
 	SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error)
 }
 
