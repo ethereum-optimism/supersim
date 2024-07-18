@@ -1,67 +1,52 @@
 package supersim
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"context"
-
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/config"
-	"github.com/ethereum-optimism/supersim/hdaccount"
 	"github.com/ethereum-optimism/supersim/orchestrator"
 
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/log"
 )
 
-var (
-	DefaultAccounts       uint64                  = 10
-	DefaultMnemonic       string                  = "test test test test test test test test test test test junk"
-	DefaultDerivationPath accounts.DerivationPath = accounts.DefaultRootDerivationPath
-)
-
 type Supersim struct {
-	log            log.Logger
-	hdAccountStore *hdaccount.HdAccountStore
-
+	log          log.Logger
 	Orchestrator *orchestrator.Orchestrator
 }
 
-func NewSupersim(log log.Logger, config *config.CLIConfig) (*Supersim, error) {
-	hdAccountStore, err := hdaccount.NewHdAccountStore(DefaultMnemonic, DefaultDerivationPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create HD account store")
-	}
-
-	oConfig := orchestrator.DefaultConfig
-	if config.ForkConfig != nil {
-		superchain := registry.Superchains[config.ForkConfig.Network]
+func NewSupersim(log log.Logger, cliConfig *config.CLIConfig) (*Supersim, error) {
+	chainConfigs := config.DefaultChainConfigs
+	if cliConfig.ForkConfig != nil {
+		superchain := registry.Superchains[cliConfig.ForkConfig.Network]
 		log.Info("generating fork configuration", "superchain", superchain.Superchain)
 
-		oConfig, err = orchestrator.ConfigFromForkCLIConfig(config.ForkConfig)
+		var err error
+		chainConfigs, err = orchestrator.ChainConfigsFromForkCLIConfig(cliConfig.ForkConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to construct fork configuration: %w", err)
 		}
 
-		// log generated configuration
-		for _, chainCfg := range oConfig.ChainConfigs {
+		for _, chainCfg := range chainConfigs {
 			var name string
 			if chainCfg.ChainID == superchain.Config.L1.ChainID {
 				name = superchain.Superchain
 			} else {
 				name = registry.OPChains[chainCfg.ChainID].Chain
 			}
-			log.Info("fork configuration", "name", name, "chain.id", chainCfg.ChainID, "fork.height", chainCfg.ForkConfig.BlockNumber)
+
+			log.Info("forked chain config", "name", name, "chain.id", chainCfg.ChainID, "fork.height", chainCfg.ForkConfig.BlockNumber)
 		}
 	}
 
-	o, err := orchestrator.NewOrchestrator(log, oConfig)
+	o, err := orchestrator.NewOrchestrator(log, chainConfigs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create orchestrator")
 	}
 
-	return &Supersim{log, hdAccountStore, o}, nil
+	return &Supersim{log, o}, nil
 }
 
 func (s *Supersim) Start(ctx context.Context) error {
@@ -73,17 +58,16 @@ func (s *Supersim) Start(ctx context.Context) error {
 
 	s.log.Info("supersim is ready")
 	s.log.Info(s.ConfigAsString())
-
 	return nil
 }
 
 func (s *Supersim) Stop(ctx context.Context) error {
 	s.log.Info("stopping supersim")
-
 	if err := s.Orchestrator.Stop(ctx); err != nil {
 		return fmt.Errorf("orchestrator failed to stop: %w", err)
 	}
 
+	s.log.Info("stopped supersim")
 	return nil
 }
 
@@ -93,22 +77,7 @@ func (s *Supersim) Stopped() bool {
 
 func (s *Supersim) ConfigAsString() string {
 	var b strings.Builder
-
-	fmt.Fprintf(&b, "\n\nAvailable Accounts\n")
-	fmt.Fprintf(&b, "-----------------------\n")
-
-	for i := range DefaultAccounts {
-		addressHex, _ := s.hdAccountStore.AddressHexAt(uint32(i))
-		fmt.Fprintf(&b, "(%d): %s\n", i, addressHex)
-	}
-
-	fmt.Fprintf(&b, "\n\nPrivate Keys\n")
-	fmt.Fprintf(&b, "-----------------------\n")
-
-	for i := range DefaultAccounts {
-		privateKeyHex, _ := s.hdAccountStore.PrivateKeyHexAt(uint32(i))
-		fmt.Fprintf(&b, "(%d): %s\n", i, privateKeyHex)
-	}
+	fmt.Fprint(&b, config.DefaultSecretsConfigAsString())
 
 	fmt.Fprintf(&b, "\nOrchestrator Config:\n")
 	fmt.Fprint(&b, s.Orchestrator.ConfigAsString())

@@ -8,16 +8,18 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	optestutils "github.com/ethereum-optimism/optimism/op-service/testutils"
-	"github.com/stretchr/testify/require"
 
-	"github.com/ethereum-optimism/supersim/chainapi"
+	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/testutils"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+
+	"github.com/stretchr/testify/require"
 )
+
+var _ config.Chain = &MockChainWithSubscriptions{}
 
 func createMockDepositTxs() []*types.DepositTx {
 	num := 10
@@ -35,8 +37,6 @@ func createMockDepositTxs() []*types.DepositTx {
 	}
 	return out
 }
-
-var _ chainapi.Chain = &MockChainWithSubscriptions{}
 
 type MockChainWithSubscriptions struct {
 	*testutils.MockChain

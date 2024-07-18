@@ -6,7 +6,8 @@ import (
 	"fmt"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/supersim/chainapi"
+	"github.com/ethereum-optimism/supersim/config"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 
@@ -32,7 +33,7 @@ func (d *DepositTxSubscription) Err() <-chan error {
 }
 
 // transforms Deposit event logs into DepositTx
-func SubscribeDepositTx(ctx context.Context, l1Chain chainapi.Chain, depositContractAddr common.Address, ch chan<- *types.DepositTx) (ethereum.Subscription, error) {
+func SubscribeDepositTx(ctx context.Context, l1Chain config.Chain, depositContractAddr common.Address, ch chan<- *types.DepositTx) (ethereum.Subscription, error) {
 	f := ethereum.FilterQuery{
 		Addresses: []common.Address{depositContractAddr},
 		Topics:    [][]common.Hash{{derive.DepositEventABIHash}},

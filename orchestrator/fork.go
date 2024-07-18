@@ -14,9 +14,9 @@ import (
 
 const blockTime = 2
 
-func ConfigFromForkCLIConfig(cfg *config.ForkCLIConfig) (*OrchestratorConfig, error) {
-	superchain := registry.Superchains[cfg.Network]
-	chains := []ChainConfig{}
+func ChainConfigsFromForkCLIConfig(forkConfig *config.ForkCLIConfig) ([]config.ChainConfig, error) {
+	superchain := registry.Superchains[forkConfig.Network]
+	chainConfigs := []config.ChainConfig{}
 
 	// L1
 	l1Client, err := ethclient.Dial(superchain.Config.L1.PublicRPC)
@@ -25,51 +25,49 @@ func ConfigFromForkCLIConfig(cfg *config.ForkCLIConfig) (*OrchestratorConfig, er
 	}
 
 	var l1ForkHeight *big.Int
-	if cfg.L1ForkHeight > 0 {
-		l1ForkHeight = new(big.Int).SetUint64(cfg.L1ForkHeight)
+	if forkConfig.L1ForkHeight > 0 {
+		l1ForkHeight = new(big.Int).SetUint64(forkConfig.L1ForkHeight)
 	}
 	l1Header, err := l1Client.HeaderByNumber(context.Background(), l1ForkHeight)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve L1 header: %w", err)
 	}
 
-	chains = append(chains, ChainConfig{
-		Port:           0,
-		ChainID:        superchain.Config.L1.ChainID,
-		Accounts:       DefaultAccounts,
-		Mnemonic:       DefaultMnemonic,
-		DerivationPath: DefaultDerivationPath.String(),
-		ForkConfig: &ForkConfig{
+	chainConfigs = append(chainConfigs, config.ChainConfig{
+		Name:          forkConfig.Network,
+		Port:          0,
+		ChainID:       superchain.Config.L1.ChainID,
+		SecretsConfig: config.DefaultSecretsConfig,
+		ForkConfig: &config.ForkConfig{
 			RPCUrl:      superchain.Config.L1.PublicRPC,
 			BlockNumber: l1Header.Number.Uint64(),
 		},
 	})
 
 	// L2s
-	for _, chain := range cfg.Chains {
+	for _, chain := range forkConfig.Chains {
 		chainCfg := registry.OPChains[config.OpChainToId[chain]]
-		l2ForkHeight, err := LatestL2HeightFromL1Header(chainCfg, l1Header)
+		l2ForkHeight, err := latestL2HeightFromL1Header(chainCfg, l1Header)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find right l2 height: %w", err)
 		}
 
-		chains = append(chains, ChainConfig{
-			ChainID:        chainCfg.ChainID,
-			SourceChainID:  superchain.Config.L1.ChainID,
-			Accounts:       DefaultAccounts,
-			Mnemonic:       DefaultMnemonic,
-			DerivationPath: DefaultDerivationPath.String(),
-			ForkConfig: &ForkConfig{
+		chainConfigs = append(chainConfigs, config.ChainConfig{
+			Name:          chainCfg.Chain,
+			ChainID:       chainCfg.ChainID,
+			SourceChainID: superchain.Config.L1.ChainID,
+			SecretsConfig: config.DefaultSecretsConfig,
+			ForkConfig: &config.ForkConfig{
 				RPCUrl:      chainCfg.PublicRPC,
 				BlockNumber: l2ForkHeight,
 			},
 		})
 	}
 
-	return &OrchestratorConfig{chains}, nil
+	return chainConfigs, nil
 }
 
-func LatestL2HeightFromL1Header(l2Cfg *registry.ChainConfig, l1Header *types.Header) (uint64, error) {
+func latestL2HeightFromL1Header(l2Cfg *registry.ChainConfig, l1Header *types.Header) (uint64, error) {
 	if l1Header.Time < l2Cfg.Genesis.L2Time {
 		return 0, fmt.Errorf("l1 height precedes l2 genesis time for chain %s", l2Cfg.Chain)
 	}

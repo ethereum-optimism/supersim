@@ -3,11 +3,13 @@ package testutils
 import (
 	"context"
 
-	"github.com/ethereum-optimism/supersim/chainapi"
+	"github.com/ethereum-optimism/supersim/config"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/types"
 )
+
+var _ config.Chain = &MockChain{}
 
 type MockSubscription struct{}
 
@@ -17,13 +19,15 @@ func (s *MockSubscription) Err() <-chan error {
 	return make(<-chan error)
 }
 
-var _ chainapi.Chain = &MockChain{}
-
 type MockChain struct {
 }
 
 func NewMockChain() *MockChain {
 	return &MockChain{}
+}
+
+func (c *MockChain) Name() string {
+	return "mockchain"
 }
 
 func (c *MockChain) ChainID() uint64 {
