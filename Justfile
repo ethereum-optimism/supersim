@@ -18,3 +18,20 @@ test-go:
 
 start:
     go run ./...
+
+clean-lib:
+    rm -rf lib
+
+checkout-optimism-monorepo:
+    rm -rf lib/optimism
+    mkdir -p lib/optimism && \
+    cd lib/optimism && \
+    git init && \
+    git remote add origin https://github.com/ethereum-optimism/optimism.git && \
+    git fetch --depth=1 origin 9001eef4784dc2950d0bdcda29752cb2939bae2b && \
+    git reset --hard FETCH_HEAD && \
+    git submodule update --init --recursive && \
+    make cannon-prestate
+
+generate-genesis: checkout-optimism-monorepo
+    python3 scripts/generate-genesis.py
