@@ -3,11 +3,13 @@ package supersim
 import (
 	"context"
 	"math/big"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	opbindings "github.com/ethereum-optimism/optimism/op-e2e/bindings"
+	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
@@ -15,10 +17,13 @@ import (
 	"github.com/ethereum-optimism/supersim/opsimulator"
 
 	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -29,7 +34,6 @@ import (
 const (
 	anvilClientTimeout                = 5 * time.Second
 	emptyCode                         = "0x"
-	crossL2InboxAddress               = "0x4200000000000000000000000000000000000022"
 	l2toL2CrossDomainMessengerAddress = "0x4200000000000000000000000000000000000023"
 	l1BlockAddress                    = "0x4200000000000000000000000000000000000015"
 	defaultTestAccountBalance         = "0x21e19e0c9bab2400000"
@@ -60,6 +64,23 @@ type TestSuite struct {
 	Supersim *Supersim
 }
 
+type InteropTestSuite struct {
+	t              *testing.T
+	HdAccountStore *hdaccount.HdAccountStore
+
+	Cfg      *config.CLIConfig
+	Supersim *Supersim
+
+	// Op Simulator for the source chain.
+	SourceOpSim     *opsimulator.OpSimulator
+	SourceEthClient *ethclient.Client
+	// Op Simulator for the destination chain.
+	DestOpSim     *opsimulator.OpSimulator
+	DestEthClient *ethclient.Client
+	SourceChainID *big.Int
+	DestChainID   *big.Int
+}
+
 func createTestSuite(t *testing.T) *TestSuite {
 	cfg := &config.CLIConfig{} // does not run in fork mode
 	testlog := testlog.Logger(t, log.LevelInfo)
@@ -87,6 +108,37 @@ func createTestSuite(t *testing.T) *TestSuite {
 		Cfg:            cfg,
 		Supersim:       supersim,
 		HdAccountStore: hdAccountStore,
+	}
+}
+
+func createInteropTestSuite(t *testing.T) *InteropTestSuite {
+	testSuite := createTestSuite(t)
+
+	sourceOpSim := testSuite.Supersim.Orchestrator.L2OpSims[config.DefaultNetworkConfig.L2Configs[0].ChainID]
+	sourceEthClient, _ := ethclient.Dial(sourceOpSim.Endpoint())
+	defer sourceEthClient.Close()
+
+	destOpSim := testSuite.Supersim.Orchestrator.L2OpSims[config.DefaultNetworkConfig.L2Configs[1].ChainID]
+	destEthClient, _ := ethclient.Dial(destOpSim.Endpoint())
+	defer destEthClient.Close()
+
+	destChainID := new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[1].ChainID)
+	sourceChainID := new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[0].ChainID)
+
+	// TODO: fix when we add a wait for ready on the opsim
+	time.Sleep(3 * time.Second)
+
+	return &InteropTestSuite{
+		t:               t,
+		Cfg:             testSuite.Cfg,
+		Supersim:        testSuite.Supersim,
+		HdAccountStore:  testSuite.HdAccountStore,
+		SourceOpSim:     sourceOpSim,
+		SourceEthClient: sourceEthClient,
+		DestOpSim:       destOpSim,
+		DestEthClient:   destEthClient,
+		SourceChainID:   sourceChainID,
+		DestChainID:     destChainID,
 	}
 }
 
@@ -144,7 +196,7 @@ func TestGenesisState(t *testing.T) {
 		defer client.Close()
 
 		var code string
-		require.NoError(t, client.CallContext(context.Background(), &code, "eth_getCode", crossL2InboxAddress, "latest"))
+		require.NoError(t, client.CallContext(context.Background(), &code, "eth_getCode", predeploys.CrossL2Inbox, "latest"))
 		require.NotEqual(t, emptyCode, code, "CrossL2Inbox is not deployed")
 
 		require.NoError(t, client.CallContext(context.Background(), &code, "eth_getCode", l2toL2CrossDomainMessengerAddress, "latest"))
@@ -267,4 +319,232 @@ func TestBatchJsonRpcRequests(t *testing.T) {
 		// TODO: fix later, this occasionally fails when we set anvil on block-time 2
 		// require.NotZero(t, uint64(*(elems[1].Result).(*hexutil.Uint64)))
 	}
+}
+
+func TestInteropInvariantCheckSucceeds(t *testing.T) {
+	testSuite := createInteropTestSuite(t)
+	gasLimit := uint64(30000000)
+	gasPrice := big.NewInt(10000000)
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	require.NoError(t, err)
+	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	// TODO: fix when we add a wait for ready on the opsim
+	time.Sleep(3 * time.Second)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
+	initiatingMsgNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	require.NoError(t, err)
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+	parsedSendMessageABI, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[{"name":"_destination","type":"uint256"},{"name":"_target","type":"address"},{"name":"_message","type":"bytes"}],"name":"sendMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
+	require.NoError(t, err)
+	sendMessage, err := parsedSendMessageABI.Pack("sendMessage", testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+	initiatingMsgTx := types.NewTransaction(initiatingMsgNonce, origin, big.NewInt(0), gasLimit, gasPrice, sendMessage)
+	require.NoError(t, err)
+	signedInitiatingMsgTx, err := types.SignTx(initiatingMsgTx, types.NewEIP155Signer(testSuite.SourceChainID), privateKey)
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.SendTransaction(context.Background(), signedInitiatingMsgTx)
+	require.NoError(t, err)
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// Create executing message using CrossL2Inbox
+	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	require.NoError(t, err)
+	crossL2Inbox := opsimulator.NewCrossL2Inbox()
+	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	require.NoError(t, err)
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := opsimulator.MessageIdentifier{
+		Origin:      origin,
+		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+		LogIndex:    big.NewInt(0),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
+		ChainId:     new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[0].ChainID),
+	}
+	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
+	require.NoError(t, err)
+	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
+	require.NoError(t, err)
+	executeMessageSignedTx, err := types.SignTx(executeMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
+	require.NoError(t, err)
+	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
+	require.NoError(t, err)
+	executeMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.DestEthClient, executeMessageSignedTx)
+	require.NoError(t, err)
+	require.True(t, executeMessageTxReceipt.Status == 1, "execute message transaction failed")
+}
+
+func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
+	testSuite := createInteropTestSuite(t)
+	gasLimit := uint64(30000000)
+	gasPrice := big.NewInt(10000000)
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	require.NoError(t, err)
+	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	// TODO: fix when we add a wait for ready on the opsim
+	time.Sleep(3 * time.Second)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
+	initiatingMsgNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	require.NoError(t, err)
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+	parsedSendMessageABI, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[{"name":"_destination","type":"uint256"},{"name":"_target","type":"address"},{"name":"_message","type":"bytes"}],"name":"sendMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
+	require.NoError(t, err)
+	sendMessage, err := parsedSendMessageABI.Pack("sendMessage", testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+	initiatingMsgTx := types.NewTransaction(initiatingMsgNonce, origin, big.NewInt(0), gasLimit, gasPrice, sendMessage)
+	require.NoError(t, err)
+	signedInitiatingMsgTx, err := types.SignTx(initiatingMsgTx, types.NewEIP155Signer(testSuite.SourceChainID), privateKey)
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.SendTransaction(context.Background(), signedInitiatingMsgTx)
+	require.NoError(t, err)
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// Create executing message using CrossL2Inbox
+	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	require.NoError(t, err)
+	crossL2Inbox := opsimulator.NewCrossL2Inbox()
+	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	require.NoError(t, err)
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := opsimulator.MessageIdentifier{
+		Origin:      origin,
+		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+		LogIndex:    big.NewInt(1),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
+		ChainId:     new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[0].ChainID),
+	}
+	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
+	require.NoError(t, err)
+	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
+	require.NoError(t, err)
+	executeMessageSignedTx, err := types.SignTx(executeMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
+	require.NoError(t, err)
+	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
+	require.Error(t, err)
+}
+
+func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
+	testSuite := createInteropTestSuite(t)
+	gasLimit := uint64(30000000)
+	gasPrice := big.NewInt(10000000)
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	require.NoError(t, err)
+	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	// TODO: fix when we add a wait for ready on the opsim
+	time.Sleep(3 * time.Second)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
+	initiatingMsgNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	require.NoError(t, err)
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+	parsedSendMessageABI, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[{"name":"_destination","type":"uint256"},{"name":"_target","type":"address"},{"name":"_message","type":"bytes"}],"name":"sendMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
+	require.NoError(t, err)
+	sendMessage, err := parsedSendMessageABI.Pack("sendMessage", testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+	initiatingMsgTx := types.NewTransaction(initiatingMsgNonce, origin, big.NewInt(0), gasLimit, gasPrice, sendMessage)
+	require.NoError(t, err)
+	signedInitiatingMsgTx, err := types.SignTx(initiatingMsgTx, types.NewEIP155Signer(testSuite.SourceChainID), privateKey)
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.SendTransaction(context.Background(), signedInitiatingMsgTx)
+	require.NoError(t, err)
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// Create executing message using CrossL2Inbox
+	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	require.NoError(t, err)
+	crossL2Inbox := opsimulator.NewCrossL2Inbox()
+	wrongBlockNumber := new(big.Int).Sub(initiatingMessageTxReceipt.BlockNumber, big.NewInt(1))
+	wrongMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), wrongBlockNumber)
+	require.NoError(t, err)
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := opsimulator.MessageIdentifier{
+		Origin:      origin,
+		BlockNumber: wrongBlockNumber,
+		LogIndex:    big.NewInt(0),
+		Timestamp:   new(big.Int).SetUint64(wrongMessageBlock.Time()),
+		ChainId:     new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[0].ChainID),
+	}
+	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
+	require.NoError(t, err)
+	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
+	require.NoError(t, err)
+	executeMessageSignedTx, err := types.SignTx(executeMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
+	require.NoError(t, err)
+	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
+	require.Error(t, err)
+}
+
+func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
+	testSuite := createInteropTestSuite(t)
+	gasLimit := uint64(30000000)
+	gasPrice := big.NewInt(10000000)
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	require.NoError(t, err)
+	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	// TODO: fix when we add a wait for ready on the opsim
+	time.Sleep(3 * time.Second)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
+	initiatingMsgNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	require.NoError(t, err)
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+	parsedSendMessageABI, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[{"name":"_destination","type":"uint256"},{"name":"_target","type":"address"},{"name":"_message","type":"bytes"}],"name":"sendMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
+	require.NoError(t, err)
+	sendMessage, err := parsedSendMessageABI.Pack("sendMessage", testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+	initiatingMsgTx := types.NewTransaction(initiatingMsgNonce, origin, big.NewInt(0), gasLimit, gasPrice, sendMessage)
+	require.NoError(t, err)
+	signedInitiatingMsgTx, err := types.SignTx(initiatingMsgTx, types.NewEIP155Signer(testSuite.SourceChainID), privateKey)
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.SendTransaction(context.Background(), signedInitiatingMsgTx)
+	require.NoError(t, err)
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// Create executing message using CrossL2Inbox
+	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	require.NoError(t, err)
+	crossL2Inbox := opsimulator.NewCrossL2Inbox()
+	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	require.NoError(t, err)
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := opsimulator.MessageIdentifier{
+		Origin:      origin,
+		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+		LogIndex:    big.NewInt(0),
+		Timestamp:   new(big.Int).Sub(new(big.Int).SetUint64(initiatingMessageBlock.Time()), big.NewInt(1)),
+		ChainId:     new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[0].ChainID),
+	}
+	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
+	require.NoError(t, err)
+	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
+	require.NoError(t, err)
+	executeMessageSignedTx, err := types.SignTx(executeMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
+	require.NoError(t, err)
+	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
+	require.Error(t, err)
 }

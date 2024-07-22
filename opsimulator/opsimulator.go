@@ -3,6 +3,7 @@ package opsimulator
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,9 +19,13 @@ import (
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
 	"github.com/ethereum-optimism/optimism/op-service/tasks"
 
+	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -40,6 +45,7 @@ type OpSimulator struct {
 	bgTasks       tasks.Group
 	bgTasksCtx    context.Context
 	bgTasksCancel context.CancelFunc
+	chains        map[uint64]config.Chain
 
 	// One time tasks at startup
 	startupTasks       tasks.Group
@@ -52,9 +58,14 @@ type OpSimulator struct {
 	stopped atomic.Bool
 }
 
-func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *config.L2Config) *OpSimulator {
+func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *config.L2Config, anvilChains map[uint64]*anvil.Anvil) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 	startupTasksCtx, startupTasksCancel := context.WithCancel(context.Background())
+
+	chains := make(map[uint64]config.Chain)
+	for chainId, chain := range anvilChains {
+		chains[chainId] = chain
+	}
 
 	return &OpSimulator{
 		port:     port,
@@ -78,6 +89,7 @@ func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *c
 				log.Error("startup task failed", err)
 			},
 		},
+		chains: chains,
 	}
 }
 
@@ -88,7 +100,7 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/", handler(proxy))
+	mux.Handle("/", opSim.handler(proxy, ctx))
 
 	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(host, fmt.Sprintf("%d", opSim.port)), mux)
 	if err != nil {
@@ -166,7 +178,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 	})
 }
 
-func handler(proxy *httputil.ReverseProxy) http.HandlerFunc {
+func (opSim *OpSimulator) handler(proxy *httputil.ReverseProxy, ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
 			// handle preflight requests
@@ -189,11 +201,29 @@ func handler(proxy *httputil.ReverseProxy) http.HandlerFunc {
 			return
 		}
 
-		// TODO(https://github.com/ethereum-optimism/supersim/issues/55): support batch txs
-
 		for _, msg := range msgs {
 			if msg.Method == "eth_sendRawTransaction" {
-				checkInteropInvariants()
+				var params []hexutil.Bytes
+				if err := json.Unmarshal(msg.Params, &params); err != nil {
+					http.Error(w, fmt.Sprintf("bad params sent to eth_sendRawTransaction: %s", err), http.StatusBadRequest)
+					return
+				}
+				if len(params) != 1 {
+					http.Error(w, "eth_sendRawTransaction request has invalid number of params", http.StatusBadRequest)
+					return
+				}
+				tx := new(types.Transaction)
+				if err := tx.UnmarshalBinary(params[0]); err != nil {
+					http.Error(w, fmt.Sprintf("failed to decode transaction data: %s", err), http.StatusBadRequest)
+					return
+				}
+
+				if err := opSim.checkInteropInvariants(ctx, tx); err != nil {
+					opSim.log.Error(fmt.Sprintf("interop invariants not met: %s", err))
+					// TODO (https://github.com/ethereum-optimism/supersim/issues/79) for batch requests write error to individual tx
+					http.Error(w, fmt.Sprintf("interop invariants not met: %s", err), http.StatusBadRequest)
+					return
+				}
 			}
 		}
 
@@ -216,9 +246,126 @@ func (opSim *OpSimulator) AddDependency(chainID uint64, depSet []uint64) error {
 	return nil
 }
 
-// TODO(https://github.com/ethereum-optimism/supersim/issues/19): add logic for checking that an interop transaction is valid.
-func checkInteropInvariants() bool {
-	return true
+func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.Transaction) error {
+	from, err := getFromAddress(tx)
+
+	if err != nil {
+		return fmt.Errorf("failed to find sender of transaction: %w", err)
+	}
+
+	result, err := opSim.l2Chain.DebugTraceCall(ctx, config.TransactionArgs{From: from, To: tx.To(), Gas: hexutil.Uint64(tx.Gas()), GasPrice: (*hexutil.Big)(tx.GasPrice()), Data: tx.Data(), Value: (*hexutil.Big)(tx.Value())})
+	if err != nil {
+		return fmt.Errorf("failed to simulate transaction: %w", err)
+	}
+	if result.Error != nil {
+		return fmt.Errorf("tx trace error: %s", *result.Error)
+	}
+	simulatedLogs := toSimulatedLogs(result)
+
+	crossL2Inbox := NewCrossL2Inbox()
+	var executingMessages []executingMessage
+	for _, log := range simulatedLogs {
+		executingMessage, err := crossL2Inbox.decodeExecutingMessageLog(&log)
+		if err != nil {
+			return fmt.Errorf("failed to decode executing messages from transaction logs: %w", err)
+		}
+
+		if executingMessage != nil {
+			executingMessages = append(executingMessages, *executingMessage)
+		}
+	}
+
+	if len(executingMessages) >= 1 {
+		for _, executingMessage := range executingMessages {
+			sourceChain, ok := opSim.chains[executingMessage.Identifier.ChainId.Uint64()]
+			if !ok {
+				return fmt.Errorf("no chain found for chain id: %d", executingMessage.Identifier.ChainId)
+			}
+
+			identifierBlock, err := sourceChain.EthBlockByNumber(ctx, executingMessage.Identifier.BlockNumber)
+			if err != nil {
+				return fmt.Errorf("failed to fetch executing message block: %w", err)
+			}
+
+			if executingMessage.Identifier.Timestamp.Cmp(new(big.Int).SetUint64(identifierBlock.Time())) != 0 {
+				return fmt.Errorf("executing message identifier does not match block timestamp: %w", err)
+			}
+
+			logs, err := sourceChain.EthGetLogs(
+				ctx,
+				ethereum.FilterQuery{
+					Addresses: []common.Address{executingMessage.Identifier.Origin},
+					FromBlock: executingMessage.Identifier.BlockNumber,
+					ToBlock:   executingMessage.Identifier.BlockNumber,
+				},
+			)
+			if err != nil {
+				return fmt.Errorf("failed to fetch initiating message logs: %w", err)
+			}
+			var initiatingMessageLogs []types.Log
+			for _, log := range logs {
+				logIndex := big.NewInt(int64(log.Index))
+				if logIndex.Cmp(executingMessage.Identifier.LogIndex) == 0 {
+					initiatingMessageLogs = append(initiatingMessageLogs, log)
+				}
+			}
+
+			if len(initiatingMessageLogs) == 0 {
+				return fmt.Errorf("initiating message not found")
+			}
+
+			// Since we look for a log at a specific index, this should never be more than 1.
+			if len(initiatingMessageLogs) > 1 {
+				return fmt.Errorf("unexpected number of initiating messages found: %d", len(initiatingMessageLogs))
+			}
+
+			initiatingMsgPayloadHash := crypto.Keccak256Hash(messagePayloadBytes(&initiatingMessageLogs[0]))
+			if common.BytesToHash(executingMessage.MsgHash[:]).Cmp(initiatingMsgPayloadHash) != 0 {
+				return fmt.Errorf("executing and initiating message fields are not equal")
+			}
+		}
+	}
+
+	return nil
+}
+
+func toSimulatedLogs(call config.TraceCallRaw) []types.Log {
+	var logs []types.Log
+	var stack []config.TraceCallRaw
+
+	stack = append(stack, call)
+
+	for len(stack) > 0 {
+		n := len(stack) - 1
+		currentCall := stack[n]
+		stack = stack[:n]
+
+		for _, log := range currentCall.Logs {
+			logs = append(logs, types.Log{
+				Address: log.Address,
+				Topics:  log.Topics,
+				Data:    common.FromHex(log.Data),
+			})
+		}
+
+		stack = append(stack, currentCall.Calls...)
+	}
+
+	return logs
+}
+
+func messagePayloadBytes(log *types.Log) []byte {
+	msg := []byte{}
+	for _, topic := range log.Topics {
+		msg = append(msg, topic.Bytes()...)
+	}
+	return append(msg, log.Data...)
+}
+
+func getFromAddress(tx *types.Transaction) (common.Address, error) {
+	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
+
+	return from, err
 }
 
 func (opSim *OpSimulator) createReverseProxy() (*httputil.ReverseProxy, error) {
