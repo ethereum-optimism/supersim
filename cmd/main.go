@@ -29,7 +29,7 @@ var (
 )
 
 const (
-	minAnvilTimestamp = "2024-07-12T00:22:06.921038000Z"
+	minAnvilTimestamp = "2024-07-25T15:52:50.932621000Z"
 )
 
 func main() {

@@ -42,7 +42,7 @@ func NewHdAccountStore(mnemonic string, basePath accounts.DerivationPath) (*HdAc
 	return &HdAccountStore{mnemonic: mnemonic, basePath: basePath, seed: seed, masterKey: masterKey}, nil
 }
 
-func (h *HdAccountStore) derivePrivateKeyAt(index uint32) (*ecdsa.PrivateKey, error) {
+func (h *HdAccountStore) DerivePrivateKeyAt(index uint32) (*ecdsa.PrivateKey, error) {
 
 	var key *hdkeychain.ExtendedKey
 	key = h.masterKey
@@ -65,8 +65,8 @@ func (h *HdAccountStore) derivePrivateKeyAt(index uint32) (*ecdsa.PrivateKey, er
 	return privateKeyECDSA, nil
 }
 
-func (h *HdAccountStore) derivePublicKeyAt(index uint32) (*ecdsa.PublicKey, error) {
-	privateKeyECDSA, err := h.derivePrivateKeyAt(index)
+func (h *HdAccountStore) DerivePublicKeyAt(index uint32) (*ecdsa.PublicKey, error) {
+	privateKeyECDSA, err := h.DerivePrivateKeyAt(index)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (h *HdAccountStore) derivePublicKeyAt(index uint32) (*ecdsa.PublicKey, erro
 }
 
 func (h *HdAccountStore) PrivateKeyHexAt(index uint32) (string, error) {
-	privateKey, err := h.derivePrivateKeyAt(index)
+	privateKey, err := h.DerivePrivateKeyAt(index)
 	if err != nil {
 		return "", err
 	}
@@ -90,7 +90,7 @@ func (h *HdAccountStore) PrivateKeyHexAt(index uint32) (string, error) {
 }
 
 func (h *HdAccountStore) AddressHexAt(index uint32) (string, error) {
-	publicKey, err := h.derivePublicKeyAt(index)
+	publicKey, err := h.DerivePublicKeyAt(index)
 	if err != nil {
 		return "", err
 	}
