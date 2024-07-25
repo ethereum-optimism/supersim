@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
+	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/genesisdeployment"
 	"github.com/ethereum-optimism/supersim/hdaccount"
 
@@ -35,8 +35,8 @@ var (
 			SecretsConfig: DefaultSecretsConfig,
 			GenesisJSON:   genesisdeployment.GeneratedGenesisDeployment.L2s[0].GenesisJSON,
 			L2Config: &L2Config{
-				L1ChainID:             genesisdeployment.GeneratedGenesisDeployment.L1.ChainID,
-				L1DeploymentAddresses: genesisdeployment.GeneratedGenesisDeployment.L2s[0].L1DeploymentAddresses,
+				L1ChainID:   genesisdeployment.GeneratedGenesisDeployment.L1.ChainID,
+				L1Addresses: genesisdeployment.GeneratedGenesisDeployment.L2s[0].RegistryAddressList(),
 			},
 		},
 		{
@@ -45,8 +45,8 @@ var (
 			SecretsConfig: DefaultSecretsConfig,
 			GenesisJSON:   genesisdeployment.GeneratedGenesisDeployment.L2s[1].GenesisJSON,
 			L2Config: &L2Config{
-				L1ChainID:             genesisdeployment.GeneratedGenesisDeployment.L1.ChainID,
-				L1DeploymentAddresses: genesisdeployment.GeneratedGenesisDeployment.L2s[1].L1DeploymentAddresses,
+				L1ChainID:   genesisdeployment.GeneratedGenesisDeployment.L1.ChainID,
+				L1Addresses: genesisdeployment.GeneratedGenesisDeployment.L2s[1].RegistryAddressList(),
 			},
 		},
 	}
@@ -64,8 +64,8 @@ type SecretsConfig struct {
 }
 
 type L2Config struct {
-	L1ChainID             uint64
-	L1DeploymentAddresses *genesis.L1Deployments
+	L1ChainID   uint64
+	L1Addresses *registry.AddressList
 }
 
 type ChainConfig struct {

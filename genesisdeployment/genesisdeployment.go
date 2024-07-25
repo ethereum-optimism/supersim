@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
+	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 )
 
 /*******************
@@ -50,6 +51,25 @@ var addresses904JSON []byte
 //go:embed generated/addresses/905-addresses.json
 var addresses905JSON []byte
 
+var GeneratedGenesisDeployment = &GenesisDeployment{
+	L1: &L1GenesisDeployment{
+		ChainID:     900,
+		GenesisJSON: l1GenesisJSON,
+	},
+	L2s: []*L2GenesisDeployment{
+		newL2GenesisDeployment(901, addresses901JSON, l2Genesis901JSON),
+		newL2GenesisDeployment(902, addresses902JSON, l2Genesis902JSON),
+		newL2GenesisDeployment(903, addresses903JSON, l2Genesis903JSON),
+		newL2GenesisDeployment(904, addresses904JSON, l2Genesis904JSON),
+		newL2GenesisDeployment(905, addresses905JSON, l2Genesis905JSON),
+	},
+}
+
+type GenesisDeployment struct {
+	L1  *L1GenesisDeployment
+	L2s []*L2GenesisDeployment
+}
+
 type L1GenesisDeployment struct {
 	ChainID     uint64
 	GenesisJSON []byte
@@ -59,6 +79,26 @@ type L2GenesisDeployment struct {
 	ChainID               uint64
 	GenesisJSON           []byte
 	L1DeploymentAddresses *genesis.L1Deployments
+}
+
+// Unassigned contracts -- Fault Proof, Plasma, SuperchainConfig, Roles
+//
+// NOTE: We use the superchain registry AddressList as the canonical format for superchain
+// addresses. Any experimental contracts will be managed externally from this list. The registry
+// and op-chain-ops L1Deployments type will be consolidated in the future as well.
+//   - See: https://github.com/ethereum-optimism/optimism/blob/5be91416a3d017d3f8648140b3c41189b234ff6e/op-chain-ops/genesis/config.go#L693
+func (d *L2GenesisDeployment) RegistryAddressList() *registry.AddressList {
+	return &registry.AddressList{
+		AddressManager:                    registry.Address(d.L1DeploymentAddresses.AddressManager),
+		L1CrossDomainMessengerProxy:       registry.Address(d.L1DeploymentAddresses.L1CrossDomainMessengerProxy),
+		L1ERC721BridgeProxy:               registry.Address(d.L1DeploymentAddresses.L1ERC721BridgeProxy),
+		L1StandardBridgeProxy:             registry.Address(d.L1DeploymentAddresses.L1StandardBridgeProxy),
+		L2OutputOracleProxy:               registry.Address(d.L1DeploymentAddresses.L2OutputOracleProxy),
+		OptimismMintableERC20FactoryProxy: registry.Address(d.L1DeploymentAddresses.OptimismMintableERC20FactoryProxy),
+		OptimismPortalProxy:               registry.Address(d.L1DeploymentAddresses.OptimismPortalProxy),
+		SystemConfigProxy:                 registry.Address(d.L1DeploymentAddresses.SystemConfigProxy),
+		ProxyAdmin:                        registry.Address(d.L1DeploymentAddresses.ProxyAdmin),
+	}
 }
 
 func newL2GenesisDeployment(l2ChainID uint64, l1DeploymentAddressesJSON []byte, l2GenesisJSON []byte) *L2GenesisDeployment {
@@ -72,23 +112,4 @@ func newL2GenesisDeployment(l2ChainID uint64, l1DeploymentAddressesJSON []byte, 
 		L1DeploymentAddresses: &l1DeploymentAddresses,
 		GenesisJSON:           l2GenesisJSON,
 	}
-}
-
-type GenesisDeployment struct {
-	L1  *L1GenesisDeployment
-	L2s []*L2GenesisDeployment
-}
-
-var GeneratedGenesisDeployment = &GenesisDeployment{
-	L1: &L1GenesisDeployment{
-		ChainID:     900,
-		GenesisJSON: l1GenesisJSON,
-	},
-	L2s: []*L2GenesisDeployment{
-		newL2GenesisDeployment(901, addresses901JSON, l2Genesis901JSON),
-		newL2GenesisDeployment(902, addresses902JSON, l2Genesis902JSON),
-		newL2GenesisDeployment(903, addresses903JSON, l2Genesis903JSON),
-		newL2GenesisDeployment(904, addresses904JSON, l2Genesis904JSON),
-		newL2GenesisDeployment(905, addresses905JSON, l2Genesis905JSON),
-	},
 }

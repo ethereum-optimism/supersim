@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/config"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -49,7 +47,6 @@ func ChainConfigsFromForkCLIConfig(forkConfig *config.ForkCLIConfig) ([]config.C
 	// L2s
 	for _, chain := range forkConfig.Chains {
 		chainCfg := registry.OPChains[config.OpChainToId[chain]]
-		addressList := registry.Addresses[config.OpChainToId[chain]]
 		l2ForkHeight, err := latestL2HeightFromL1Header(chainCfg, l1Header)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find right l2 height: %w", err)
@@ -66,8 +63,8 @@ func ChainConfigsFromForkCLIConfig(forkConfig *config.ForkCLIConfig) ([]config.C
 			},
 
 			L2Config: &config.L2Config{
-				L1ChainID:             superchain.Config.L1.ChainID,
-				L1DeploymentAddresses: addressListToL1Deployments(addressList),
+				L1ChainID:   superchain.Config.L1.ChainID,
+				L1Addresses: registry.Addresses[chainCfg.ChainID],
 			},
 		})
 	}
@@ -102,36 +99,4 @@ func latestL2HeightFromL1Header(l2Cfg *registry.ChainConfig, l1Header *types.Hea
 	}
 
 	return blockNum, nil
-}
-
-// This is temporarily needed until the the L1Deployments type is consolidated.
-// see comment on https://github.com/ethereum-optimism/optimism/blob/5be91416a3d017d3f8648140b3c41189b234ff6e/op-chain-ops/genesis/config.go#L693
-// Notes: Will add all fields later. For now, only setting the proxy addresses that are used / easily accessible in the registry
-// - Skipping setting implementation contracts since those are not used in our code
-// - Using L1Deployments instead of AddressList in supersim since the superchain registry one is still being updated
-// - Once the types are consolidated, we will use AddressList directly
-func addressListToL1Deployments(a *registry.AddressList) *genesis.L1Deployments {
-	return &genesis.L1Deployments{
-		AddressManager: common.Address(a.AddressManager),
-		// BlockOracle:                       common.Address(a.BlockOracle),
-		// DisputeGameFactory:                common.Address(i.DisputeGameFactory.Address),
-		DisputeGameFactoryProxy: common.Address(a.DisputeGameFactoryProxy),
-		// L1CrossDomainMessenger:            common.Address(i.L1CrossDomainMessenger.Address),
-		L1CrossDomainMessengerProxy: common.Address(a.L1CrossDomainMessengerProxy),
-		// L1ERC721Bridge:                    common.Address(i.L1ERC721Bridge.Address),
-		L1ERC721BridgeProxy: common.Address(a.L1ERC721BridgeProxy),
-		// L1StandardBridge:                  common.Address(i.L1StandardBridge.Address),
-		L1StandardBridgeProxy: common.Address(a.L1StandardBridgeProxy),
-		// L2OutputOracle:                    common.Address(i.L2OutputOracle.Address),
-		L2OutputOracleProxy: common.Address(a.L2OutputOracleProxy),
-		// OptimismMintableERC20Factory:      common.Address(i.OptimismMintableERC20Factory.Address),
-		OptimismMintableERC20FactoryProxy: common.Address(a.OptimismMintableERC20FactoryProxy),
-		// OptimismPortal:                    common.Address(i.OptimismPortal.Address),
-		OptimismPortalProxy: common.Address(a.OptimismPortalProxy),
-		ProxyAdmin:          common.Address(a.ProxyAdmin),
-		// SystemConfig:                      common.Address(i.SystemConfig.Address),
-		SystemConfigProxy: common.Address(a.SystemConfigProxy),
-		// ProtocolVersions:                  common.Address(i.ProtocolVersions.Address),
-		// ProtocolVersionsProxy:             common.Address(a.ProtocolVersionsProxy),
-	}
 }

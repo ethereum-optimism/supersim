@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/supersim/config"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -99,12 +100,11 @@ func TestL1GenesisState(t *testing.T) {
 	require.True(t, len(testSuite.Supersim.Orchestrator.OpSimInstances) > 0)
 
 	for _, l2OpSim := range testSuite.Supersim.Orchestrator.OpSimInstances {
-
 		var code []byte
-		code, _ = testSuite.Supersim.Orchestrator.L1Anvil().EthGetCode(context.Background(), l2OpSim.L2Config.L1DeploymentAddresses.AddressManager)
+		code, _ = testSuite.Supersim.Orchestrator.L1Anvil().EthGetCode(context.Background(), common.Address(l2OpSim.L2Config.L1Addresses.AddressManager))
 		require.NotEqual(t, emptyCode, code, "AddressManager is not deployed")
 
-		code, _ = testSuite.Supersim.Orchestrator.L1Anvil().EthGetCode(context.Background(), l2OpSim.L2Config.L1DeploymentAddresses.OptimismPortalProxy)
+		code, _ = testSuite.Supersim.Orchestrator.L1Anvil().EthGetCode(context.Background(), common.Address(l2OpSim.L2Config.L1Addresses.OptimismPortalProxy))
 		require.NotEqual(t, emptyCode, code, "OptimismPortalProxy is not deployed")
 	}
 }
