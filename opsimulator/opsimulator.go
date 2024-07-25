@@ -30,6 +30,8 @@ type OpSimulator struct {
 	l1Chain config.Chain
 	l2Chain config.Chain
 
+	L2Config *config.L2Config
+
 	port       uint64
 	httpServer *ophttp.HTTPServer
 
@@ -43,12 +45,13 @@ type JSONRPCRequest struct {
 	JSONRPC string        `json:"jsonrpc"`
 }
 
-func New(log log.Logger, port uint64, l1Chain config.Chain, l2Chain config.Chain) *OpSimulator {
+func New(log log.Logger, port uint64, l1Chain config.Chain, l2Chain config.Chain, l2Config *config.L2Config) *OpSimulator {
 	return &OpSimulator{
-		log:     log,
-		port:    port,
-		l1Chain: l1Chain,
-		l2Chain: l2Chain,
+		port:     port,
+		log:      log,
+		l1Chain:  l1Chain,
+		l2Chain:  l2Chain,
+		L2Config: l2Config,
 	}
 }
 
@@ -155,7 +158,7 @@ func (opSim *OpSimulator) ChainID() uint64 {
 }
 
 func (opSim *OpSimulator) SourceChainID() uint64 {
-	return opSim.l1Chain.ChainID()
+	return opSim.L2Config.L1ChainID
 }
 
 func (opSim *OpSimulator) String() string {

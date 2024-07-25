@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum-optimism/supersim/config"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -42,6 +43,10 @@ func (c *MockChain) LogPath() string {
 	return "var/chain/log"
 }
 
+func (c *MockChain) EthGetCode(ctx context.Context, account common.Address) ([]byte, error) {
+	return []byte{}, nil
+}
+
 func (c *MockChain) EthGetLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
 	return []types.Log{}, nil
 }
@@ -51,6 +56,5 @@ func (c *MockChain) EthSendTransaction(ctx context.Context, tx *types.Transactio
 }
 
 func (c *MockChain) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
-
 	return &MockSubscription{}, nil
 }

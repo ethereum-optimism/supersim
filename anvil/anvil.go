@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum-optimism/supersim/config"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
@@ -29,13 +30,6 @@ const (
 	anvilListeningLogStr = "Listening on"
 )
 
-type Config struct {
-	config.ChainConfig
-
-	// only applicable when ForkConfig is not set
-	Genesis []byte
-}
-
 type Anvil struct {
 	rpcClient *rpc.Client
 
@@ -44,7 +38,7 @@ type Anvil struct {
 	log         log.Logger
 	logFilePath string
 
-	cfg *Config
+	cfg *config.ChainConfig
 	cmd *exec.Cmd
 
 	resourceCtx    context.Context
@@ -54,7 +48,7 @@ type Anvil struct {
 	stoppedCh chan struct{}
 }
 
-func New(log log.Logger, cfg *Config) *Anvil {
+func New(log log.Logger, cfg *config.ChainConfig) *Anvil {
 	resCtx, resCancel := context.WithCancel(context.Background())
 	return &Anvil{
 		log:            log,
@@ -79,12 +73,12 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
 	}
 
-	if len(a.cfg.Genesis) > 0 && a.cfg.ForkConfig == nil {
+	if len(a.cfg.GenesisJSON) > 0 && a.cfg.ForkConfig == nil {
 		tempFile, err := os.CreateTemp("", "genesis-*.json")
 		if err != nil {
 			return fmt.Errorf("error creating temporary genesis file: %w", err)
 		}
-		if _, err = tempFile.Write(a.cfg.Genesis); err != nil {
+		if _, err = tempFile.Write(a.cfg.GenesisJSON); err != nil {
 			return fmt.Errorf("error writing to genesis file: %w", err)
 		}
 		args = append(args, "--init", tempFile.Name())
@@ -219,10 +213,6 @@ func (a *Anvil) ChainID() uint64 {
 	return a.cfg.ChainID
 }
 
-func (a *Anvil) SourceChainID() uint64 {
-	return a.cfg.SourceChainID
-}
-
 func (a *Anvil) LogPath() string {
 	return a.logFilePath
 }
@@ -272,6 +262,10 @@ func (a *Anvil) Web3ClientVersion(ctx context.Context) (string, error) {
 }
 
 // eth_ API
+func (a *Anvil) EthGetCode(ctx context.Context, account common.Address) ([]byte, error) {
+	return a.ethClient.CodeAt(ctx, account, nil)
+}
+
 func (a *Anvil) EthGetLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
 	return a.ethClient.FilterLogs(ctx, q)
 }
