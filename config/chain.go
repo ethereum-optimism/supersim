@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
-	"github.com/ethereum-optimism/supersim/genesisdeployment"
+	"github.com/ethereum-optimism/supersim/genesis"
 	"github.com/ethereum-optimism/supersim/hdaccount"
 
 	"github.com/ethereum/go-ethereum"
@@ -25,28 +25,28 @@ var (
 	DefaultChainConfigs = []ChainConfig{
 		{
 			Name:          "SourceChain",
-			ChainID:       genesisdeployment.GeneratedGenesisDeployment.L1.ChainID,
+			ChainID:       genesis.GeneratedGenesisDeployment.L1.ChainID,
 			SecretsConfig: DefaultSecretsConfig,
-			GenesisJSON:   genesisdeployment.GeneratedGenesisDeployment.L1.GenesisJSON,
+			GenesisJSON:   genesis.GeneratedGenesisDeployment.L1.GenesisJSON,
 		},
 		{
 			Name:          "OPChainA",
-			ChainID:       genesisdeployment.GeneratedGenesisDeployment.L2s[0].ChainID,
+			ChainID:       genesis.GeneratedGenesisDeployment.L2s[0].ChainID,
 			SecretsConfig: DefaultSecretsConfig,
-			GenesisJSON:   genesisdeployment.GeneratedGenesisDeployment.L2s[0].GenesisJSON,
+			GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[0].GenesisJSON,
 			L2Config: &L2Config{
-				L1ChainID:   genesisdeployment.GeneratedGenesisDeployment.L1.ChainID,
-				L1Addresses: genesisdeployment.GeneratedGenesisDeployment.L2s[0].RegistryAddressList(),
+				L1ChainID:   genesis.GeneratedGenesisDeployment.L1.ChainID,
+				L1Addresses: genesis.GeneratedGenesisDeployment.L2s[0].RegistryAddressList(),
 			},
 		},
 		{
 			Name:          "OPChainB",
-			ChainID:       genesisdeployment.GeneratedGenesisDeployment.L2s[1].ChainID,
+			ChainID:       genesis.GeneratedGenesisDeployment.L2s[1].ChainID,
 			SecretsConfig: DefaultSecretsConfig,
-			GenesisJSON:   genesisdeployment.GeneratedGenesisDeployment.L2s[1].GenesisJSON,
+			GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[1].GenesisJSON,
 			L2Config: &L2Config{
-				L1ChainID:   genesisdeployment.GeneratedGenesisDeployment.L1.ChainID,
-				L1Addresses: genesisdeployment.GeneratedGenesisDeployment.L2s[1].RegistryAddressList(),
+				L1ChainID:   genesis.GeneratedGenesisDeployment.L1.ChainID,
+				L1Addresses: genesis.GeneratedGenesisDeployment.L2s[1].RegistryAddressList(),
 			},
 		},
 	}

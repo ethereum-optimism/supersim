@@ -1,4 +1,4 @@
-package genesisdeployment
+package genesis
 
 import (
 	_ "embed"
