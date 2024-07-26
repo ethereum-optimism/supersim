@@ -2,14 +2,21 @@ package supersim
 
 import (
 	"context"
+	"math/big"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-e2e/bindings"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum-optimism/supersim/hdaccount"
 
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 
@@ -38,8 +45,13 @@ var defaultTestAccounts = [...]string{
 	"0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
 }
 
+var defaultTestMnemonic = "test test test test test test test test test test test junk"
+var defaultTestMnemonicDerivationPath = accounts.DefaultRootDerivationPath
+
 type TestSuite struct {
 	t *testing.T
+
+	HdAccountStore *hdaccount.HdAccountStore
 
 	Cfg      *config.CLIConfig
 	Supersim *Supersim
@@ -49,6 +61,14 @@ func createTestSuite(t *testing.T) *TestSuite {
 	cfg := &config.CLIConfig{} // does not run in fork mode
 	testlog := testlog.Logger(t, log.LevelInfo)
 	supersim, _ := NewSupersim(testlog, cfg)
+
+	hdAccountStore, err := hdaccount.NewHdAccountStore(defaultTestMnemonic, defaultTestMnemonicDerivationPath)
+
+	if err != nil {
+		t.Fatalf("unable to create hd account store: %s", err)
+		return nil
+	}
+
 	t.Cleanup(func() {
 		if err := supersim.Stop(context.Background()); err != nil {
 			t.Errorf("failed to stop supersim: %s", err)
@@ -61,9 +81,10 @@ func createTestSuite(t *testing.T) *TestSuite {
 	}
 
 	return &TestSuite{
-		t:        t,
-		Cfg:      cfg,
-		Supersim: supersim,
+		t:              t,
+		Cfg:            cfg,
+		Supersim:       supersim,
+		HdAccountStore: hdAccountStore,
 	}
 }
 
@@ -145,4 +166,54 @@ func TestAccountBalances(t *testing.T) {
 			require.Equal(t, balanceHex, "0x21e19e0c9bab2400000", "Test account balance is incorrect")
 		}
 	}
+}
+
+func TestDepositTxSimpleEthDeposit(t *testing.T) {
+	testSuite := createTestSuite(t)
+
+	l1Anvil := testSuite.Supersim.Orchestrator.L1Anvil()
+	l1EthClient, _ := ethclient.Dial(l1Anvil.Endpoint())
+
+	var wg sync.WaitGroup
+	var l1TxMutex sync.Mutex
+
+	wg.Add(len(testSuite.Supersim.Orchestrator.OpSimInstances))
+	for i, opSim := range testSuite.Supersim.Orchestrator.OpSimInstances {
+		go func() {
+			defer wg.Done()
+
+			l2EthClient, _ := ethclient.Dial(opSim.Endpoint())
+			privateKey, _ := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(i))
+			senderAddressHex, _ := testSuite.HdAccountStore.AddressHexAt(uint32(i))
+			senderAddress := common.HexToAddress(senderAddressHex)
+
+			oneEth := big.NewInt(1e18)
+			prevBalance, _ := l2EthClient.BalanceAt(context.Background(), senderAddress, nil)
+
+			transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(l1Anvil.ChainID())))
+			transactor.Value = oneEth
+			optimismPortal, _ := bindings.NewOptimismPortal(common.Address(opSim.L2Config.L1Addresses.OptimismPortalProxy), l1EthClient)
+
+			// needs a lock because the gas estimation can become outdated between transactions
+			l1TxMutex.Lock()
+			tx, err := optimismPortal.DepositTransaction(transactor, senderAddress, oneEth, 100000, false, make([]byte, 0))
+			l1TxMutex.Unlock()
+			require.NoError(t, err)
+
+			txReceipt, _ := bind.WaitMined(context.Background(), l1EthClient, tx)
+			require.NoError(t, err)
+
+			require.True(t, txReceipt.Status == 1, "Deposit transaction failed")
+			require.NotEmpty(t, txReceipt.Logs, "Deposit transaction failed")
+
+			// wait for the deposit to be processed
+			time.Sleep(1 * time.Second)
+			postBalance, _ := l2EthClient.BalanceAt(context.Background(), senderAddress, nil)
+
+			// check that balance was increased
+			require.Equal(t, postBalance.Sub(postBalance, prevBalance), oneEth, "Recipient balance is incorrect")
+		}()
+	}
+
+	wg.Wait()
 }

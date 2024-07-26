@@ -71,6 +71,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--derivation-path", a.cfg.SecretsConfig.DerivationPath.String(),
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainID),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
+		"--optimism",
 	}
 
 	if len(a.cfg.GenesisJSON) > 0 && a.cfg.ForkConfig == nil {
