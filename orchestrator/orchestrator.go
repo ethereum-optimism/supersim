@@ -21,7 +21,7 @@ type Orchestrator struct {
 	l1Anvil *anvil.Anvil
 
 	l2Anvils map[uint64]*anvil.Anvil
-	l2OpSims map[uint64]*opsimulator.OpSimulator
+	L2OpSims map[uint64]*opsimulator.OpSimulator
 }
 
 func NewOrchestrator(log log.Logger, networkConfig *config.NetworkConfig) (*Orchestrator, error) {
@@ -30,13 +30,13 @@ func NewOrchestrator(log log.Logger, networkConfig *config.NetworkConfig) (*Orch
 
 	// Spin up L2 anvil instances fronted by opsim
 	nextL2Port := networkConfig.L2StartingPort
-	l2Anvils, l2OpSims := make(map[uint64]*anvil.Anvil), make(map[uint64]*opsimulator.OpSimulator)
+	l2Anvils, L2OpSims := make(map[uint64]*anvil.Anvil), make(map[uint64]*opsimulator.OpSimulator)
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
 
 		l2Anvil := anvil.New(log, &cfg)
 		l2Anvils[cfg.ChainID] = l2Anvil
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, nextL2Port, l1Anvil, l2Anvil, cfg.L2Config)
+		L2OpSims[cfg.ChainID] = opsimulator.New(log, nextL2Port, l1Anvil, l2Anvil, cfg.L2Config)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
@@ -44,7 +44,7 @@ func NewOrchestrator(log log.Logger, networkConfig *config.NetworkConfig) (*Orch
 		}
 	}
 
-	return &Orchestrator{log, l1Anvil, l2Anvils, l2OpSims}, nil
+	return &Orchestrator{log, l1Anvil, l2Anvils, L2OpSims}, nil
 }
 
 func (o *Orchestrator) Start(ctx context.Context) error {
@@ -58,7 +58,7 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 			return fmt.Errorf("anvil instance %s failed to start: %w", anvil.Name(), err)
 		}
 	}
-	for _, opSim := range o.l2OpSims {
+	for _, opSim := range o.L2OpSims {
 		if err := opSim.Start(ctx); err != nil {
 			return fmt.Errorf("op simulator instance %s failed to start: %w", opSim.Name(), err)
 		}
@@ -74,7 +74,7 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 
 func (o *Orchestrator) Stop(ctx context.Context) error {
 	o.log.Info("stopping orchestrator")
-	for _, opSim := range o.l2OpSims {
+	for _, opSim := range o.L2OpSims {
 		if err := opSim.Stop(ctx); err != nil {
 			return fmt.Errorf("op simulator chain.id=%d failed to stop: %w", opSim.ChainID(), err)
 		}
@@ -104,7 +104,7 @@ func (o *Orchestrator) Stopped() bool {
 			return stopped
 		}
 	}
-	for _, opSim := range o.l2OpSims {
+	for _, opSim := range o.L2OpSims {
 		if stopped := opSim.Stopped(); !stopped {
 			return stopped
 		}
@@ -164,11 +164,11 @@ func (o *Orchestrator) ConfigAsString() string {
 		fmt.Fprintf(&b, "  %s\n", o.l1Anvil.String())
 	}
 
-	if len(o.l2OpSims) > 0 {
+	if len(o.L2OpSims) > 0 {
 		fmt.Fprintf(&b, "L2:\n")
 
-		opSims := make([]*opsimulator.OpSimulator, 0, len(o.l2OpSims))
-		for _, chain := range o.l2OpSims {
+		opSims := make([]*opsimulator.OpSimulator, 0, len(o.L2OpSims))
+		for _, chain := range o.L2OpSims {
 			opSims = append(opSims, chain)
 		}
 

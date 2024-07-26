@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -34,11 +35,17 @@ type OpSimulator struct {
 	l1Chain config.Chain
 	l2Chain config.Chain
 
-	l2Config *config.L2Config
+	L2Config *config.L2Config
 
+	// Long running tasks
 	bgTasks       tasks.Group
 	bgTasksCtx    context.Context
 	bgTasksCancel context.CancelFunc
+
+	// One time tasks at startup
+	startupTasks       tasks.Group
+	startupTasksCtx    context.Context
+	startupTasksCancel context.CancelFunc
 
 	port       uint64
 	httpServer *ophttp.HTTPServer
@@ -55,17 +62,29 @@ type JSONRPCRequest struct {
 
 func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *config.L2Config) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
+
+	startupTasksCtx, startupTasksCancel := context.WithCancel(context.Background())
+
 	return &OpSimulator{
-		port:          port,
-		log:           log,
-		l1Chain:       l1Chain,
-		l2Chain:       l2Chain,
-		l2Config:      l2Config,
-		bgTasksCancel: bgTasksCancel,
+		port:     port,
+		log:      log,
+		l1Chain:  l1Chain,
+		l2Chain:  l2Chain,
+		L2Config: l2Config,
+
 		bgTasksCtx:    bgTasksCtx,
+		bgTasksCancel: bgTasksCancel,
 		bgTasks: tasks.Group{
 			HandleCrit: func(err error) {
 				log.Error("bg task failed", "err", err)
+			},
+		},
+
+		startupTasksCtx:    startupTasksCtx,
+		startupTasksCancel: startupTasksCancel,
+		startupTasks: tasks.Group{
+			HandleCrit: func(err error) {
+				log.Error("startup task failed", err)
 			},
 		},
 	}
@@ -95,10 +114,47 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		}
 	}
 
-	// Relay deposit txs from L1 to L2
+	opSim.startStartupTasks()
+
+	if err := opSim.startupTasks.Wait(); err != nil {
+		return fmt.Errorf("failed to start opsimulator: %w", err)
+	}
+
+	opSim.startBackgroundTasks()
+
+	return nil
+}
+
+func (opSim *OpSimulator) Stop(ctx context.Context) error {
+	if opSim.stopped.Load() {
+		return errors.New("already stopped")
+	}
+	if !opSim.stopped.CompareAndSwap(false, true) {
+		return nil // someone else stopped
+	}
+
+	opSim.bgTasksCancel()
+
+	return opSim.httpServer.Stop(ctx)
+}
+
+func (opSim *OpSimulator) Stopped() bool {
+	return opSim.stopped.Load()
+}
+
+func (opSim *OpSimulator) startStartupTasks() {
+	for _, chainID := range opSim.L2Config.DependencySet {
+		opSim.startupTasks.Go(func() error {
+			return opSim.AddDependency(chainID, opSim.L2Config.DependencySet)
+		})
+	}
+}
+
+func (opSim *OpSimulator) startBackgroundTasks() {
+	// Relay deposit tx from L1 to L2
 	opSim.bgTasks.Go(func() error {
 		depositTxCh := make(chan *types.DepositTx)
-		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain, common.Address(opSim.l2Config.L1Addresses.OptimismPortalProxy), depositTxCh)
+		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain, common.Address(opSim.L2Config.L1Addresses.OptimismPortalProxy), depositTxCh)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
 		}
@@ -120,24 +176,6 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 			}
 		}
 	})
-
-	return nil
-}
-
-func (opSim *OpSimulator) Stop(ctx context.Context) error {
-	if opSim.stopped.Load() {
-		return errors.New("already stopped")
-	}
-	if !opSim.stopped.CompareAndSwap(false, true) {
-		return nil // someone else stopped
-	}
-
-	opSim.bgTasksCancel()
-	return opSim.httpServer.Stop(ctx)
-}
-
-func (a *OpSimulator) Stopped() bool {
-	return a.stopped.Load()
 }
 
 func handler(proxy *httputil.ReverseProxy) http.HandlerFunc {
@@ -166,6 +204,21 @@ func handler(proxy *httputil.ReverseProxy) http.HandlerFunc {
 
 		proxy.ServeHTTP(w, r)
 	}
+}
+
+// Update dependency set on the L2#L1BlockInterop using a deposit tx
+func (opSim *OpSimulator) AddDependency(chainID uint64, depSet []uint64) error {
+	dep, err := NewAddDependencyDepositTx(big.NewInt(int64(chainID)))
+
+	if err != nil {
+		return fmt.Errorf("failed to create setConfig deposit tx: %w", err)
+	}
+
+	if err := opSim.l2Chain.EthSendTransaction(context.Background(), types.NewTx(dep)); err != nil {
+		return fmt.Errorf("failed to send setConfig deposit tx: %w", err)
+	}
+
+	return nil
 }
 
 // TODO(https://github.com/ethereum-optimism/supersim/issues/19): add logic for checking that an interop transaction is valid.

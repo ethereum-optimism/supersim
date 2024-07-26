@@ -256,6 +256,10 @@ func (a *Anvil) String() string {
 	return b.String()
 }
 
+func (a *Anvil) EthClient() *ethclient.Client {
+	return a.ethClient
+}
+
 // web3_ API
 func (a *Anvil) Web3ClientVersion(ctx context.Context) (string, error) {
 	var result string
