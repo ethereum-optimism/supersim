@@ -10,10 +10,8 @@ import (
 
 func ApplyChainID(genesisJson []byte, chainId *big.Int) ([]byte, error) {
 	var genesis core.Genesis
-
-	err := json.Unmarshal(genesisJson, &genesis)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse genesis json")
+	if err := json.Unmarshal(genesisJson, &genesis); err != nil {
+		return nil, fmt.Errorf("unable to parse genesis json: %w", err)
 	}
 
 	if genesis.Config.ChainID.Cmp(chainId) != 0 {
@@ -22,7 +20,7 @@ func ApplyChainID(genesisJson []byte, chainId *big.Int) ([]byte, error) {
 
 	result, err := json.Marshal(genesis)
 	if err != nil {
-		return nil, fmt.Errorf("error marshaling genesis")
+		return nil, fmt.Errorf("error marshaling genesis: %w", err)
 	}
 
 	return result, nil
