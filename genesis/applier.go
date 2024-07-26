@@ -1,4 +1,4 @@
-package genesisapplier
+package genesis
 
 import (
 	"encoding/json"
@@ -8,11 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 )
 
-type Config struct {
-	ChainID *big.Int
-}
-
-func UpdateGenesisWithConfig(genesisJson []byte, config Config) ([]byte, error) {
+func ApplyChainID(genesisJson []byte, chainId *big.Int) ([]byte, error) {
 	var genesis core.Genesis
 
 	err := json.Unmarshal(genesisJson, &genesis)
@@ -20,8 +16,8 @@ func UpdateGenesisWithConfig(genesisJson []byte, config Config) ([]byte, error) 
 		return nil, fmt.Errorf("unable to parse genesis json")
 	}
 
-	if config.ChainID != nil && genesis.Config.ChainID != config.ChainID {
-		genesis.Config.ChainID = config.ChainID
+	if genesis.Config.ChainID.Cmp(chainId) != 0 {
+		genesis.Config.ChainID = chainId
 	}
 
 	result, err := json.Marshal(genesis)
