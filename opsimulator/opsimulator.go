@@ -34,7 +34,7 @@ type OpSimulator struct {
 	l1Chain config.Chain
 	l2Chain config.Chain
 
-	L2Config *config.L2Config
+	l2Config *config.L2Config
 
 	bgTasks       tasks.Group
 	bgTasksCtx    context.Context
@@ -53,20 +53,19 @@ type JSONRPCRequest struct {
 	JSONRPC string        `json:"jsonrpc"`
 }
 
-func New(log log.Logger, port uint64, l1Chain config.Chain, l2Chain config.Chain, l2Config *config.L2Config) *OpSimulator {
+func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *config.L2Config) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
-
 	return &OpSimulator{
 		port:          port,
 		log:           log,
 		l1Chain:       l1Chain,
 		l2Chain:       l2Chain,
-		L2Config:      l2Config,
+		l2Config:      l2Config,
 		bgTasksCancel: bgTasksCancel,
 		bgTasksCtx:    bgTasksCtx,
 		bgTasks: tasks.Group{
 			HandleCrit: func(err error) {
-				log.Error("bg task failed", err)
+				log.Error("bg task failed", "err", err)
 			},
 		},
 	}
@@ -90,19 +89,16 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	opSim.httpServer = hs
 
 	if opSim.port == 0 {
-		port, err := strconv.ParseInt(strings.Split(hs.Addr().String(), ":")[1], 10, 64)
+		opSim.port, err = strconv.ParseUint(strings.Split(hs.Addr().String(), ":")[1], 10, 64)
 		if err != nil {
 			panic(fmt.Errorf("unexpected opsimulator listening port: %w", err))
 		}
-
-		opSim.port = uint64(port)
 	}
 
-	// Relay deposit tx from L1 to L2
+	// Relay deposit txs from L1 to L2
 	opSim.bgTasks.Go(func() error {
 		depositTxCh := make(chan *types.DepositTx)
-		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain, common.Address(opSim.L2Config.L1Addresses.OptimismPortalProxy), depositTxCh)
-
+		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain, common.Address(opSim.l2Config.L1Addresses.OptimismPortalProxy), depositTxCh)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
 		}
@@ -110,16 +106,13 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		for {
 			select {
 			case dep := <-depositTxCh:
-
 				depTx := types.NewTx(dep)
-
-				opSim.log.Debug("received deposit tx with hash:", depTx.Hash().Hex())
-
+				opSim.log.Debug("received deposit tx", "hash", depTx.Hash().String())
 				if err := opSim.l2Chain.EthSendTransaction(opSim.bgTasksCtx, depTx); err != nil {
 					opSim.log.Error("failed to submit deposit tx: %w", err)
 				}
 
-				opSim.log.Debug("submitted deposit tx with hash:", depTx.Hash().Hex())
+				opSim.log.Debug("submitted deposit tx", "hash", depTx.Hash().String())
 
 			case <-opSim.bgTasksCtx.Done():
 				sub.Unsubscribe()
@@ -206,8 +199,8 @@ func (opSim *OpSimulator) ChainID() uint64 {
 	return opSim.l2Chain.ChainID()
 }
 
-func (opSim *OpSimulator) SourceChainID() uint64 {
-	return opSim.L2Config.L1ChainID
+func (opSim *OpSimulator) Config() *config.ChainConfig {
+	return opSim.l2Chain.Config()
 }
 
 func (opSim *OpSimulator) String() string {

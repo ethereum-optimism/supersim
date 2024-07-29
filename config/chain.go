@@ -22,31 +22,33 @@ var (
 		DerivationPath: accounts.DefaultRootDerivationPath,
 	}
 
-	DefaultChainConfigs = []ChainConfig{
-		{
-			Name:          "SourceChain",
+	DefaultNetworkConfig = NetworkConfig{
+		L1Config: ChainConfig{
+			Name:          "L1",
 			ChainID:       genesis.GeneratedGenesisDeployment.L1.ChainID,
 			SecretsConfig: DefaultSecretsConfig,
 			GenesisJSON:   genesis.GeneratedGenesisDeployment.L1.GenesisJSON,
 		},
-		{
-			Name:          "OPChainA",
-			ChainID:       genesis.GeneratedGenesisDeployment.L2s[0].ChainID,
-			SecretsConfig: DefaultSecretsConfig,
-			GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[0].GenesisJSON,
-			L2Config: &L2Config{
-				L1ChainID:   genesis.GeneratedGenesisDeployment.L1.ChainID,
-				L1Addresses: genesis.GeneratedGenesisDeployment.L2s[0].RegistryAddressList(),
+		L2Configs: []ChainConfig{
+			{
+				Name:          "OPChainA",
+				ChainID:       genesis.GeneratedGenesisDeployment.L2s[0].ChainID,
+				SecretsConfig: DefaultSecretsConfig,
+				GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[0].GenesisJSON,
+				L2Config: &L2Config{
+					L1ChainID:   genesis.GeneratedGenesisDeployment.L1.ChainID,
+					L1Addresses: genesis.GeneratedGenesisDeployment.L2s[0].RegistryAddressList(),
+				},
 			},
-		},
-		{
-			Name:          "OPChainB",
-			ChainID:       genesis.GeneratedGenesisDeployment.L2s[1].ChainID,
-			SecretsConfig: DefaultSecretsConfig,
-			GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[1].GenesisJSON,
-			L2Config: &L2Config{
-				L1ChainID:   genesis.GeneratedGenesisDeployment.L1.ChainID,
-				L1Addresses: genesis.GeneratedGenesisDeployment.L2s[1].RegistryAddressList(),
+			{
+				Name:          "OPChainB",
+				ChainID:       genesis.GeneratedGenesisDeployment.L2s[1].ChainID,
+				SecretsConfig: DefaultSecretsConfig,
+				GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[1].GenesisJSON,
+				L2Config: &L2Config{
+					L1ChainID:   genesis.GeneratedGenesisDeployment.L1.ChainID,
+					L1Addresses: genesis.GeneratedGenesisDeployment.L2s[1].RegistryAddressList(),
+				},
 			},
 		},
 	}
@@ -69,21 +71,25 @@ type L2Config struct {
 }
 
 type ChainConfig struct {
-	Name string
-	Port uint64
-
+	Name    string
+	Port    uint64
 	ChainID uint64
 
-	GenesisJSON []byte
-
+	GenesisJSON   []byte
 	SecretsConfig SecretsConfig
 
 	// Optional Config
 	ForkConfig *ForkConfig
 
-	// Optional Config
-	// Chain is an L1 chain if L2Config is nil
+	// Optional Config (L1 chain if nil)
 	L2Config *L2Config
+}
+
+type NetworkConfig struct {
+	L1Config ChainConfig
+
+	L2StartingPort uint64
+	L2Configs      []ChainConfig
 }
 
 type Chain interface {
@@ -91,6 +97,7 @@ type Chain interface {
 	Endpoint() string
 	ChainID() uint64
 	LogPath() string
+	Config() *ChainConfig
 
 	// API methods
 	EthGetCode(ctx context.Context, account common.Address) ([]byte, error)
