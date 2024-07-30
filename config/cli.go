@@ -34,7 +34,7 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Name:    L2StartingPortFlagName,
 			Usage:   "Starting port to increment from for L2 chains. `0` binds each chain to any available port",
 			Value:   9545,
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "L1_PORT"),
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "L2_STARTING_PORT"),
 		},
 	}
 }
