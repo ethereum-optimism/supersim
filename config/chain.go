@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 var (
@@ -36,8 +37,9 @@ var (
 				SecretsConfig: DefaultSecretsConfig,
 				GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[0].GenesisJSON,
 				L2Config: &L2Config{
-					L1ChainID:   genesis.GeneratedGenesisDeployment.L1.ChainID,
-					L1Addresses: genesis.GeneratedGenesisDeployment.L2s[0].RegistryAddressList(),
+					L1ChainID:     genesis.GeneratedGenesisDeployment.L1.ChainID,
+					L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[0].RegistryAddressList(),
+					DependencySet: []uint64{genesis.GeneratedGenesisDeployment.L2s[1].ChainID},
 				},
 			},
 			{
@@ -46,8 +48,9 @@ var (
 				SecretsConfig: DefaultSecretsConfig,
 				GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[1].GenesisJSON,
 				L2Config: &L2Config{
-					L1ChainID:   genesis.GeneratedGenesisDeployment.L1.ChainID,
-					L1Addresses: genesis.GeneratedGenesisDeployment.L2s[1].RegistryAddressList(),
+					L1ChainID:     genesis.GeneratedGenesisDeployment.L1.ChainID,
+					L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[1].RegistryAddressList(),
+					DependencySet: []uint64{genesis.GeneratedGenesisDeployment.L2s[0].ChainID},
 				},
 			},
 		},
@@ -66,8 +69,9 @@ type SecretsConfig struct {
 }
 
 type L2Config struct {
-	L1ChainID   uint64
-	L1Addresses *registry.AddressList
+	L1ChainID     uint64
+	L1Addresses   *registry.AddressList
+	DependencySet []uint64
 }
 
 type ChainConfig struct {
@@ -98,12 +102,13 @@ type Chain interface {
 	ChainID() uint64
 	LogPath() string
 	Config() *ChainConfig
+	EthClient() *ethclient.Client
 
+	// TODO: Delete these and use EthClient directly
 	// API methods
 	EthGetCode(ctx context.Context, account common.Address) ([]byte, error)
 	EthGetLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error)
 	EthSendTransaction(ctx context.Context, tx *types.Transaction) error
-
 	SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error)
 }
 

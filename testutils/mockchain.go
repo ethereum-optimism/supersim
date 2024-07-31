@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 var _ config.Chain = &MockChain{}
@@ -44,6 +45,10 @@ func (c *MockChain) LogPath() string {
 }
 
 func (c *MockChain) Config() *config.ChainConfig {
+	return nil
+}
+
+func (c *MockChain) EthClient() *ethclient.Client {
 	return nil
 }
 

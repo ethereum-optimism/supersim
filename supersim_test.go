@@ -7,10 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum-optimism/optimism/op-e2e/bindings"
+	opbindings "github.com/ethereum-optimism/optimism/op-e2e/bindings"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/hdaccount"
+	"github.com/ethereum-optimism/supersim/opsimulator"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -193,7 +195,7 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 
 			transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(l1Chain.ChainID())))
 			transactor.Value = oneEth
-			optimismPortal, _ := bindings.NewOptimismPortal(common.Address(chain.Config().L2Config.L1Addresses.OptimismPortalProxy), l1EthClient)
+			optimismPortal, _ := opbindings.NewOptimismPortal(common.Address(chain.Config().L2Config.L1Addresses.OptimismPortalProxy), l1EthClient)
 
 			// needs a lock because the gas estimation can become outdated between transactions
 			l1TxMutex.Lock()
@@ -217,4 +219,27 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestDependencySet(t *testing.T) {
+	testSuite := createTestSuite(t)
+
+	for _, opSim := range testSuite.Supersim.Orchestrator.L2OpSims {
+		l2Client, err := ethclient.Dial(opSim.Endpoint())
+		require.NoError(t, err)
+		defer l2Client.Close()
+
+		l1BlockInterop, err := bindings.NewL1BlockInterop(opsimulator.L1BlockAddress, l2Client)
+		require.NoError(t, err)
+
+		depSetSize, err := l1BlockInterop.DependencySetSize(&bind.CallOpts{})
+		require.NoError(t, err)
+		require.Equal(t, len(opSim.L2Config.DependencySet), int(depSetSize), "Dependency set size is incorrect")
+
+		for _, chainID := range opSim.L2Config.DependencySet {
+			dep, err := l1BlockInterop.IsInDependencySet(&bind.CallOpts{}, big.NewInt(int64(chainID)))
+			require.NoError(t, err)
+			require.True(t, dep, "ChainID is not in dependency set")
+		}
+	}
 }
