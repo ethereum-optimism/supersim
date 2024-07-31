@@ -58,5 +58,5 @@ func TestStartup(t *testing.T) {
 
 	require.Equal(t, chains[1].ChainID(), uint64(30))
 	require.NotNil(t, chains[1].Config().L2Config)
-	require.Equal(t, chains[0].Config().L2Config.L1ChainID, uint64(1))
+	require.Equal(t, chains[1].Config().L2Config.L1ChainID, uint64(1))
 }

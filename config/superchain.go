@@ -4,12 +4,13 @@ import (
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 )
 
-var OpChainToId map[string]uint64 = map[string]uint64{}
-
-func init() {
-	for id, chainCfg := range registry.OPChains {
-		OpChainToId[chainCfg.Chain] = id
+func OPChainByName(superchain *registry.Superchain, name string) *registry.ChainConfig {
+	for _, id := range superchain.ChainIDs {
+		if registry.OPChains[id].Chain == name {
+			return registry.OPChains[id]
+		}
 	}
+	return nil
 }
 
 func superchainNetworks() []string {

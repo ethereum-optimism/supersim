@@ -109,7 +109,7 @@ func newL2GenesisDeployment(l2ChainID uint64, l1DeploymentAddressesJSON []byte, 
 
 	return &L2GenesisDeployment{
 		ChainID:               l2ChainID,
-		L1DeploymentAddresses: &l1DeploymentAddresses,
 		GenesisJSON:           l2GenesisJSON,
+		L1DeploymentAddresses: &l1DeploymentAddresses,
 	}
 }
