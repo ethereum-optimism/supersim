@@ -3,7 +3,6 @@ package opsimulator
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -53,16 +52,8 @@ type OpSimulator struct {
 	stopped atomic.Bool
 }
 
-type JSONRPCRequest struct {
-	Method  string        `json:"method"`
-	Params  []interface{} `json:"params"`
-	ID      int           `json:"id"`
-	JSONRPC string        `json:"jsonrpc"`
-}
-
 func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *config.L2Config) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
-
 	startupTasksCtx, startupTasksCancel := context.WithCancel(context.Background())
 
 	return &OpSimulator{
@@ -115,13 +106,11 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	}
 
 	opSim.startStartupTasks()
-
 	if err := opSim.startupTasks.Wait(); err != nil {
 		return fmt.Errorf("failed to start opsimulator: %w", err)
 	}
 
 	opSim.startBackgroundTasks()
-
 	return nil
 }
 
@@ -134,7 +123,6 @@ func (opSim *OpSimulator) Stop(ctx context.Context) error {
 	}
 
 	opSim.bgTasksCancel()
-
 	return opSim.httpServer.Stop(ctx)
 }
 
@@ -189,27 +177,25 @@ func handler(proxy *httputil.ReverseProxy) http.HandlerFunc {
 			return
 		}
 
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-			return
-		}
-		defer r.Body.Close()
+		// setup an intermediate buffer so the request body is inspectable
+		var buf bytes.Buffer
+		body := io.TeeReader(r.Body, &buf)
+		r.Body = io.NopCloser(&buf)
 
-		var req JSONRPCRequest
-		err = json.Unmarshal(body, &req)
+		// decode the fields we're interested in inspecting
+		msgs, err := readJsonMessages(body)
 		if err != nil {
-			http.Error(w, "Failed to parse JSON-RPC request", http.StatusBadRequest)
+			http.Error(w, fmt.Sprintf("Failed to parse JSON-RPC request: %s", err), http.StatusBadRequest)
 			return
 		}
 
 		// TODO(https://github.com/ethereum-optimism/supersim/issues/55): support batch txs
 
-		if req.Method == "eth_sendRawTransaction" {
-			checkInteropInvariants()
+		for _, msg := range msgs {
+			if msg.Method == "eth_sendRawTransaction" {
+				checkInteropInvariants()
+			}
 		}
-
-		r.Body = io.NopCloser(bytes.NewReader(body))
 
 		proxy.ServeHTTP(w, r)
 	}

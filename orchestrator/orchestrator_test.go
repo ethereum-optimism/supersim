@@ -19,16 +19,9 @@ type TestSuite struct {
 }
 
 func createTestSuite(t *testing.T) *TestSuite {
-	networkConfig := config.NetworkConfig{
-		L1Config: config.ChainConfig{ChainID: 1, Port: 0},
-		L2Configs: []config.ChainConfig{
-			{ChainID: 10, Port: 0, L2Config: &config.L2Config{L1ChainID: 1}},
-			{ChainID: 30, Port: 0, L2Config: &config.L2Config{L1ChainID: 1}},
-		},
-	}
-
+	networkConfig := &config.DefaultNetworkConfig
 	testlog := testlog.Logger(t, log.LevelInfo)
-	orchestrator, _ := NewOrchestrator(testlog, &networkConfig)
+	orchestrator, _ := NewOrchestrator(testlog, networkConfig)
 	t.Cleanup(func() {
 		if err := orchestrator.Stop(context.Background()); err != nil {
 			t.Errorf("failed to stop orchestrator: %s", err)
@@ -46,17 +39,17 @@ func createTestSuite(t *testing.T) *TestSuite {
 func TestStartup(t *testing.T) {
 	testSuite := createTestSuite(t)
 
-	require.Equal(t, testSuite.orchestrator.L1Chain().ChainID(), uint64(1))
+	require.Equal(t, testSuite.orchestrator.L1Chain().ChainID(), uint64(900))
 	require.Nil(t, testSuite.orchestrator.L1Chain().Config().L2Config)
 
 	chains := testSuite.orchestrator.L2Chains()
 	require.Equal(t, len(chains), 2)
 
-	require.Equal(t, chains[0].ChainID(), uint64(10))
+	require.Equal(t, chains[0].ChainID(), uint64(901))
 	require.NotNil(t, chains[0].Config().L2Config)
-	require.Equal(t, chains[0].Config().L2Config.L1ChainID, uint64(1))
+	require.Equal(t, chains[0].Config().L2Config.L1ChainID, uint64(900))
 
-	require.Equal(t, chains[1].ChainID(), uint64(30))
+	require.Equal(t, chains[1].ChainID(), uint64(902))
 	require.NotNil(t, chains[1].Config().L2Config)
-	require.Equal(t, chains[1].Config().L2Config.L1ChainID, uint64(1))
+	require.Equal(t, chains[1].Config().L2Config.L1ChainID, uint64(900))
 }
