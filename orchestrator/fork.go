@@ -45,7 +45,11 @@ func NetworkConfigFromForkCLIConfig(forkConfig *config.ForkCLIConfig) (config.Ne
 
 	// L2s
 	for _, chain := range forkConfig.Chains {
-		chainCfg := registry.OPChains[config.OpChainToId[chain]]
+		chainCfg := config.OPChainByName(superchain, chain)
+		if chainCfg == nil {
+			return networkConfig, fmt.Errorf("unrecoginized chain %s. superchain %s", chain, superchain.Superchain)
+		}
+
 		l2ForkHeight, err := latestL2HeightFromL1Header(chainCfg, l1Header)
 		if err != nil {
 			return networkConfig, fmt.Errorf("failed to find right l2 height: %w", err)

@@ -66,12 +66,10 @@ func main() {
 
 func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Lifecycle, error) {
 	log := oplog.NewLogger(oplog.AppOut(ctx), oplog.ReadCLIConfig(ctx))
-	ok, minAnvilErr := isMinAnvilInstalled(log)
-
+	ok, minAnvilErr := isMinAnvilInstalled()
 	if !ok {
 		return nil, fmt.Errorf("anvil version timestamp of %s or higher is required, please use foundryup to update to the latest version.", minAnvilTimestamp)
 	}
-
 	if minAnvilErr != nil {
 		return nil, fmt.Errorf("error determining installed anvil version: %w.", minAnvilErr)
 	}
@@ -90,7 +88,7 @@ func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Li
 	return s, nil
 }
 
-func isMinAnvilInstalled(log log.Logger) (bool, error) {
+func isMinAnvilInstalled() (bool, error) {
 	cmd := exec.Command("anvil", "--version")
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -104,7 +102,6 @@ func isMinAnvilInstalled(log log.Logger) (bool, error) {
 	// anvil does not use semver until 1.0.0 is released so using timestamp to determine version.
 	timestampRegex := regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z`)
 	timestamp := timestampRegex.FindString(output)
-
 	if timestamp == "" {
 		return false, fmt.Errorf("failed to parse anvil timestamp from anvil --version")
 	}

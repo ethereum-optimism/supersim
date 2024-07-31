@@ -133,7 +133,6 @@ func (opSim *OpSimulator) Stop(ctx context.Context) error {
 	}
 
 	opSim.bgTasksCancel()
-
 	return opSim.httpServer.Stop(ctx)
 }
 

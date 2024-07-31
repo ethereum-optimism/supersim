@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -51,6 +52,7 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 	if err := o.l1Anvil.Start(ctx); err != nil {
 		return fmt.Errorf("anvil instance %s failed to start: %w", o.l1Anvil.Name(), err)
 	}
+
 	for _, anvil := range o.l2Anvils {
 		if err := anvil.Start(ctx); err != nil {
 			return fmt.Errorf("anvil instance %s failed to start: %w", anvil.Name(), err)
@@ -72,10 +74,6 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 
 func (o *Orchestrator) Stop(ctx context.Context) error {
 	o.log.Info("stopping orchestrator")
-	if err := o.l1Anvil.Stop(); err != nil {
-		return fmt.Errorf("anvil instance %s failed to stop: %w", o.l1Anvil.Name(), err)
-	}
-
 	for _, opSim := range o.l2OpSims {
 		if err := opSim.Stop(ctx); err != nil {
 			return fmt.Errorf("op simulator chain.id=%d failed to stop: %w", opSim.ChainID(), err)
@@ -89,11 +87,18 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 		o.log.Debug("stopped anvil", "chain.id", anvil.ChainID())
 	}
 
+	if err := o.l1Anvil.Stop(); err != nil {
+		return fmt.Errorf("anvil instance %s failed to stop: %w", o.l1Anvil.Name(), err)
+	}
+
 	o.log.Debug("stopped orchestrator")
 	return nil
 }
 
 func (o *Orchestrator) Stopped() bool {
+	if stopped := o.l1Anvil.Stopped(); stopped {
+		return stopped
+	}
 	for _, anvil := range o.l2Anvils {
 		if stopped := anvil.Stopped(); !stopped {
 			return stopped
@@ -161,7 +166,15 @@ func (o *Orchestrator) ConfigAsString() string {
 
 	if len(o.l2OpSims) > 0 {
 		fmt.Fprintf(&b, "L2:\n")
-		for _, opSim := range o.l2OpSims {
+
+		opSims := make([]*opsimulator.OpSimulator, 0, len(o.l2OpSims))
+		for _, chain := range o.l2OpSims {
+			opSims = append(opSims, chain)
+		}
+
+		// sort by port number (retain ordering of chain flags)
+		sort.Slice(opSims, func(i, j int) bool { return opSims[i].Config().Port < opSims[j].Config().Port })
+		for _, opSim := range opSims {
 			fmt.Fprintf(&b, "  %s\n", opSim.String())
 		}
 	}
