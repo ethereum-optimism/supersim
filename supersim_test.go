@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
@@ -241,5 +242,24 @@ func TestDependencySet(t *testing.T) {
 			require.NoError(t, err)
 			require.True(t, dep, "ChainID is not in dependency set")
 		}
+	}
+}
+
+func TestBatchJsonRpcRequests(t *testing.T) {
+	testSuite := createTestSuite(t)
+
+	for _, opSim := range testSuite.Supersim.Orchestrator.L2OpSims {
+		client, err := ethclient.Dial(opSim.Endpoint())
+		require.NoError(t, err)
+		defer client.Close()
+
+		elems := []rpc.BatchElem{{Method: "eth_chainId", Result: new(hexutil.Uint64)}, {Method: "eth_blockNumber", Result: new(hexutil.Uint64)}}
+		require.NoError(t, client.Client().BatchCall(elems))
+
+		require.Nil(t, elems[0].Error)
+		require.Nil(t, elems[1].Error)
+
+		require.NotZero(t, uint64(*(elems[0].Result).(*hexutil.Uint64)))
+		require.NotZero(t, uint64(*(elems[1].Result).(*hexutil.Uint64)))
 	}
 }
