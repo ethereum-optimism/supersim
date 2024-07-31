@@ -15,9 +15,29 @@ const (
 	ForkCommandName = "fork"
 
 	L1ForkHeightFlagName = "l1.fork.height"
-	ChainsFlagName       = "chains"
-	NetworkFlagName      = "network"
+	L1PortFlagName       = "l1.port"
+
+	ChainsFlagName         = "chains"
+	NetworkFlagName        = "network"
+	L2StartingPortFlagName = "l2.starting.port"
 )
+
+func BaseCLIFlags(envPrefix string) []cli.Flag {
+	return []cli.Flag{
+		&cli.Uint64Flag{
+			Name:    L1PortFlagName,
+			Usage:   "Listening port for the L1 instance. `0` binds to any available port",
+			Value:   8545,
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "L1_PORT"),
+		},
+		&cli.Uint64Flag{
+			Name:    L2StartingPortFlagName,
+			Usage:   "Starting port to increment from for L2 chains. `0` binds each chain to any available port",
+			Value:   9545,
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "L2_STARTING_PORT"),
+		},
+	}
+}
 
 func ForkCLIFlags(envPrefix string) []cli.Flag {
 	networks := strings.Join(superchainNetworks(), ", ")
@@ -51,11 +71,18 @@ type ForkCLIConfig struct {
 }
 
 type CLIConfig struct {
+	L1Port         uint64
+	L2StartingPort uint64
+
 	ForkConfig *ForkCLIConfig
 }
 
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
-	cfg := &CLIConfig{}
+	cfg := &CLIConfig{
+		L1Port:         ctx.Uint64(L1PortFlagName),
+		L2StartingPort: ctx.Uint64(L2StartingPortFlagName),
+	}
+
 	if ctx.Command.Name == ForkCommandName {
 		cfg.ForkConfig = &ForkCLIConfig{
 			L1ForkHeight: ctx.Uint64(L1ForkHeightFlagName),

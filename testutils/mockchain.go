@@ -43,6 +43,10 @@ func (c *MockChain) LogPath() string {
 	return "var/chain/log"
 }
 
+func (c *MockChain) Config() *config.ChainConfig {
+	return nil
+}
+
 func (c *MockChain) EthGetCode(ctx context.Context, account common.Address) ([]byte, error) {
 	return []byte{}, nil
 }

@@ -128,8 +128,8 @@ func (a *Anvil) Start(ctx context.Context) error {
 				anvilLog.Warn("err piping stdout to log file", "err", err)
 			}
 
-			// If configured with port 0, extract the port from the log
-			if a.cfg.Port == 0 && strings.HasPrefix(txt, anvilListeningLogStr) {
+			// extract the port from the log
+			if strings.HasPrefix(txt, anvilListeningLogStr) {
 				port, err := strconv.ParseInt(strings.Split(txt, ":")[1], 10, 64)
 				if err != nil {
 					panic(fmt.Errorf("unexpected anvil listening port log: %w", err))
@@ -160,15 +160,14 @@ func (a *Anvil) Start(ctx context.Context) error {
 		a.stoppedCh <- struct{}{}
 	}()
 
-	// wait & update the port if applicable. Since we're in the same routine to which `Start`
-	// is called, we're safe to overrwrite the `Port` field which the caller can observe
-	if a.cfg.Port == 0 {
-		done := ctx.Done()
-		select {
-		case a.cfg.Port = <-anvilPortCh:
-		case <-done:
-			return ctx.Err()
-		}
+	// wait & update the port. Since we're in the same routine to which `Start` is called,
+	// we're safe to overrwrite the `Port` field which the caller can observe. The update
+	// should be a no-op if bound to an explicit non-zero port
+	done := ctx.Done()
+	select {
+	case a.cfg.Port = <-anvilPortCh:
+	case <-done:
+		return ctx.Err()
 	}
 
 	rpcClient, err := rpc.Dial(a.wsEndpoint())
@@ -216,6 +215,10 @@ func (a *Anvil) ChainID() uint64 {
 
 func (a *Anvil) LogPath() string {
 	return a.logFilePath
+}
+
+func (a *Anvil) Config() *config.ChainConfig {
+	return a.cfg
 }
 
 func (a *Anvil) WaitUntilReady(ctx context.Context) error {

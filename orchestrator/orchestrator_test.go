@@ -19,14 +19,16 @@ type TestSuite struct {
 }
 
 func createTestSuite(t *testing.T) *TestSuite {
-	chainConfigs := []config.ChainConfig{
-		{ChainID: 1, Port: 0},
-		{ChainID: 10, Port: 0, L2Config: &config.L2Config{L1ChainID: 1}},
-		{ChainID: 30, Port: 0, L2Config: &config.L2Config{L1ChainID: 1}},
+	networkConfig := config.NetworkConfig{
+		L1Config: config.ChainConfig{ChainID: 1, Port: 0},
+		L2Configs: []config.ChainConfig{
+			{ChainID: 10, Port: 0, L2Config: &config.L2Config{L1ChainID: 1}},
+			{ChainID: 30, Port: 0, L2Config: &config.L2Config{L1ChainID: 1}},
+		},
 	}
 
 	testlog := testlog.Logger(t, log.LevelInfo)
-	orchestrator, _ := NewOrchestrator(testlog, chainConfigs)
+	orchestrator, _ := NewOrchestrator(testlog, &networkConfig)
 	t.Cleanup(func() {
 		if err := orchestrator.Stop(context.Background()); err != nil {
 			t.Errorf("failed to stop orchestrator: %s", err)
@@ -44,22 +46,17 @@ func createTestSuite(t *testing.T) *TestSuite {
 func TestStartup(t *testing.T) {
 	testSuite := createTestSuite(t)
 
-	require.Equal(t, testSuite.orchestrator.L1Anvil().ChainID(), uint64(1))
-	require.Equal(t, len(testSuite.orchestrator.OpSimInstances), 2)
-	require.Equal(t, testSuite.orchestrator.OpSimInstances[0].ChainID(), uint64(10))
-	require.Equal(t, testSuite.orchestrator.OpSimInstances[0].SourceChainID(), uint64(1))
-	require.Equal(t, testSuite.orchestrator.OpSimInstances[1].ChainID(), uint64(30))
-	require.Equal(t, testSuite.orchestrator.OpSimInstances[1].SourceChainID(), uint64(1))
-}
+	require.Equal(t, testSuite.orchestrator.L1Chain().ChainID(), uint64(1))
+	require.Nil(t, testSuite.orchestrator.L1Chain().Config().L2Config)
 
-func TestTooManyL1sError(t *testing.T) {
-	chainConfigs := []config.ChainConfig{
-		{ChainID: 1, Port: 0},
-		{ChainID: 10, Port: 0},
-		{ChainID: 30, Port: 0, L2Config: &config.L2Config{L1ChainID: 1}},
-	}
+	chains := testSuite.orchestrator.L2Chains()
+	require.Equal(t, len(chains), 2)
 
-	testlog := testlog.Logger(t, log.LevelInfo)
-	_, err := NewOrchestrator(testlog, chainConfigs)
-	require.Error(t, err)
+	require.Equal(t, chains[0].ChainID(), uint64(10))
+	require.NotNil(t, chains[0].Config().L2Config)
+	require.Equal(t, chains[0].Config().L2Config.L1ChainID, uint64(1))
+
+	require.Equal(t, chains[1].ChainID(), uint64(30))
+	require.NotNil(t, chains[1].Config().L2Config)
+	require.Equal(t, chains[0].Config().L2Config.L1ChainID, uint64(1))
 }

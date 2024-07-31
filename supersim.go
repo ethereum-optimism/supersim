@@ -18,30 +18,29 @@ type Supersim struct {
 }
 
 func NewSupersim(log log.Logger, cliConfig *config.CLIConfig) (*Supersim, error) {
-	chainConfigs := config.DefaultChainConfigs
+	networkConfig := config.DefaultNetworkConfig
 	if cliConfig.ForkConfig != nil {
 		superchain := registry.Superchains[cliConfig.ForkConfig.Network]
 		log.Info("generating fork configuration", "superchain", superchain.Superchain)
 
 		var err error
-		chainConfigs, err = orchestrator.ChainConfigsFromForkCLIConfig(cliConfig.ForkConfig)
+		networkConfig, err = orchestrator.NetworkConfigFromForkCLIConfig(cliConfig.ForkConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to construct fork configuration: %w", err)
 		}
 
-		for _, chainCfg := range chainConfigs {
-			var name string
-			if chainCfg.ChainID == superchain.Config.L1.ChainID {
-				name = superchain.Superchain
-			} else {
-				name = registry.OPChains[chainCfg.ChainID].Chain
-			}
-
-			log.Info("forked chain config", "name", name, "chain.id", chainCfg.ChainID, "fork.height", chainCfg.ForkConfig.BlockNumber)
+		log.Info("forked l1 chain config", "name", superchain.Superchain, "chain.id", networkConfig.L1Config.ChainID, "fork.height", cliConfig.ForkConfig.L1ForkHeight)
+		for _, chainCfg := range networkConfig.L2Configs {
+			name := registry.OPChains[chainCfg.ChainID].Chain
+			log.Info("forked l2 chain config", "name", name, "chain.id", chainCfg.ChainID, "fork.height", chainCfg.ForkConfig.BlockNumber)
 		}
 	}
 
-	o, err := orchestrator.NewOrchestrator(log, chainConfigs)
+	// Forward set ports. Setting `0` will work to allocate a random port
+	networkConfig.L1Config.Port = cliConfig.L1Port
+	networkConfig.L2StartingPort = cliConfig.L2StartingPort
+
+	o, err := orchestrator.NewOrchestrator(log, &networkConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create orchestrator")
 	}

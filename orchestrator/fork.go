@@ -14,14 +14,14 @@ import (
 
 const blockTime = 2
 
-func ChainConfigsFromForkCLIConfig(forkConfig *config.ForkCLIConfig) ([]config.ChainConfig, error) {
+func NetworkConfigFromForkCLIConfig(forkConfig *config.ForkCLIConfig) (config.NetworkConfig, error) {
 	superchain := registry.Superchains[forkConfig.Network]
-	chainConfigs := []config.ChainConfig{}
+	networkConfig := config.NetworkConfig{}
 
 	// L1
 	l1Client, err := ethclient.Dial(superchain.Config.L1.PublicRPC)
 	if err != nil {
-		return nil, fmt.Errorf("failed to dial l1 public rpc: %w", err)
+		return networkConfig, fmt.Errorf("failed to dial l1 public rpc: %w", err)
 	}
 
 	var l1ForkHeight *big.Int
@@ -30,38 +30,35 @@ func ChainConfigsFromForkCLIConfig(forkConfig *config.ForkCLIConfig) ([]config.C
 	}
 	l1Header, err := l1Client.HeaderByNumber(context.Background(), l1ForkHeight)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve L1 header: %w", err)
+		return networkConfig, fmt.Errorf("failed to retrieve L1 header: %w", err)
 	}
 
-	chainConfigs = append(chainConfigs, config.ChainConfig{
+	networkConfig.L1Config = config.ChainConfig{
 		Name:          forkConfig.Network,
-		Port:          0,
 		ChainID:       superchain.Config.L1.ChainID,
 		SecretsConfig: config.DefaultSecretsConfig,
 		ForkConfig: &config.ForkConfig{
 			RPCUrl:      superchain.Config.L1.PublicRPC,
 			BlockNumber: l1Header.Number.Uint64(),
 		},
-	})
+	}
 
 	// L2s
 	for _, chain := range forkConfig.Chains {
 		chainCfg := registry.OPChains[config.OpChainToId[chain]]
 		l2ForkHeight, err := latestL2HeightFromL1Header(chainCfg, l1Header)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find right l2 height: %w", err)
+			return networkConfig, fmt.Errorf("failed to find right l2 height: %w", err)
 		}
 
-		chainConfigs = append(chainConfigs, config.ChainConfig{
+		networkConfig.L2Configs = append(networkConfig.L2Configs, config.ChainConfig{
 			Name:          chainCfg.Chain,
 			ChainID:       chainCfg.ChainID,
 			SecretsConfig: config.DefaultSecretsConfig,
-
 			ForkConfig: &config.ForkConfig{
 				RPCUrl:      chainCfg.PublicRPC,
 				BlockNumber: l2ForkHeight,
 			},
-
 			L2Config: &config.L2Config{
 				L1ChainID:   superchain.Config.L1.ChainID,
 				L1Addresses: registry.Addresses[chainCfg.ChainID],
@@ -69,7 +66,7 @@ func ChainConfigsFromForkCLIConfig(forkConfig *config.ForkCLIConfig) ([]config.C
 		})
 	}
 
-	return chainConfigs, nil
+	return networkConfig, nil
 }
 
 func latestL2HeightFromL1Header(l2Cfg *registry.ChainConfig, l1Header *types.Header) (uint64, error) {

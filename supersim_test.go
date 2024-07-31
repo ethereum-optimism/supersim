@@ -63,7 +63,6 @@ func createTestSuite(t *testing.T) *TestSuite {
 	supersim, _ := NewSupersim(testlog, cfg)
 
 	hdAccountStore, err := hdaccount.NewHdAccountStore(defaultTestMnemonic, defaultTestMnemonicDerivationPath)
-
 	if err != nil {
 		t.Fatalf("unable to create hd account store: %s", err)
 		return nil
@@ -91,52 +90,53 @@ func createTestSuite(t *testing.T) *TestSuite {
 func TestStartup(t *testing.T) {
 	testSuite := createTestSuite(t)
 
-	require.True(t, len(testSuite.Supersim.Orchestrator.OpSimInstances) > 0)
-	// test that all op simulators can be queried
-	for _, opSim := range testSuite.Supersim.Orchestrator.OpSimInstances {
-		l2Client, err := rpc.Dial(opSim.Endpoint())
+	l2Chains := testSuite.Supersim.Orchestrator.L2Chains()
+	require.True(t, len(l2Chains) > 0)
+
+	// test that all chains can be queried
+	for _, chain := range l2Chains {
+		l2Client, err := rpc.Dial(chain.Endpoint())
 		require.NoError(t, err)
+
 		var chainId math.HexOrDecimal64
 		require.NoError(t, l2Client.CallContext(context.Background(), &chainId, "eth_chainId"))
-
-		require.Equal(t, opSim.ChainID(), uint64(chainId))
+		require.Equal(t, chain.ChainID(), uint64(chainId))
 
 		l2Client.Close()
 	}
 
 	// test that l1 anvil can be queried
-	l1Client, err := rpc.Dial(testSuite.Supersim.Orchestrator.L1Anvil().Endpoint())
+	l1Client, err := rpc.Dial(testSuite.Supersim.Orchestrator.L1Chain().Endpoint())
 	require.NoError(t, err)
+
 	var chainId math.HexOrDecimal64
 	require.NoError(t, l1Client.CallContext(context.Background(), &chainId, "eth_chainId"))
-
-	require.Equal(t, testSuite.Supersim.Orchestrator.L1Anvil().ChainID(), uint64(chainId))
+	require.Equal(t, testSuite.Supersim.Orchestrator.L1Chain().ChainID(), uint64(chainId))
 
 	l1Client.Close()
 }
 
 func TestL1GenesisState(t *testing.T) {
 	testSuite := createTestSuite(t)
+	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
+		require.NotNil(t, chain.Config().L2Config)
 
-	require.True(t, len(testSuite.Supersim.Orchestrator.OpSimInstances) > 0)
+		l1Addrs := chain.Config().L2Config.L1Addresses
 
-	for _, l2OpSim := range testSuite.Supersim.Orchestrator.OpSimInstances {
-		var code []byte
-		code, _ = testSuite.Supersim.Orchestrator.L1Anvil().EthGetCode(context.Background(), common.Address(l2OpSim.L2Config.L1Addresses.AddressManager))
+		code, err := testSuite.Supersim.Orchestrator.L1Chain().EthGetCode(context.Background(), common.Address(l1Addrs.AddressManager))
+		require.Nil(t, err)
 		require.NotEqual(t, emptyCode, code, "AddressManager is not deployed")
 
-		code, _ = testSuite.Supersim.Orchestrator.L1Anvil().EthGetCode(context.Background(), common.Address(l2OpSim.L2Config.L1Addresses.OptimismPortalProxy))
+		code, err = testSuite.Supersim.Orchestrator.L1Chain().EthGetCode(context.Background(), common.Address(l1Addrs.OptimismPortalProxy))
+		require.Nil(t, err)
 		require.NotEqual(t, emptyCode, code, "OptimismPortalProxy is not deployed")
 	}
 }
 
 func TestGenesisState(t *testing.T) {
 	testSuite := createTestSuite(t)
-
-	require.True(t, len(testSuite.Supersim.Orchestrator.OpSimInstances) > 0)
-	// assert that the predeploys exists on the l2 anvil instances
-	for _, l2OpSim := range testSuite.Supersim.Orchestrator.OpSimInstances {
-		client, err := rpc.Dial(l2OpSim.Endpoint())
+	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
+		client, err := rpc.Dial(chain.Endpoint())
 		require.NoError(t, err)
 		defer client.Close()
 
@@ -155,7 +155,7 @@ func TestGenesisState(t *testing.T) {
 func TestAccountBalances(t *testing.T) {
 	testSuite := createTestSuite(t)
 
-	for _, l2Chain := range testSuite.Supersim.Orchestrator.OpSimInstances {
+	for _, l2Chain := range testSuite.Supersim.Orchestrator.L2Chains() {
 		client, err := rpc.Dial(l2Chain.Endpoint())
 		require.NoError(t, err)
 		defer client.Close()
@@ -171,18 +171,19 @@ func TestAccountBalances(t *testing.T) {
 func TestDepositTxSimpleEthDeposit(t *testing.T) {
 	testSuite := createTestSuite(t)
 
-	l1Anvil := testSuite.Supersim.Orchestrator.L1Anvil()
-	l1EthClient, _ := ethclient.Dial(l1Anvil.Endpoint())
+	l1Chain := testSuite.Supersim.Orchestrator.L1Chain()
+	l1EthClient, _ := ethclient.Dial(l1Chain.Endpoint())
 
 	var wg sync.WaitGroup
 	var l1TxMutex sync.Mutex
 
-	wg.Add(len(testSuite.Supersim.Orchestrator.OpSimInstances))
-	for i, opSim := range testSuite.Supersim.Orchestrator.OpSimInstances {
+	l2Chains := testSuite.Supersim.Orchestrator.L2Chains()
+	wg.Add(len(l2Chains))
+	for i, chain := range l2Chains {
 		go func() {
 			defer wg.Done()
 
-			l2EthClient, _ := ethclient.Dial(opSim.Endpoint())
+			l2EthClient, _ := ethclient.Dial(chain.Endpoint())
 			privateKey, _ := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(i))
 			senderAddressHex, _ := testSuite.HdAccountStore.AddressHexAt(uint32(i))
 			senderAddress := common.HexToAddress(senderAddressHex)
@@ -190,9 +191,9 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 			oneEth := big.NewInt(1e18)
 			prevBalance, _ := l2EthClient.BalanceAt(context.Background(), senderAddress, nil)
 
-			transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(l1Anvil.ChainID())))
+			transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(l1Chain.ChainID())))
 			transactor.Value = oneEth
-			optimismPortal, _ := bindings.NewOptimismPortal(common.Address(opSim.L2Config.L1Addresses.OptimismPortalProxy), l1EthClient)
+			optimismPortal, _ := bindings.NewOptimismPortal(common.Address(chain.Config().L2Config.L1Addresses.OptimismPortalProxy), l1EthClient)
 
 			// needs a lock because the gas estimation can become outdated between transactions
 			l1TxMutex.Lock()

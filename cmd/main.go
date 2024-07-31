@@ -43,15 +43,17 @@ func main() {
 	app.Description = "Local multichain optimism development environment"
 	app.Action = cliapp.LifecycleCmd(SupersimMain)
 
+	baseFlags := append(config.BaseCLIFlags(EnvVarPrefix), logFlags...)
+
 	// Vanilla mode has no specific flags for now
-	app.Flags = logFlags
+	app.Flags = baseFlags
 
 	// Subcommands
 	app.Commands = []*cli.Command{
 		{
 			Name:   config.ForkCommandName,
 			Usage:  "Locally fork a network in the superchain registry",
-			Flags:  append(config.ForkCLIFlags(EnvVarPrefix), logFlags...),
+			Flags:  append(config.ForkCLIFlags(EnvVarPrefix), baseFlags...),
 			Action: cliapp.LifecycleCmd(SupersimMain),
 		},
 	}
