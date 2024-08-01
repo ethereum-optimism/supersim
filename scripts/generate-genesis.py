@@ -31,7 +31,7 @@ class L1:
   def __init__(self, l1_chain_id, supersim_dir):
     self.l1_chain_id = l1_chain_id
 
-    supersim_output_dir = os.path.join(supersim_dir, 'genesisdeployment', 'generated')
+    supersim_output_dir = os.path.join(supersim_dir, 'genesis', 'generated')
 
     self.combined_l1_allocs_path = os.path.join(supersim_output_dir, 'l1-combined-allocs.json')
     self.l1_genesis_path = os.path.join(supersim_output_dir, 'l1-genesis.json')
@@ -43,7 +43,7 @@ class L2:
 
     self.deployer_address = deployer_address
 
-    supersim_output_dir = os.path.join(supersim_dir, 'genesisdeployment', 'generated')
+    supersim_output_dir = os.path.join(supersim_dir, 'genesis', 'generated')
 
     self.addresses_path = os.path.join(supersim_output_dir, 'addresses', f"{self.l2_chain_id}-addresses.json")
     self.deploy_config_path = os.path.join(supersim_output_dir, 'deploy-configs', f"{self.l2_chain_id}-deploy-config.json")
@@ -59,7 +59,7 @@ class Bunch:
 def main():
   supersim_dir = os.path.abspath(os.path.join(os.path.realpath(__file__), '../..'))
   supersim_contracts_dir = os.path.join(supersim_dir, 'contracts')
-  supersim_output_dir = os.path.join(supersim_dir, 'genesisdeployment', 'generated')
+  supersim_output_dir = os.path.join(supersim_dir, 'genesis', 'generated')
   supersim_output_deploy_configs_dir = os.path.join(supersim_output_dir, "deploy-configs")
   supersim_output_l1_allocs_dir = os.path.join(supersim_output_dir, "l1-allocs")
   supersim_output_addresses_dir = os.path.join(supersim_output_dir, "addresses")
@@ -203,8 +203,9 @@ def generate_l1_genesis(paths, l1_chain: L1, l2_chains: list[L2]):
 
 
 def generate_l2_genesis(paths, l1_chain: L1, l2_chains: list[L2]):
+  # TODO: block-time = 2 is a hack because it attempts to get block 1
   anvil_proc = subprocess.Popen([
-    'anvil', '--silent', '--init', l1_chain.l1_genesis_path,
+    'anvil', '--block-time', '2', '--silent', '--init', l1_chain.l1_genesis_path,
   ], cwd=paths.supersim_dir)
   
   l1_rpc_url = f'127.0.0.1:{l1_rpc_port}'
