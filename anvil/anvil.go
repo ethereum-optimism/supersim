@@ -72,6 +72,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainID),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
 		"--optimism",
+		"--block-time", "2",
 	}
 
 	if len(a.cfg.GenesisJSON) > 0 && a.cfg.ForkConfig == nil {
