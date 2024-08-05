@@ -23,9 +23,10 @@ import (
 )
 
 var (
-	GitCommit    = ""
-	GitDate      = ""
-	EnvVarPrefix = "SUPERSIM"
+	GitCommit = ""
+	GitDate   = ""
+
+	envVarPrefix = "SUPERSIM"
 )
 
 const (
@@ -34,7 +35,7 @@ const (
 
 func main() {
 	oplog.SetupDefaults()
-	logFlags := oplog.CLIFlags(EnvVarPrefix)
+	logFlags := oplog.CLIFlags(envVarPrefix)
 
 	app := cli.NewApp()
 	app.Version = params.VersionWithCommit(GitCommit, GitDate)
@@ -43,7 +44,7 @@ func main() {
 	app.Description = "Local multichain optimism development environment"
 	app.Action = cliapp.LifecycleCmd(SupersimMain)
 
-	baseFlags := append(config.BaseCLIFlags(EnvVarPrefix), logFlags...)
+	baseFlags := append(config.BaseCLIFlags(envVarPrefix), logFlags...)
 
 	// Vanilla mode has no specific flags for now
 	app.Flags = baseFlags
@@ -53,7 +54,7 @@ func main() {
 		{
 			Name:   config.ForkCommandName,
 			Usage:  "Locally fork a network in the superchain registry",
-			Flags:  append(config.ForkCLIFlags(EnvVarPrefix), baseFlags...),
+			Flags:  append(config.ForkCLIFlags(envVarPrefix), baseFlags...),
 			Action: cliapp.LifecycleCmd(SupersimMain),
 		},
 	}
@@ -80,7 +81,7 @@ func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Li
 	}
 
 	// use config and setup supersim
-	s, err := supersim.NewSupersim(log, cfg)
+	s, err := supersim.NewSupersim(log, envVarPrefix, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create supersim: %w", err)
 	}

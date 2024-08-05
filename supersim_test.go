@@ -63,7 +63,7 @@ type TestSuite struct {
 func createTestSuite(t *testing.T) *TestSuite {
 	cfg := &config.CLIConfig{} // does not run in fork mode
 	testlog := testlog.Logger(t, log.LevelInfo)
-	supersim, _ := NewSupersim(testlog, cfg)
+	supersim, _ := NewSupersim(testlog, "", cfg)
 
 	hdAccountStore, err := hdaccount.NewHdAccountStore(defaultTestMnemonic, defaultTestMnemonicDerivationPath)
 	if err != nil {
