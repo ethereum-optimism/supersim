@@ -6,7 +6,7 @@ require (
 	github.com/btcsuite/btcd v0.24.2
 	github.com/btcsuite/btcd/btcutil v1.1.5
 	github.com/ethereum-optimism/optimism v1.7.7
-	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20240626122407-496fe4119eab
+	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20240717194452-c01722001e88
 	github.com/ethereum/go-ethereum v1.13.15
 	github.com/stretchr/testify v1.9.0
 	github.com/tyler-smith/go-bip39 v1.1.0
@@ -14,6 +14,7 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/VictoriaMetrics/fastcache v1.12.1 // indirect

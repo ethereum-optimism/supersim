@@ -51,14 +51,14 @@ func ForkCLIFlags(envPrefix string) []cli.Flag {
 		},
 		&cli.StringSliceFlag{
 			Name:     ChainsFlagName,
-			Usage:    fmt.Sprintf("chains to fork in the superchain, mainnet options: [%s]", mainnetMembers),
+			Usage:    fmt.Sprintf("chains to fork in the superchain, mainnet options: [%s]. In order to replace the public rpc endpoint for a chain, specify the ($%s_RPC_URL_<CHAIN>) env variable. i.e SUPERSIM_RPC_URL_OP=http://optimism-mainnet.infura.io/v3/<API-KEY>", mainnetMembers, envPrefix),
 			Required: true,
 			EnvVars:  opservice.PrefixEnvVar(envPrefix, "CHAINS"),
 		},
 		&cli.StringFlag{
 			Name:    NetworkFlagName,
 			Value:   "mainnet",
-			Usage:   fmt.Sprintf("superchain network. options: %s", networks),
+			Usage:   fmt.Sprintf("superchain network. options: %s. In order to replace the public rpc endpoint for the network, specify the ($%s_RPC_URL_<NETWORK>) env variable. i.e SUPERSIM_RPC_URL_MAINNET=http://mainnet.infura.io/v3/<API-KEY>", networks, envPrefix),
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "NETWORK"),
 		},
 	}

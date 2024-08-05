@@ -17,19 +17,23 @@ type Supersim struct {
 	Orchestrator *orchestrator.Orchestrator
 }
 
-func NewSupersim(log log.Logger, cliConfig *config.CLIConfig) (*Supersim, error) {
+func NewSupersim(log log.Logger, envPrefix string, cliConfig *config.CLIConfig) (*Supersim, error) {
 	networkConfig := config.DefaultNetworkConfig
 	if cliConfig.ForkConfig != nil {
 		superchain := registry.Superchains[cliConfig.ForkConfig.Network]
 		log.Info("generating fork configuration", "superchain", superchain.Superchain)
 
 		var err error
-		networkConfig, err = orchestrator.NetworkConfigFromForkCLIConfig(cliConfig.ForkConfig)
+		networkConfig, err = orchestrator.NetworkConfigFromForkCLIConfig(log, envPrefix, cliConfig.ForkConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to construct fork configuration: %w", err)
 		}
 
-		log.Info("forked l1 chain config", "name", superchain.Superchain, "chain.id", networkConfig.L1Config.ChainID, "fork.height", cliConfig.ForkConfig.L1ForkHeight)
+		l1ForkHeightStr := "latest"
+		if cliConfig.ForkConfig.L1ForkHeight > 0 {
+			l1ForkHeightStr = fmt.Sprintf("%d", cliConfig.ForkConfig.L1ForkHeight)
+		}
+		log.Info("forked l1 chain config", "name", superchain.Superchain, "chain.id", networkConfig.L1Config.ChainID, "fork.height", l1ForkHeightStr)
 		for _, chainCfg := range networkConfig.L2Configs {
 			name := registry.OPChains[chainCfg.ChainID].Chain
 			log.Info("forked l2 chain config", "name", name, "chain.id", chainCfg.ChainID, "fork.height", chainCfg.ForkConfig.BlockNumber)

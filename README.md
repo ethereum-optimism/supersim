@@ -46,10 +46,14 @@ OPTIONS:
                 L1 height to fork the superchain (bounds L2 time). `0` for latest
 
           --chains value                                                         ($SUPERSIM_CHAINS)
-                chains to fork in the superchain, mainnet options: [base, lyra, metal, mode, op, orderly, pgn, zora]
+                chains to fork in the superchain, mainnet options: [base, lyra, metal, mode, op,
+                orderly, pgn, superlumio, zora]. In order to replace the public rpc endpoint for
+                a chain, specify the ($SUPERSIM_RPC_URL_<CHAIN>) env variable. i.e SUPERSIM_RPC_URL_OP=http://optimism-mainnet.infura.io/v3/<API-KEY>
 
           --network value                     (default: "mainnet")               ($SUPERSIM_NETWORK)
-                superchain network. options: mainnet, sepolia, sepolia-dev-0
+                superchain network. options: mainnet, sepolia, sepolia-dev-0. In order to
+                replace the public rpc endpoint for the network, specify the
+                ($SUPERSIM_RPC_URL_<NETWORK>) env variable. i.e SUPERSIM_RPC_URL_MAINNET=http://mainnet.infura.io/v3/<API-KEY>
 ```
 
 ## Examples
