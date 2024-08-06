@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/ethereum-optimism/supersim/config"
 
@@ -64,6 +65,14 @@ func (c *MockChain) EthSendTransaction(ctx context.Context, tx *types.Transactio
 	return nil
 }
 
+func (c *MockChain) EthBlockByNumber(ctx context.Context, blockHeight *big.Int) (*types.Block, error) {
+	return &types.Block{}, nil
+}
+
 func (c *MockChain) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
 	return &MockSubscription{}, nil
+}
+
+func (c *MockChain) DebugTraceCall(ctx context.Context, txArgs config.TransactionArgs) (config.TraceCallRaw, error) {
+	return config.TraceCallRaw{}, nil
 }

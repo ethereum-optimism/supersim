@@ -18,8 +18,15 @@ Supersim allows developers to start multiple local evm nodes with one command, a
 Supersim is a lightweight tool that simulates an interoperable Superchain environment locally. It does not require a complicated devnet setup and is run using cli commands with configuration options that fall back to sensible defaults if they are not specified. Each chain is an instance of [anvil](https://book.getfoundry.sh/reference/anvil/), though future versions may support other local testing tools.
 
 ## Getting started
-### Installation
-TODO
+### Running Locally
+1. build the binary by running:
+```
+go build cmd/main.go
+```
+2. start supersim in vanilla mode by running:
+```
+./main
+```
 
 ## Features
 ### Vanilla mode

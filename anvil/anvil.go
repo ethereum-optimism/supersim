@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"os/exec"
 	"strconv"
@@ -283,7 +284,24 @@ func (a *Anvil) EthSendTransaction(ctx context.Context, tx *types.Transaction) e
 	return a.ethClient.SendTransaction(ctx, tx)
 }
 
+func (a *Anvil) EthBlockByNumber(ctx context.Context, blockHeight *big.Int) (*types.Block, error) {
+	return a.ethClient.BlockByNumber(ctx, blockHeight)
+}
+
 // subscription API
 func (a *Anvil) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
 	return a.ethClient.SubscribeFilterLogs(ctx, q, ch)
+}
+
+func (a *Anvil) DebugTraceCall(ctx context.Context, txArgs config.TransactionArgs) (config.TraceCallRaw, error) {
+	var result config.TraceCallRaw
+	if err := a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "latest", map[string]interface{}{
+		"tracer": "callTracer",
+		"tracerConfig": map[string]interface{}{
+			"withLog": true,
+		},
+	}); err != nil {
+		return config.TraceCallRaw{}, err
+	}
+	return result, nil
 }
