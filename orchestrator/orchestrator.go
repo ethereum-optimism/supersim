@@ -36,7 +36,11 @@ func NewOrchestrator(log log.Logger, networkConfig *config.NetworkConfig) (*Orch
 
 		l2Anvil := anvil.New(log, &cfg)
 		l2Anvils[cfg.ChainID] = l2Anvil
-		L2OpSims[cfg.ChainID] = opsimulator.New(log, nextL2Port, l1Anvil, l2Anvil, cfg.L2Config, l2Anvils)
+	}
+
+	for i := range networkConfig.L2Configs {
+		cfg := networkConfig.L2Configs[i]
+		L2OpSims[cfg.ChainID] = opsimulator.New(log, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], cfg.L2Config, l2Anvils)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
