@@ -9,6 +9,17 @@ import (
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 )
 
+type GenesisJson struct {
+	Alloc map[string]Alloc `json:"alloc"`
+}
+
+type Alloc struct {
+	Balance string            `json:"balance"`
+	Code    string            `json:"code"`
+	Nonce   string            `json:"nonce"`
+	Storage map[string]string `json:"storage"`
+}
+
 /*******************
 L1 Genesis files
 *******************/
@@ -112,4 +123,14 @@ func newL2GenesisDeployment(l2ChainID uint64, l1DeploymentAddressesJSON []byte, 
 		GenesisJSON:           l2GenesisJSON,
 		L1DeploymentAddresses: &l1DeploymentAddresses,
 	}
+}
+
+func UnMarshaledL2GenesisJSON() (*GenesisJson, error) {
+	var genesis *GenesisJson
+	err := json.Unmarshal(GeneratedGenesisDeployment.L2s[0].GenesisJSON, &genesis)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal allocs: %w", err)
+	}
+
+	return genesis, nil
 }

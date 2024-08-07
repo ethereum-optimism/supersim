@@ -62,6 +62,7 @@ var (
 type ForkConfig struct {
 	RPCUrl      string
 	BlockNumber uint64
+	UseInterop  bool
 }
 
 type SecretsConfig struct {
@@ -144,6 +145,8 @@ type Chain interface {
 
 	SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error)
 	DebugTraceCall(ctx context.Context, txArgs TransactionArgs) (TraceCallRaw, error)
+	SetCode(ctx context.Context, result interface{}, address string, code string) error
+	SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error
 }
 
 // Note: The default secrets config is used everywhere

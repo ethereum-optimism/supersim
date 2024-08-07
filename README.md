@@ -61,7 +61,21 @@ OPTIONS:
                 superchain network. options: mainnet, sepolia, sepolia-dev-0. In order to
                 replace the public rpc endpoint for the network, specify the
                 ($SUPERSIM_RPC_URL_<NETWORK>) env variable. i.e SUPERSIM_RPC_URL_MAINNET=http://mainnet.infura.io/v3/<API-KEY>
+
+          --experiment.interop                (default: false)                   ($SUPERSIM_FORK_WITH_INTEROP)
+                Enable interop in fork mode
+   
+          --l1.port value                     (default: 8545)                    ($SUPERSIM_L1_PORT)
+                Listening port for the L1 instance. `0` binds to any available port
+   
+          --l2.starting.port value            (default: 9545)                    ($SUPERSIM_L2_STARTING_PORT)
+                Starting port to increment from for L2 chains. `0` binds each chain to any
+                available port
+   
 ```
+
+#### Enabling Interop in Fork Mode
+To apply the changes needed for enabling interop on forked chains, pass `--experiment.interop true` in when starting supersim in fork mode. This will configure interop such that all forked L2 chains are in one another's dependency sets and can pass messages between each other.
 
 ## Examples
 TODO

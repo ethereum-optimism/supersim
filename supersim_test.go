@@ -11,6 +11,7 @@ import (
 	opbindings "github.com/ethereum-optimism/optimism/op-e2e/bindings"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
+	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/hdaccount"
@@ -81,10 +82,9 @@ type InteropTestSuite struct {
 	DestChainID   *big.Int
 }
 
-func createTestSuite(t *testing.T) *TestSuite {
-	cfg := &config.CLIConfig{} // does not run in fork mode
+func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
 	testlog := testlog.Logger(t, log.LevelInfo)
-	supersim, _ := NewSupersim(testlog, "", cfg)
+	supersim, _ := NewSupersim(testlog, "", cliConfig)
 
 	hdAccountStore, err := hdaccount.NewHdAccountStore(defaultTestMnemonic, defaultTestMnemonicDerivationPath)
 	if err != nil {
@@ -105,14 +105,57 @@ func createTestSuite(t *testing.T) *TestSuite {
 
 	return &TestSuite{
 		t:              t,
-		Cfg:            cfg,
+		Cfg:            cliConfig,
 		Supersim:       supersim,
 		HdAccountStore: hdAccountStore,
 	}
 }
 
+func createForkedInteropTestSuite(t *testing.T) *InteropTestSuite {
+	srcChain := "op"
+	destChain := "base"
+	cliConfig := &config.CLIConfig{
+		ForkConfig: &config.ForkCLIConfig{
+			Chains:     []string{srcChain, destChain},
+			UseInterop: true,
+			Network:    "mainnet",
+		},
+	}
+	superchain := registry.Superchains[cliConfig.ForkConfig.Network]
+	srcChainCfg := config.OPChainByName(superchain, srcChain)
+	destChainCfg := config.OPChainByName(superchain, destChain)
+
+	testSuite := createTestSuite(t, cliConfig)
+	sourceOpSim := testSuite.Supersim.Orchestrator.L2OpSims[srcChainCfg.ChainID]
+	sourceEthClient, _ := ethclient.Dial(sourceOpSim.Endpoint())
+	defer sourceEthClient.Close()
+
+	destOpSim := testSuite.Supersim.Orchestrator.L2OpSims[destChainCfg.ChainID]
+	destEthClient, _ := ethclient.Dial(destOpSim.Endpoint())
+	defer destEthClient.Close()
+
+	destChainID := new(big.Int).SetUint64(destChainCfg.ChainID)
+	sourceChainID := new(big.Int).SetUint64(srcChainCfg.ChainID)
+
+	// TODO: fix when we add a wait for ready on the opsim
+	time.Sleep(3 * time.Second)
+
+	return &InteropTestSuite{
+		t:               t,
+		Cfg:             testSuite.Cfg,
+		Supersim:        testSuite.Supersim,
+		HdAccountStore:  testSuite.HdAccountStore,
+		SourceOpSim:     sourceOpSim,
+		SourceEthClient: sourceEthClient,
+		DestOpSim:       destOpSim,
+		DestEthClient:   destEthClient,
+		SourceChainID:   sourceChainID,
+		DestChainID:     destChainID,
+	}
+}
+
 func createInteropTestSuite(t *testing.T) *InteropTestSuite {
-	testSuite := createTestSuite(t)
+	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	sourceOpSim := testSuite.Supersim.Orchestrator.L2OpSims[config.DefaultNetworkConfig.L2Configs[0].ChainID]
 	sourceEthClient, _ := ethclient.Dial(sourceOpSim.Endpoint())
@@ -143,7 +186,7 @@ func createInteropTestSuite(t *testing.T) *InteropTestSuite {
 }
 
 func TestStartup(t *testing.T) {
-	testSuite := createTestSuite(t)
+	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	l2Chains := testSuite.Supersim.Orchestrator.L2Chains()
 	require.True(t, len(l2Chains) > 0)
@@ -172,7 +215,7 @@ func TestStartup(t *testing.T) {
 }
 
 func TestL1GenesisState(t *testing.T) {
-	testSuite := createTestSuite(t)
+	testSuite := createTestSuite(t, &config.CLIConfig{})
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
 		require.NotNil(t, chain.Config().L2Config)
 
@@ -189,7 +232,7 @@ func TestL1GenesisState(t *testing.T) {
 }
 
 func TestGenesisState(t *testing.T) {
-	testSuite := createTestSuite(t)
+	testSuite := createTestSuite(t, &config.CLIConfig{})
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
 		client, err := rpc.Dial(chain.Endpoint())
 		require.NoError(t, err)
@@ -208,7 +251,7 @@ func TestGenesisState(t *testing.T) {
 }
 
 func TestAccountBalances(t *testing.T) {
-	testSuite := createTestSuite(t)
+	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	for _, l2Chain := range testSuite.Supersim.Orchestrator.L2Chains() {
 		client, err := rpc.Dial(l2Chain.Endpoint())
@@ -224,7 +267,7 @@ func TestAccountBalances(t *testing.T) {
 }
 
 func TestDepositTxSimpleEthDeposit(t *testing.T) {
-	testSuite := createTestSuite(t)
+	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	l1Chain := testSuite.Supersim.Orchestrator.L1Chain()
 	l1EthClient, _ := ethclient.Dial(l1Chain.Endpoint())
@@ -275,7 +318,7 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 }
 
 func TestDependencySet(t *testing.T) {
-	testSuite := createTestSuite(t)
+	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	for _, opSim := range testSuite.Supersim.Orchestrator.L2OpSims {
 		l2Client, err := ethclient.Dial(opSim.Endpoint())
@@ -302,7 +345,7 @@ func TestDependencySet(t *testing.T) {
 }
 
 func TestDeployContractsL1WithDevAccounts(t *testing.T) {
-	testSuite := createTestSuite(t)
+	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	l1Client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.L1Chain().Endpoint())
 	require.NoError(t, err)
@@ -341,7 +384,7 @@ func TestDeployContractsL1WithDevAccounts(t *testing.T) {
 }
 
 func TestBatchJsonRpcRequests(t *testing.T) {
-	testSuite := createTestSuite(t)
+	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	for _, opSim := range testSuite.Supersim.Orchestrator.L2OpSims {
 		client, err := ethclient.Dial(opSim.Endpoint())
@@ -370,7 +413,7 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 
 	// Create initiating message using L2ToL2CrossDomainMessenger
 	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
-	initiatingMsgNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
 	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
 	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
@@ -432,7 +475,7 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 
 	// Create initiating message using L2ToL2CrossDomainMessenger
 	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
-	initiatingMsgNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
 	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
 	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
@@ -463,7 +506,7 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
 		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
-		ChainId:     new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[0].ChainID),
+		ChainId:     testSuite.SourceChainID,
 	}
 	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
 	require.NoError(t, err)
@@ -491,7 +534,7 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 
 	// Create initiating message using L2ToL2CrossDomainMessenger
 	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
-	initiatingMsgNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
 	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
 	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
@@ -522,7 +565,7 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(1),
 		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
-		ChainId:     new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[0].ChainID),
+		ChainId:     testSuite.SourceChainID,
 	}
 	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
 	require.NoError(t, err)
@@ -547,7 +590,7 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 
 	// Create initiating message using L2ToL2CrossDomainMessenger
 	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
-	initiatingMsgNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
 	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
 	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
@@ -579,7 +622,7 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 		BlockNumber: wrongBlockNumber,
 		LogIndex:    big.NewInt(0),
 		Timestamp:   new(big.Int).SetUint64(wrongMessageBlock.Time()),
-		ChainId:     new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[0].ChainID),
+		ChainId:     testSuite.SourceChainID,
 	}
 	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
 	require.NoError(t, err)
@@ -604,7 +647,7 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 
 	// Create initiating message using L2ToL2CrossDomainMessenger
 	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
-	initiatingMsgNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
 	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
 	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
@@ -635,7 +678,7 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
 		Timestamp:   new(big.Int).Sub(new(big.Int).SetUint64(initiatingMessageBlock.Time()), big.NewInt(1)),
-		ChainId:     new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[0].ChainID),
+		ChainId:     testSuite.SourceChainID,
 	}
 	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
 	require.NoError(t, err)
@@ -645,4 +688,60 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 	require.NoError(t, err)
 	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
 	require.Error(t, err)
+}
+
+func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
+	testSuite := createForkedInteropTestSuite(t)
+	gasLimit := uint64(30000000)
+	gasPrice := big.NewInt(10000000)
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	require.NoError(t, err)
+	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
+	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
+	require.NoError(t, err)
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+	parsedSendMessageABI, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[{"name":"_destination","type":"uint256"},{"name":"_target","type":"address"},{"name":"_message","type":"bytes"}],"name":"sendMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
+	require.NoError(t, err)
+	sendMessage, err := parsedSendMessageABI.Pack("sendMessage", testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+	initiatingMsgTx := types.NewTransaction(initiatingMsgNonce, origin, big.NewInt(0), gasLimit, gasPrice, sendMessage)
+	require.NoError(t, err)
+	signedInitiatingMsgTx, err := types.SignTx(initiatingMsgTx, types.NewEIP155Signer(testSuite.SourceChainID), privateKey)
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.SendTransaction(context.Background(), signedInitiatingMsgTx)
+	require.NoError(t, err)
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// Create executing message using CrossL2Inbox
+	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	require.NoError(t, err)
+	crossL2Inbox := opsimulator.NewCrossL2Inbox()
+	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	require.NoError(t, err)
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := opsimulator.MessageIdentifier{
+		Origin:      origin,
+		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+		LogIndex:    big.NewInt(0),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
+		ChainId:     testSuite.SourceChainID,
+	}
+	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
+	require.NoError(t, err)
+	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
+	require.NoError(t, err)
+	executeMessageSignedTx, err := types.SignTx(executeMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
+	require.NoError(t, err)
+	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
+	require.NoError(t, err)
+	executeMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.DestEthClient, executeMessageSignedTx)
+	require.NoError(t, err)
+	require.True(t, executeMessageTxReceipt.Status == 1, "execute message transaction failed")
 }

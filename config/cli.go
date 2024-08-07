@@ -19,6 +19,7 @@ const (
 
 	ChainsFlagName         = "chains"
 	NetworkFlagName        = "network"
+	InteropFlagName        = "experiment.interop"
 	L2StartingPortFlagName = "l2.starting.port"
 )
 
@@ -61,6 +62,12 @@ func ForkCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   fmt.Sprintf("superchain network. options: %s. In order to replace the public rpc endpoint for the network, specify the ($%s_RPC_URL_<NETWORK>) env variable. i.e SUPERSIM_RPC_URL_MAINNET=http://mainnet.infura.io/v3/<API-KEY>", networks, envPrefix),
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "NETWORK"),
 		},
+		&cli.BoolFlag{
+			Name:    InteropFlagName,
+			Value:   false,
+			Usage:   "Enable interop in fork mode",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "FORK_WITH_INTEROP"),
+		},
 	}
 }
 
@@ -68,6 +75,7 @@ type ForkCLIConfig struct {
 	L1ForkHeight uint64
 	Network      string
 	Chains       []string
+	UseInterop   bool
 }
 
 type CLIConfig struct {
@@ -88,6 +96,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 			L1ForkHeight: ctx.Uint64(L1ForkHeightFlagName),
 			Network:      ctx.String(NetworkFlagName),
 			Chains:       ctx.StringSlice(ChainsFlagName),
+			UseInterop:   ctx.Bool(InteropFlagName),
 		}
 	}
 

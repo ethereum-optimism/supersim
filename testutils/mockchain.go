@@ -76,3 +76,11 @@ func (c *MockChain) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQu
 func (c *MockChain) DebugTraceCall(ctx context.Context, txArgs config.TransactionArgs) (config.TraceCallRaw, error) {
 	return config.TraceCallRaw{}, nil
 }
+
+func (c *MockChain) SetCode(ctx context.Context, result interface{}, address string, code string) error {
+	return nil
+}
+
+func (c *MockChain) SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error {
+	return nil
+}
