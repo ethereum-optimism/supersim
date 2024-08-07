@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum-optimism/supersim/genesis"
 	"github.com/ethereum-optimism/supersim/hdaccount"
 	"github.com/ethereum-optimism/supersim/opsimulator"
 
@@ -606,4 +607,11 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 	require.NoError(t, err)
 	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
 	require.Error(t, err)
+}
+
+func TestPredeployToCodeNamespace(t *testing.T) {
+	implAddr := genesis.PredeployToCodeNamespace(predeploys.CrossL2InboxAddr)
+	byteCode, err := genesis.FetchByteCodeForL2Alloc(implAddr)
+	require.NoError(t, err)
+	require.NotEqual(t, emptyCode, byteCode, "No byte code for CrossL2InboxAddr impl")
 }

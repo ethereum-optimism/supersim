@@ -10,8 +10,6 @@ import (
 	"math/big"
 	"net"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -21,6 +19,7 @@ import (
 
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum-optimism/supersim/genesis"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -95,13 +94,8 @@ func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *c
 }
 
 func (opSim *OpSimulator) Start(ctx context.Context) error {
-	proxy, err := opSim.createReverseProxy()
-	if err != nil {
-		return fmt.Errorf("error creating reverse proxy: %w", err)
-	}
-
 	mux := http.NewServeMux()
-	mux.Handle("/", opSim.handler(proxy, ctx))
+	mux.Handle("/", opSim.handler(ctx))
 
 	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(host, fmt.Sprintf("%d", opSim.port)), mux)
 	if err != nil {
@@ -116,6 +110,10 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		if err != nil {
 			panic(fmt.Errorf("unexpected opsimulator listening port: %w", err))
 		}
+	}
+
+	if opSim.Config().ForkConfig.UseInterop {
+		genesis.ConfigureInteropForChain()
 	}
 
 	opSim.startStartupTasks()
@@ -146,7 +144,7 @@ func (opSim *OpSimulator) Stopped() bool {
 func (opSim *OpSimulator) startStartupTasks() {
 	for _, chainID := range opSim.L2Config.DependencySet {
 		opSim.startupTasks.Go(func() error {
-			return opSim.AddDependency(chainID, opSim.L2Config.DependencySet)
+			return opSim.AddDependency(chainID)
 		})
 	}
 }
@@ -179,7 +177,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 	})
 }
 
-func (opSim *OpSimulator) handler(proxy *httputil.ReverseProxy, ctx context.Context) http.HandlerFunc {
+func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
 			// handle preflight requests
@@ -322,7 +320,7 @@ func forwardRPCRequest(ctx context.Context, rpcClient *rpc.Client, req *jsonRpcM
 }
 
 // Update dependency set on the L2#L1BlockInterop using a deposit tx
-func (opSim *OpSimulator) AddDependency(chainID uint64, depSet []uint64) error {
+func (opSim *OpSimulator) AddDependency(chainID uint64) error {
 	dep, err := NewAddDependencyDepositTx(big.NewInt(int64(chainID)))
 
 	if err != nil {
@@ -456,19 +454,6 @@ func getFromAddress(tx *types.Transaction) (common.Address, error) {
 	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 
 	return from, err
-}
-
-func (opSim *OpSimulator) createReverseProxy() (*httputil.ReverseProxy, error) {
-	targetURL, err := url.Parse(opSim.l2Chain.Endpoint())
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse target URL: %w", err)
-	}
-	proxy := &httputil.ReverseProxy{
-		Rewrite: func(r *httputil.ProxyRequest) {
-			r.SetURL(targetURL)
-		},
-	}
-	return proxy, nil
 }
 
 func (opSim *OpSimulator) Endpoint() string {
