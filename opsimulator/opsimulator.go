@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/rpc"
 )
 
 const (
@@ -195,40 +196,129 @@ func (opSim *OpSimulator) handler(proxy *httputil.ReverseProxy, ctx context.Cont
 		r.Body = io.NopCloser(&buf)
 
 		// decode the fields we're interested in inspecting
-		msgs, err := readJsonMessages(body)
+		msgs, isBatchRequest, err := readJsonMessages(body)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to parse JSON-RPC request: %s", err), http.StatusBadRequest)
 			return
 		}
 
-		for _, msg := range msgs {
+		rpcClient, err := rpc.Dial(opSim.l2Chain.Endpoint())
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to connect to RPC server: %s", err), http.StatusInternalServerError)
+		}
+
+		batchRes := make([]jsonRpcMessage, len(msgs))
+		for i, msg := range msgs {
 			if msg.Method == "eth_sendRawTransaction" {
 				var params []hexutil.Bytes
 				if err := json.Unmarshal(msg.Params, &params); err != nil {
-					http.Error(w, fmt.Sprintf("bad params sent to eth_sendRawTransaction: %s", err), http.StatusBadRequest)
-					return
+					opSim.log.Error(fmt.Sprintf("bad params sent to eth_sendRawTransaction: %s", err))
+					batchRes[i] = jsonRpcMessage{
+						Version: vsn,
+						Error: &jsonError{
+							Code:    ParseErr,
+							Message: err.Error(),
+						},
+						ID: msg.ID,
+					}
+					continue
 				}
 				if len(params) != 1 {
-					http.Error(w, "eth_sendRawTransaction request has invalid number of params", http.StatusBadRequest)
-					return
+					opSim.log.Error("eth_sendRawTransaction request has invalid number of params")
+					batchRes[i] = jsonRpcMessage{
+						Version: vsn,
+						Error: &jsonError{
+							Code:    InvalidParams,
+							Message: "eth_sendRawTransaction request has invalid number of params",
+						},
+						ID: msg.ID,
+					}
+					continue
 				}
+
 				tx := new(types.Transaction)
 				if err := tx.UnmarshalBinary(params[0]); err != nil {
-					http.Error(w, fmt.Sprintf("failed to decode transaction data: %s", err), http.StatusBadRequest)
-					return
+					opSim.log.Error(fmt.Sprintf("failed to decode transaction data: %s", err))
+					batchRes[i] = jsonRpcMessage{
+						Version: vsn,
+						Error: &jsonError{
+							Code:    InvalidParams,
+							Message: err.Error(),
+						},
+						ID: msg.ID,
+					}
+					continue
 				}
 
 				if err := opSim.checkInteropInvariants(ctx, tx); err != nil {
 					opSim.log.Error(fmt.Sprintf("interop invariants not met: %s", err))
-					// TODO (https://github.com/ethereum-optimism/supersim/issues/79) for batch requests write error to individual tx
-					http.Error(w, fmt.Sprintf("interop invariants not met: %s", err), http.StatusBadRequest)
-					return
+					batchRes[i] = jsonRpcMessage{
+						Version: vsn,
+						Error: &jsonError{
+							Code:    InvalidParams,
+							Message: err.Error(),
+						},
+						ID: msg.ID,
+					}
+					continue
+				}
+			}
+
+			var jsonErr *jsonError
+			batchRes[i], jsonErr = forwardRPCRequest(ctx, rpcClient, msg)
+			if jsonErr != nil {
+				opSim.log.Error(fmt.Sprintf("RPC returned an error: %s", jsonErr))
+				batchRes[i] = jsonRpcMessage{
+					Version: vsn,
+					Error:   jsonErr,
+					ID:      msg.ID,
 				}
 			}
 		}
 
-		proxy.ServeHTTP(w, r)
+		if isBatchRequest {
+			if err := json.NewEncoder(w).Encode(batchRes); err != nil {
+				opSim.log.Error(fmt.Sprintf("failed to write batch response: %s", err))
+				http.Error(w, "Failed to write batch response", http.StatusInternalServerError)
+				return
+			}
+		} else {
+			if err := json.NewEncoder(w).Encode(batchRes[0]); err != nil {
+				opSim.log.Error(fmt.Sprintf("failed to write response: %s", err))
+				http.Error(w, "Failed to write batch response", http.StatusInternalServerError)
+				return
+			}
+		}
 	}
+}
+
+// Forward a JSON-RPC request to the Geth RPC server
+func forwardRPCRequest(ctx context.Context, rpcClient *rpc.Client, req *jsonRpcMessage) (jsonRpcMessage, *jsonError) {
+	var result json.RawMessage
+	var params []interface{}
+
+	if len(req.Params) > 0 {
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			return jsonRpcMessage{}, &jsonError{
+				Code:    InvalidParams,
+				Message: err.Error(),
+			}
+		}
+	}
+
+	if err := rpcClient.CallContext(ctx, &result, req.Method, params...); err != nil {
+		if je, ok := err.(*jsonError); ok {
+			return jsonRpcMessage{}, je
+		}
+
+		return jsonRpcMessage{}, errorMessage(err).Error
+	}
+
+	return jsonRpcMessage{
+		Version: vsn,
+		Result:  result,
+		ID:      req.ID,
+	}, nil
 }
 
 // Update dependency set on the L2#L1BlockInterop using a deposit tx
