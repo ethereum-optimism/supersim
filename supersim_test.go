@@ -301,6 +301,45 @@ func TestDependencySet(t *testing.T) {
 	}
 }
 
+func TestDeployContractsL1WithDevAccounts(t *testing.T) {
+	testSuite := createTestSuite(t)
+
+	l1Client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.L1Chain().Endpoint())
+	require.NoError(t, err)
+
+	accountCount := 10
+
+	var wg sync.WaitGroup
+
+	wg.Add(accountCount)
+
+	// For each account, test deploying 5 contracts
+	for i := range accountCount {
+		go func() {
+			defer wg.Done()
+			privateKey, _ := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(i))
+			senderAddressHex, _ := testSuite.HdAccountStore.AddressHexAt(uint32(i))
+			senderAddress := common.HexToAddress(senderAddressHex)
+
+			for range 5 {
+				transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(testSuite.Supersim.Orchestrator.L1Chain().ChainID())))
+
+				// Test deploying a contract with CREATE
+				_, tx, _, err := opbindings.DeployProxyAdmin(transactor, l1Client, senderAddress)
+
+				require.NoError(t, err)
+
+				_, err = bind.WaitMined(context.Background(), l1Client, tx)
+
+				require.NoError(t, err)
+			}
+
+		}()
+	}
+
+	wg.Wait()
+}
+
 func TestBatchJsonRpcRequests(t *testing.T) {
 	testSuite := createTestSuite(t)
 
