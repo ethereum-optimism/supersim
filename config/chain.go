@@ -62,6 +62,7 @@ var (
 type ForkConfig struct {
 	RPCUrl      string
 	BlockNumber uint64
+	UseInterop  bool
 }
 
 type SecretsConfig struct {
