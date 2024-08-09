@@ -6,3 +6,9 @@ libs = ["lib"]
 fs_permissions = [
   { access='read-write', path='../generated' },
 ]
+
+remappings = [
+  "@contracts-bedrock/=lib/optimism/packages/contracts-bedrock/src/",
+  "@solady/=lib/optimism/packages/contracts-bedrock/lib/solady/src/",
+  "@openzeppelin/contracts=lib/optimism/packages/contracts-bedrock/lib/openzeppelin-contracts/contracts"
+]
