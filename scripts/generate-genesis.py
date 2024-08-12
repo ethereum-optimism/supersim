@@ -1,3 +1,4 @@
+
 import logging
 import os
 import subprocess
@@ -50,6 +51,7 @@ class L2:
     self.deploy_config_path = os.path.join(supersim_output_dir, 'deploy-configs', f"{self.l2_chain_id}-deploy-config.json")
     self.l1_allocs_path = os.path.join(supersim_output_dir, 'l1-allocs', f"{self.l2_chain_id}-l1-allocs.json")
     self.l2_allocs_path = os.path.join(supersim_output_dir, 'l2-allocs', f"{self.l2_chain_id}-l2-allocs.json")
+    self.l2_allocs_with_periphery_path = os.path.join(supersim_output_dir, 'l2-allocs-with-periphery', f"{self.l2_chain_id}-l2-allocs-with-periphery.json")
     self.l2_genesis_path = os.path.join(supersim_output_dir, 'l2-genesis', f"{self.l2_chain_id}-l2-genesis.json")
     self.l2_rollup_config_path = os.path.join(supersim_output_dir, 'rollup-configs', f"{self.l2_chain_id}-rollup-config.json")
 
@@ -65,6 +67,7 @@ def main():
   supersim_output_l1_allocs_dir = os.path.join(supersim_output_dir, "l1-allocs")
   supersim_output_addresses_dir = os.path.join(supersim_output_dir, "addresses")
   supersim_output_l2_allocs_dir = os.path.join(supersim_output_dir, "l2-allocs")
+  supersim_output_l2_allocs_with_periphery_dir = os.path.join(supersim_output_dir, "l2-allocs-with-periphery")
   supersim_output_l2_genesis_dir = os.path.join(supersim_output_dir, "l2-genesis")
   supersim_output_rollup_dir = os.path.join(supersim_output_dir, "rollup-configs")
 
@@ -73,6 +76,7 @@ def main():
   os.makedirs(supersim_output_l1_allocs_dir, exist_ok=True)
   os.makedirs(supersim_output_addresses_dir, exist_ok=True)
   os.makedirs(supersim_output_l2_allocs_dir, exist_ok=True)
+  os.makedirs(supersim_output_l2_allocs_with_periphery_dir, exist_ok=True)
   os.makedirs(supersim_output_l2_genesis_dir, exist_ok=True)
   os.makedirs(supersim_output_rollup_dir, exist_ok=True)
 
@@ -109,6 +113,7 @@ def main():
   generate_l1_allocs_and_addresses(paths, l2_chains)
   generate_combined_l1_allocs(paths, l1_chain, l2_chains)
   generate_l2_allocs(paths, l2_chains)
+  deploy_l2_periphery_contracts(paths, l2_chains)
   generate_l1_genesis(paths, l1_chain, l2_chains)
   generate_l2_genesis(paths, l1_chain, l2_chains)
   
@@ -183,8 +188,14 @@ def generate_l2_allocs(paths, l2_chains: list[L2]):
     monorepo_forge_l2_dump_path = os.path.join(paths.monorepo_contracts_bedrock_dir, f'state-dump-{l2_chain.l2_chain_id}-fjord.json')
 
     # Copy artifacts into supersim folders
-    shutil.move(src=monorepo_forge_l2_dump_path, dst=l2_chain.l2_allocs_path)
-    
+    shutil.move(src=monorepo_forge_l2_dump_path, dst=l2_chain.l2_allocs_path)    
+
+def deploy_l2_periphery_contracts(paths, l2_chains: list[L2]):
+  for l2_chain in l2_chains:
+    fqn = 'script/DeployL2PeripheryContracts.s.sol:DeployL2PeripheryContracts'
+    run_command([
+        'forge', 'script', fqn, "--sig", "runWithStateDump(string allocsPath, string outputPath)", l2_chain.l2_allocs_path, l2_chain.l2_allocs_with_periphery_path
+    ], cwd=paths.supersim_contracts_dir)
 
 def generate_l1_genesis(paths, l1_chain: L1, l2_chains: list[L2]):
   # we can use any of the deploy_configs, all the fields used in this process should be the same between the l2s
@@ -219,7 +230,7 @@ def generate_l2_genesis(paths, l1_chain: L1, l2_chains: list[L2]):
         'go', 'run', 'cmd/main.go', 'genesis', 'l2',
         '--l1-rpc', f'http://{l1_rpc_url}',
         '--deploy-config', l2_chain.deploy_config_path,
-        '--l2-allocs', l2_chain.l2_allocs_path,
+        '--l2-allocs', l2_chain.l2_allocs_with_periphery_path,
         '--l1-deployments', l2_chain.addresses_path,
         '--outfile.l2', l2_chain.l2_genesis_path,
         '--outfile.rollup', l2_chain.l2_rollup_config_path
