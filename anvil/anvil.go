@@ -305,3 +305,11 @@ func (a *Anvil) DebugTraceCall(ctx context.Context, txArgs config.TransactionArg
 	}
 	return result, nil
 }
+
+func (a *Anvil) SetCode(ctx context.Context, result interface{}, address string, code string) error {
+	return a.rpcClient.CallContext(ctx, result, "anvil_setCode", address, code)
+}
+
+func (a *Anvil) SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error {
+	return a.rpcClient.CallContext(ctx, result, "anvil_setStorageAt", address, storageSlot, storageValue)
+}

@@ -10,8 +10,6 @@ import (
 	"math/big"
 	"net"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -22,6 +20,7 @@ import (
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -95,13 +94,8 @@ func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *c
 }
 
 func (opSim *OpSimulator) Start(ctx context.Context) error {
-	proxy, err := opSim.createReverseProxy()
-	if err != nil {
-		return fmt.Errorf("error creating reverse proxy: %w", err)
-	}
-
 	mux := http.NewServeMux()
-	mux.Handle("/", opSim.handler(proxy, ctx))
+	mux.Handle("/", opSim.handler(ctx))
 
 	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(host, fmt.Sprintf("%d", opSim.port)), mux)
 	if err != nil {
@@ -118,7 +112,7 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		}
 	}
 
-	opSim.startStartupTasks()
+	opSim.startStartupTasks(ctx)
 	if err := opSim.startupTasks.Wait(); err != nil {
 		return fmt.Errorf("failed to start opsimulator: %w", err)
 	}
@@ -143,12 +137,28 @@ func (opSim *OpSimulator) Stopped() bool {
 	return opSim.stopped.Load()
 }
 
-func (opSim *OpSimulator) startStartupTasks() {
+func (opSim *OpSimulator) startStartupTasks(ctx context.Context) {
+	opSim.startupTasks.Go(func() error {
+		if opSim.Config().ForkConfig != nil && opSim.Config().ForkConfig.UseInterop {
+			if err := configureInteropForChain(ctx, opSim.l2Chain); err != nil {
+				return fmt.Errorf("failed to configure interop: %w", err)
+			}
+		}
+
+		if err := opSim.addDependencies(); err != nil {
+			return fmt.Errorf("failed to configure dependency set: %w", err)
+		}
+		return nil
+	})
+}
+
+func (opSim *OpSimulator) addDependencies() error {
 	for _, chainID := range opSim.L2Config.DependencySet {
-		opSim.startupTasks.Go(func() error {
-			return opSim.AddDependency(chainID, opSim.L2Config.DependencySet)
-		})
+		if err := opSim.AddDependency(chainID); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (opSim *OpSimulator) startBackgroundTasks() {
@@ -179,7 +189,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 	})
 }
 
-func (opSim *OpSimulator) handler(proxy *httputil.ReverseProxy, ctx context.Context) http.HandlerFunc {
+func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
 			// handle preflight requests
@@ -322,15 +332,24 @@ func forwardRPCRequest(ctx context.Context, rpcClient *rpc.Client, req *jsonRpcM
 }
 
 // Update dependency set on the L2#L1BlockInterop using a deposit tx
-func (opSim *OpSimulator) AddDependency(chainID uint64, depSet []uint64) error {
+func (opSim *OpSimulator) AddDependency(chainID uint64) error {
 	dep, err := NewAddDependencyDepositTx(big.NewInt(int64(chainID)))
 
 	if err != nil {
 		return fmt.Errorf("failed to create setConfig deposit tx: %w", err)
 	}
 
-	if err := opSim.l2Chain.EthSendTransaction(context.Background(), types.NewTx(dep)); err != nil {
+	tx := types.NewTx(dep)
+	if err := opSim.l2Chain.EthSendTransaction(context.Background(), tx); err != nil {
 		return fmt.Errorf("failed to send setConfig deposit tx: %w", err)
+	}
+
+	txReceipt, err := bind.WaitMined(context.Background(), opSim.l2Chain.EthClient(), tx)
+	if err != nil {
+		return fmt.Errorf("failed to get tx receipt for deposit tx: %w", err)
+	}
+	if txReceipt.Status == 0 {
+		return fmt.Errorf("setConfig deposit tx failed")
 	}
 
 	return nil
@@ -456,19 +475,6 @@ func getFromAddress(tx *types.Transaction) (common.Address, error) {
 	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 
 	return from, err
-}
-
-func (opSim *OpSimulator) createReverseProxy() (*httputil.ReverseProxy, error) {
-	targetURL, err := url.Parse(opSim.l2Chain.Endpoint())
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse target URL: %w", err)
-	}
-	proxy := &httputil.ReverseProxy{
-		Rewrite: func(r *httputil.ProxyRequest) {
-			r.SetURL(targetURL)
-		},
-	}
-	return proxy, nil
 }
 
 func (opSim *OpSimulator) Endpoint() string {

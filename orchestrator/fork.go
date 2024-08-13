@@ -70,19 +70,36 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 			rpcUrl = url
 		}
 
-		networkConfig.L2Configs = append(networkConfig.L2Configs, config.ChainConfig{
+		l2ChainConfig := config.ChainConfig{
 			Name:          chainCfg.Chain,
 			ChainID:       chainCfg.ChainID,
 			SecretsConfig: config.DefaultSecretsConfig,
 			ForkConfig: &config.ForkConfig{
 				RPCUrl:      rpcUrl,
 				BlockNumber: l2ForkHeight,
+				UseInterop:  forkConfig.UseInterop,
 			},
 			L2Config: &config.L2Config{
 				L1ChainID:   superchain.Config.L1.ChainID,
 				L1Addresses: registry.Addresses[chainCfg.ChainID],
 			},
-		})
+		}
+
+		if l2ChainConfig.ForkConfig.UseInterop {
+			var dependencySet []uint64
+			for _, chainToAddToDepSet := range forkConfig.Chains {
+				chainToAddToDepSetCfg := config.OPChainByName(superchain, chainToAddToDepSet)
+				if chainToAddToDepSetCfg == nil {
+					return networkConfig, fmt.Errorf("unrecognized chain %s. superchain %s", chainToAddToDepSet, superchain.Superchain)
+				}
+				if chainToAddToDepSetCfg.ChainID != l2ChainConfig.ChainID {
+					dependencySet = append(dependencySet, chainToAddToDepSetCfg.ChainID)
+				}
+			}
+			l2ChainConfig.L2Config.DependencySet = dependencySet
+		}
+
+		networkConfig.L2Configs = append(networkConfig.L2Configs, l2ChainConfig)
 	}
 
 	return networkConfig, nil
