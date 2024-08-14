@@ -4,6 +4,7 @@ import (
 	"context"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/ethereum-optimism/supersim/config"
 
@@ -20,9 +21,9 @@ type TestSuite struct {
 }
 
 func createTestSuite(t *testing.T) *TestSuite {
-	networkConfig := &config.DefaultNetworkConfig
+	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()))
 	testlog := testlog.Logger(t, log.LevelInfo)
-	orchestrator, _ := NewOrchestrator(testlog, networkConfig)
+	orchestrator, _ := NewOrchestrator(testlog, &networkConfig)
 	t.Cleanup(func() {
 		if err := orchestrator.Stop(context.Background()); err != nil {
 			t.Errorf("failed to stop orchestrator: %s", err)

@@ -84,3 +84,7 @@ func (c *MockChain) SetCode(ctx context.Context, result interface{}, address str
 func (c *MockChain) SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error {
 	return nil
 }
+
+func (c *MockChain) SetIntervalMining(ctx context.Context, result interface{}, interval int64) error {
+	return nil
+}
