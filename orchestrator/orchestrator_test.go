@@ -2,6 +2,7 @@ package orchestrator
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/ethereum-optimism/supersim/config"
@@ -45,11 +46,15 @@ func TestStartup(t *testing.T) {
 	chains := testSuite.orchestrator.L2Chains()
 	require.Equal(t, len(chains), 2)
 
-	require.Equal(t, chains[0].ChainID(), uint64(901))
+	require.True(t, slices.ContainsFunc(chains, func(chain config.Chain) bool {
+		return chain.ChainID() == uint64(901)
+	}))
 	require.NotNil(t, chains[0].Config().L2Config)
 	require.Equal(t, chains[0].Config().L2Config.L1ChainID, uint64(900))
 
-	require.Equal(t, chains[1].ChainID(), uint64(902))
+	require.True(t, slices.ContainsFunc(chains, func(chain config.Chain) bool {
+		return chain.ChainID() == uint64(902)
+	}))
 	require.NotNil(t, chains[1].Config().L2Config)
 	require.Equal(t, chains[1].Config().L2Config.L1ChainID, uint64(900))
 }
