@@ -2,15 +2,22 @@
 A local development environment for testing against multiple nodes running simultaneously.
 
 ## Table of Contents
-- [Overview](#overview)
-- [Getting started](#getting-started)
-  - [Installation](#installation)
-- [Features](#features)
-  - [Vanilla mode](#vanilla-mode)
-  - [Forked mode](#forked-mode)
-- [Join Discord](#join-discord)
-- [Contributing](#contributing)
-- [License](#license)
+- [Supersim](#supersim)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Getting started](#getting-started)
+    - [Running Locally](#running-locally)
+  - [Features](#features)
+    - [Vanilla mode](#vanilla-mode)
+    - [Forked mode](#forked-mode)
+  - [Examples](#examples)
+  - [SuperchainERC20](#superchainerc20)
+    - [L2NativeSuperchainERC20](#L2NativeSuperchainERC20)
+      - [Minting new tokens](#minting-new-tokens)
+    - [OptimismSuperchainERC20](#optimismsuperchainerc20)
+  - [Join Discord](#join-discord)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Overview
 Supersim allows developers to start multiple local evm nodes with one command, and coordinates message passing and asset transfer between these chains, following the Superchain interoperability spec.
@@ -78,6 +85,30 @@ OPTIONS:
 To apply the changes needed for enabling interop on forked chains, pass `--experiment.interop true` in when starting supersim in fork mode. This will configure interop such that all forked L2 chains are in one another's dependency sets and can pass messages between each other.
 
 ## Examples
+TODO
+
+
+## SuperchainERC20
+Supersim by default includes the following SuperchainERC20 contracts for testing purposes.
+
+|Contract| Address  |
+|---|---|
+|L2NativeSuperchainERC20| 0x62Ad787572105243B9cCB3CFEaFc5d70b2c89755|
+|OptimismSuperchainERC20 |TODO |
+
+### L2NativeSuperchainERC20 
+
+Simple ERC20 that adheres to the SuperchainERC20 standard
+
+
+
+#### Minting new tokens
+```bash
+cast send 0x62Ad787572105243B9cCB3CFEaFc5d70b2c89755 "mint(address _to, uint256 _amount)" $RECIPIENT_ADDRESS 1ether  --rpc-url $L2_RPC_URL
+```
+
+### OptimismSuperchainERC20
+
 TODO
 
 ## Join Discord
