@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/config"
@@ -18,7 +19,7 @@ type Supersim struct {
 }
 
 func NewSupersim(log log.Logger, envPrefix string, cliConfig *config.CLIConfig) (*Supersim, error) {
-	networkConfig := config.DefaultNetworkConfig
+	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()))
 	if cliConfig.ForkConfig != nil {
 		superchain := registry.Superchains[cliConfig.ForkConfig.Network]
 		log.Info("generating fork configuration", "superchain", superchain.Superchain)

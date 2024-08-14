@@ -62,14 +62,15 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 			return fmt.Errorf("anvil instance %s failed to start: %w", anvil.Name(), err)
 		}
 	}
+
+	if err := o.WaitUntilAnvilsAreReady(); err != nil {
+		return fmt.Errorf("anvil instances failed to get ready: %w", err)
+	}
+
 	for _, opSim := range o.L2OpSims {
 		if err := opSim.Start(ctx); err != nil {
 			return fmt.Errorf("op simulator instance %s failed to start: %w", opSim.Name(), err)
 		}
-	}
-
-	if err := o.WaitUntilReady(); err != nil {
-		return fmt.Errorf("orchestrator failed to get ready: %w", err)
 	}
 
 	o.log.Debug("orchestrator is ready")
@@ -116,7 +117,7 @@ func (o *Orchestrator) Stopped() bool {
 	return true
 }
 
-func (o *Orchestrator) WaitUntilReady() error {
+func (o *Orchestrator) WaitUntilAnvilsAreReady() error {
 	var once sync.Once
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
@@ -133,14 +134,56 @@ func (o *Orchestrator) WaitUntilReady() error {
 	}
 
 	var wg sync.WaitGroup
+	anvils := []*anvil.Anvil{o.l1Anvil}
+	for _, chain := range o.l2Anvils {
+		anvils = append(anvils, chain)
+	}
 
 	waitForAnvil := func(anvil *anvil.Anvil) {
 		defer wg.Done()
 		handleErr(anvil.WaitUntilReady(ctx))
 	}
-	for _, chain := range o.l2Anvils {
+	for _, chain := range anvils {
 		wg.Add(1)
 		go waitForAnvil(chain)
+	}
+
+	wg.Wait()
+
+	if err != nil {
+		return err
+	}
+
+	if err := o.kickOffMining(ctx, anvils); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (o *Orchestrator) kickOffMining(ctx context.Context, anvils []*anvil.Anvil) error {
+	var once sync.Once
+	var err error
+	ctx, cancel := context.WithCancel(context.Background())
+
+	handleErr := func(e error) {
+		if e == nil {
+			return
+		}
+
+		once.Do(func() {
+			err = e
+			cancel()
+		})
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(anvils))
+	for _, chain := range anvils {
+		go func() {
+			defer wg.Done()
+			handleErr(chain.SetIntervalMining(ctx, nil, 2))
+		}()
 	}
 
 	wg.Wait()

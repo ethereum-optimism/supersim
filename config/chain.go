@@ -24,39 +24,6 @@ var (
 		Mnemonic:       "test test test test test test test test test test test junk",
 		DerivationPath: accounts.DefaultRootDerivationPath,
 	}
-
-	DefaultNetworkConfig = NetworkConfig{
-		L1Config: ChainConfig{
-			Name:          "L1",
-			ChainID:       genesis.GeneratedGenesisDeployment.L1.ChainID,
-			SecretsConfig: DefaultSecretsConfig,
-			GenesisJSON:   genesis.GeneratedGenesisDeployment.L1.GenesisJSON,
-		},
-		L2Configs: []ChainConfig{
-			{
-				Name:          "OPChainA",
-				ChainID:       genesis.GeneratedGenesisDeployment.L2s[0].ChainID,
-				SecretsConfig: DefaultSecretsConfig,
-				GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[0].GenesisJSON,
-				L2Config: &L2Config{
-					L1ChainID:     genesis.GeneratedGenesisDeployment.L1.ChainID,
-					L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[0].RegistryAddressList(),
-					DependencySet: []uint64{genesis.GeneratedGenesisDeployment.L2s[1].ChainID},
-				},
-			},
-			{
-				Name:          "OPChainB",
-				ChainID:       genesis.GeneratedGenesisDeployment.L2s[1].ChainID,
-				SecretsConfig: DefaultSecretsConfig,
-				GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[1].GenesisJSON,
-				L2Config: &L2Config{
-					L1ChainID:     genesis.GeneratedGenesisDeployment.L1.ChainID,
-					L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[1].RegistryAddressList(),
-					DependencySet: []uint64{genesis.GeneratedGenesisDeployment.L2s[0].ChainID},
-				},
-			},
-		},
-	}
 )
 
 type ForkConfig struct {
@@ -90,6 +57,9 @@ type ChainConfig struct {
 
 	// Optional Config (L1 chain if nil)
 	L2Config *L2Config
+
+	// Optional
+	StartingTimestamp uint64
 }
 
 type NetworkConfig struct {
@@ -147,6 +117,45 @@ type Chain interface {
 	DebugTraceCall(ctx context.Context, txArgs TransactionArgs) (TraceCallRaw, error)
 	SetCode(ctx context.Context, result interface{}, address string, code string) error
 	SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error
+	SetIntervalMining(ctx context.Context, result interface{}, interval int64) error
+}
+
+func GetDefaultNetworkConfig(startingTimestamp uint64) NetworkConfig {
+	return NetworkConfig{
+		L1Config: ChainConfig{
+			Name:              "L1",
+			ChainID:           genesis.GeneratedGenesisDeployment.L1.ChainID,
+			SecretsConfig:     DefaultSecretsConfig,
+			GenesisJSON:       genesis.GeneratedGenesisDeployment.L1.GenesisJSON,
+			StartingTimestamp: startingTimestamp,
+		},
+		L2Configs: []ChainConfig{
+			{
+				Name:          "OPChainA",
+				ChainID:       genesis.GeneratedGenesisDeployment.L2s[0].ChainID,
+				SecretsConfig: DefaultSecretsConfig,
+				GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[0].GenesisJSON,
+				L2Config: &L2Config{
+					L1ChainID:     genesis.GeneratedGenesisDeployment.L1.ChainID,
+					L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[0].RegistryAddressList(),
+					DependencySet: []uint64{genesis.GeneratedGenesisDeployment.L2s[1].ChainID},
+				},
+				StartingTimestamp: startingTimestamp,
+			},
+			{
+				Name:          "OPChainB",
+				ChainID:       genesis.GeneratedGenesisDeployment.L2s[1].ChainID,
+				SecretsConfig: DefaultSecretsConfig,
+				GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[1].GenesisJSON,
+				L2Config: &L2Config{
+					L1ChainID:     genesis.GeneratedGenesisDeployment.L1.ChainID,
+					L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[1].RegistryAddressList(),
+					DependencySet: []uint64{genesis.GeneratedGenesisDeployment.L2s[0].ChainID},
+				},
+				StartingTimestamp: startingTimestamp,
+			},
+		},
+	}
 }
 
 // Note: The default secrets config is used everywhere

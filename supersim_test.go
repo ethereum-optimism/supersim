@@ -63,6 +63,7 @@ type TestSuite struct {
 
 	Cfg      *config.CLIConfig
 	Supersim *Supersim
+	OpSims   []*opsimulator.OpSimulator
 }
 
 type InteropTestSuite struct {
@@ -103,10 +104,16 @@ func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
 		return nil
 	}
 
+	var opSims []*opsimulator.OpSimulator
+	for _, opSim := range supersim.Orchestrator.L2OpSims {
+		opSims = append(opSims, opSim)
+	}
+
 	return &TestSuite{
 		t:              t,
 		Cfg:            cliConfig,
 		Supersim:       supersim,
+		OpSims:         opSims,
 		HdAccountStore: hdAccountStore,
 	}
 }
@@ -157,16 +164,16 @@ func createForkedInteropTestSuite(t *testing.T) *InteropTestSuite {
 func createInteropTestSuite(t *testing.T) *InteropTestSuite {
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
-	sourceOpSim := testSuite.Supersim.Orchestrator.L2OpSims[config.DefaultNetworkConfig.L2Configs[0].ChainID]
+	sourceOpSim := testSuite.OpSims[0]
 	sourceEthClient, _ := ethclient.Dial(sourceOpSim.Endpoint())
 	defer sourceEthClient.Close()
 
-	destOpSim := testSuite.Supersim.Orchestrator.L2OpSims[config.DefaultNetworkConfig.L2Configs[1].ChainID]
+	destOpSim := testSuite.OpSims[1]
 	destEthClient, _ := ethclient.Dial(destOpSim.Endpoint())
 	defer destEthClient.Close()
 
-	destChainID := new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[1].ChainID)
-	sourceChainID := new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[0].ChainID)
+	destChainID := new(big.Int).SetUint64(destOpSim.ChainID())
+	sourceChainID := new(big.Int).SetUint64(sourceOpSim.ChainID())
 
 	// TODO: fix when we add a wait for ready on the opsim
 	time.Sleep(3 * time.Second)
@@ -306,11 +313,11 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 			require.NotEmpty(t, txReceipt.Logs, "Deposit transaction failed")
 
 			// wait for the deposit to be processed
-			time.Sleep(1 * time.Second)
+			time.Sleep(2 * time.Second)
 			postBalance, _ := l2EthClient.BalanceAt(context.Background(), senderAddress, nil)
 
 			// check that balance was increased
-			require.Equal(t, postBalance.Sub(postBalance, prevBalance), oneEth, "Recipient balance is incorrect")
+			require.Equal(t, oneEth, postBalance.Sub(postBalance, prevBalance), "Recipient balance is incorrect")
 		}()
 	}
 
@@ -432,6 +439,10 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(1), uint64(2))
+	require.NoError(t, err)
+
 	// Create a bad executing message that will throw an error using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
@@ -444,7 +455,7 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
 		Timestamp:   new(big.Int).Sub(new(big.Int).SetUint64(initiatingMessageBlock.Time()), big.NewInt(1)),
-		ChainId:     new(big.Int).SetUint64(config.DefaultNetworkConfig.L2Configs[0].ChainID),
+		ChainId:     testSuite.SourceChainID,
 	}
 	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
 	require.NoError(t, err)
@@ -494,6 +505,10 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(1), uint64(2))
+	require.NoError(t, err)
+
 	// Create executing message using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
@@ -529,9 +544,6 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
-	// TODO: fix when we add a wait for ready on the opsim
-	time.Sleep(3 * time.Second)
-
 	// Create initiating message using L2ToL2CrossDomainMessenger
 	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
 	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
@@ -552,6 +564,10 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(1), uint64(2))
+	require.NoError(t, err)
 
 	// Create executing message using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
@@ -585,9 +601,6 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
-	// TODO: fix when we add a wait for ready on the opsim
-	time.Sleep(3 * time.Second)
-
 	// Create initiating message using L2ToL2CrossDomainMessenger
 	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
 	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
@@ -609,11 +622,17 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+
 	// Create executing message using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
 	crossL2Inbox := opsimulator.NewCrossL2Inbox()
-	wrongBlockNumber := new(big.Int).Sub(initiatingMessageTxReceipt.BlockNumber, big.NewInt(1))
+	wrongBlockNumber := new(big.Int).Add(initiatingMessageTxReceipt.BlockNumber, big.NewInt(1))
 	wrongMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), wrongBlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
@@ -642,9 +661,6 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
-	// TODO: fix when we add a wait for ready on the opsim
-	time.Sleep(3 * time.Second)
-
 	// Create initiating message using L2ToL2CrossDomainMessenger
 	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
 	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
@@ -665,6 +681,10 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(1), uint64(2))
+	require.NoError(t, err)
 
 	// Create executing message using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
@@ -718,6 +738,10 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(1), uint64(2))
+	require.NoError(t, err)
 
 	// Create executing message using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)

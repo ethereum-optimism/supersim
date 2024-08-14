@@ -73,7 +73,10 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainID),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
 		"--optimism",
-		"--block-time", "2",
+	}
+
+	if a.cfg.StartingTimestamp > 0 {
+		args = append(args, "--timestamp", fmt.Sprintf("%d", a.cfg.StartingTimestamp))
 	}
 
 	if len(a.cfg.GenesisJSON) > 0 && a.cfg.ForkConfig == nil {
@@ -312,4 +315,8 @@ func (a *Anvil) SetCode(ctx context.Context, result interface{}, address string,
 
 func (a *Anvil) SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error {
 	return a.rpcClient.CallContext(ctx, result, "anvil_setStorageAt", address, storageSlot, storageValue)
+}
+
+func (a *Anvil) SetIntervalMining(ctx context.Context, result interface{}, interval int64) error {
+	return a.rpcClient.CallContext(ctx, result, "evm_setIntervalMining", interval)
 }
