@@ -64,14 +64,15 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 			return fmt.Errorf("anvil instance %s failed to start: %w", anvil.Name(), err)
 		}
 	}
+
+	if err := o.WaitUntilAnvilsAreReady(); err != nil {
+		return fmt.Errorf("anvil instances failed to get ready: %w", err)
+	}
+
 	for _, opSim := range o.l2OpSims {
 		if err := opSim.Start(ctx); err != nil {
 			return fmt.Errorf("op simulator instance %s failed to start: %w", opSim.Name(), err)
 		}
-	}
-
-	if err := o.WaitUntilAnvilsAreReady(); err != nil {
-		return fmt.Errorf("anvil instances failed to get ready: %w", err)
 	}
 
 	o.log.Debug("orchestrator is ready")
