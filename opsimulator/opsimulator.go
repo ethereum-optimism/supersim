@@ -95,7 +95,7 @@ func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *c
 
 func (opSim *OpSimulator) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
-	mux.Handle("/", opSim.handler(ctx))
+	mux.Handle("/", corsHandler(opSim.handler(ctx)))
 
 	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(host, fmt.Sprintf("%d", opSim.port)), mux)
 	if err != nil {
@@ -191,15 +191,6 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 
 func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodOptions {
-			// handle preflight requests
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "*")
-			w.Header().Set("Access-Control-Allow-Headers", "*")
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-
 		// setup an intermediate buffer so the request body is inspectable
 		var buf bytes.Buffer
 		body := io.TeeReader(r.Body, &buf)
@@ -497,4 +488,19 @@ func (opSim *OpSimulator) String() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Name: %s    Chain ID: %d    RPC: %s    LogPath: %s", opSim.Name(), opSim.ChainID(), opSim.Endpoint(), opSim.l2Chain.LogPath())
 	return b.String()
+}
+
+func corsHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
