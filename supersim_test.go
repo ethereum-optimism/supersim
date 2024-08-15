@@ -205,16 +205,18 @@ func TestStartup(t *testing.T) {
 
 func TestL1GenesisState(t *testing.T) {
 	testSuite := createTestSuite(t, &config.CLIConfig{})
+
+	l1Client := testSuite.Supersim.Orchestrator.L1Chain().EthClient()
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
 		require.NotNil(t, chain.Config().L2Config)
 
 		l1Addrs := chain.Config().L2Config.L1Addresses
 
-		code, err := testSuite.Supersim.Orchestrator.L1Chain().EthGetCode(context.Background(), common.Address(l1Addrs.AddressManager))
+		code, err := l1Client.CodeAt(context.Background(), common.Address(l1Addrs.AddressManager), nil)
 		require.Nil(t, err)
 		require.NotEqual(t, emptyCode, code, "AddressManager is not deployed")
 
-		code, err = testSuite.Supersim.Orchestrator.L1Chain().EthGetCode(context.Background(), common.Address(l1Addrs.OptimismPortalProxy))
+		code, err = l1Client.CodeAt(context.Background(), common.Address(l1Addrs.OptimismPortalProxy), nil)
 		require.Nil(t, err)
 		require.NotEqual(t, emptyCode, code, "OptimismPortalProxy is not deployed")
 	}

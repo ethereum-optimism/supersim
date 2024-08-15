@@ -77,8 +77,9 @@ func (s *Supersim) Stop(ctx context.Context) error {
 	return nil
 }
 
+// no-op dead code in the cliapp lifecycle
 func (s *Supersim) Stopped() bool {
-	return s.Orchestrator.Stopped()
+	return false
 }
 
 func (s *Supersim) ConfigAsString() string {

@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
-	"github.com/ethereum-optimism/supersim/config"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -14,35 +13,33 @@ import (
 	"github.com/ethereum/go-ethereum"
 )
 
-var _ ethereum.Subscription = &DepositTxSubscription{}
+var _ ethereum.Subscription = &depositTxSubscription{}
 
-type DepositTxSubscription struct {
+type depositTxSubscription struct {
 	logSubscription ethereum.Subscription
 	logCh           chan types.Log
 	errCh           chan error
 	doneCh          chan struct{}
 }
 
-func (d *DepositTxSubscription) Unsubscribe() {
+func (d *depositTxSubscription) Unsubscribe() {
 	d.logSubscription.Unsubscribe()
 	d.doneCh <- struct{}{}
 }
 
-func (d *DepositTxSubscription) Err() <-chan error {
+func (d *depositTxSubscription) Err() <-chan error {
 	return d.errCh
 }
 
+type LogSubscriber interface {
+	SubscribeFilterLogs(context.Context, ethereum.FilterQuery, chan<- types.Log) (ethereum.Subscription, error)
+}
+
 // transforms Deposit event logs into DepositTx
-func SubscribeDepositTx(ctx context.Context, l1Chain config.Chain, depositContractAddr common.Address, ch chan<- *types.DepositTx) (ethereum.Subscription, error) {
-	f := ethereum.FilterQuery{
-		Addresses: []common.Address{depositContractAddr},
-		Topics:    [][]common.Hash{{derive.DepositEventABIHash}},
-	}
-
+func SubscribeDepositTx(ctx context.Context, logSub LogSubscriber, depositContractAddr common.Address, ch chan<- *types.DepositTx) (ethereum.Subscription, error) {
 	logCh := make(chan types.Log)
-
-	logSubscription, err := l1Chain.SubscribeFilterLogs(ctx, f, logCh)
-
+	filterQuery := ethereum.FilterQuery{Addresses: []common.Address{depositContractAddr}, Topics: [][]common.Hash{{derive.DepositEventABIHash}}}
+	logSubscription, err := logSub.SubscribeFilterLogs(ctx, filterQuery, logCh)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log subscription: %w", err)
 	}
@@ -74,12 +71,7 @@ func SubscribeDepositTx(ctx context.Context, l1Chain config.Chain, depositContra
 		}
 	}()
 
-	return &DepositTxSubscription{
-		logSubscription: logSubscription,
-		logCh:           logCh,
-		errCh:           errCh,
-		doneCh:          doneCh,
-	}, nil
+	return &depositTxSubscription{logSubscription, logCh, errCh, doneCh}, nil
 }
 
 func logToDepositTx(log *types.Log) (*types.DepositTx, error) {

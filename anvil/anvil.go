@@ -6,25 +6,32 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"sync/atomic"
-	"time"
 
 	"github.com/ethereum-optimism/supersim/config"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-var _ config.Chain = &Anvil{}
+var (
+	_ config.Chain = &Anvil{}
+
+	logTracerParams = map[string]interface{}{
+		"tracer": "callTracer",
+		"tracerConfig": map[string]interface{}{
+			"withLog": true,
+		},
+	}
+)
 
 const (
 	host                 = "127.0.0.1"
@@ -72,9 +79,11 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--derivation-path", a.cfg.SecretsConfig.DerivationPath.String(),
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainID),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
-		"--optimism",
 	}
 
+	if a.cfg.L2Config != nil {
+		args = append(args, "--optimism")
+	}
 	if a.cfg.StartingTimestamp > 0 {
 		args = append(args, "--timestamp", fmt.Sprintf("%d", a.cfg.StartingTimestamp))
 	}
@@ -179,6 +188,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create RPC client: %w", err)
 	}
+
 	a.rpcClient = rpcClient
 	a.ethClient = ethclient.NewClient(rpcClient)
 	return nil
@@ -196,10 +206,6 @@ func (a *Anvil) Stop() error {
 	a.resourceCancel()
 	<-a.stoppedCh
 	return nil
-}
-
-func (a *Anvil) Stopped() bool {
-	return a.stopped.Load()
 }
 
 func (a *Anvil) Endpoint() string {
@@ -226,35 +232,6 @@ func (a *Anvil) Config() *config.ChainConfig {
 	return a.cfg
 }
 
-func (a *Anvil) WaitUntilReady(ctx context.Context) error {
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("context cancelled")
-		case <-timeoutCtx.Done():
-			return fmt.Errorf("timed out waiting for response from client")
-		case <-ticker.C:
-			var result string
-			result, err := a.Web3ClientVersion(ctx)
-
-			if err != nil {
-				continue
-			}
-			if strings.HasPrefix(result, "anvil") {
-				return nil
-			}
-
-			return fmt.Errorf("unexpected client version: %s", result)
-		}
-	}
-}
-
 func (a *Anvil) String() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Name: %s    Chain ID: %d    RPC: %s    LogPath: %s", a.Name(), a.ChainID(), a.Endpoint(), a.LogPath())
@@ -263,50 +240,6 @@ func (a *Anvil) String() string {
 
 func (a *Anvil) EthClient() *ethclient.Client {
 	return a.ethClient
-}
-
-// web3_ API
-func (a *Anvil) Web3ClientVersion(ctx context.Context) (string, error) {
-	var result string
-	if err := a.rpcClient.CallContext(ctx, &result, "web3_clientVersion"); err != nil {
-		return "", err
-	}
-	return result, nil
-}
-
-// eth_ API
-func (a *Anvil) EthGetCode(ctx context.Context, account common.Address) ([]byte, error) {
-	return a.ethClient.CodeAt(ctx, account, nil)
-}
-
-func (a *Anvil) EthGetLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
-	return a.ethClient.FilterLogs(ctx, q)
-}
-
-func (a *Anvil) EthSendTransaction(ctx context.Context, tx *types.Transaction) error {
-	return a.ethClient.SendTransaction(ctx, tx)
-}
-
-func (a *Anvil) EthBlockByNumber(ctx context.Context, blockHeight *big.Int) (*types.Block, error) {
-	return a.ethClient.BlockByNumber(ctx, blockHeight)
-}
-
-// subscription API
-func (a *Anvil) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
-	return a.ethClient.SubscribeFilterLogs(ctx, q, ch)
-}
-
-func (a *Anvil) DebugTraceCall(ctx context.Context, txArgs config.TransactionArgs) (config.TraceCallRaw, error) {
-	var result config.TraceCallRaw
-	if err := a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "latest", map[string]interface{}{
-		"tracer": "callTracer",
-		"tracerConfig": map[string]interface{}{
-			"withLog": true,
-		},
-	}); err != nil {
-		return config.TraceCallRaw{}, err
-	}
-	return result, nil
 }
 
 func (a *Anvil) SetCode(ctx context.Context, result interface{}, address string, code string) error {
@@ -319,4 +252,49 @@ func (a *Anvil) SetStorageAt(ctx context.Context, result interface{}, address st
 
 func (a *Anvil) SetIntervalMining(ctx context.Context, result interface{}, interval int64) error {
 	return a.rpcClient.CallContext(ctx, result, "evm_setIntervalMining", interval)
+}
+
+// DebugTraceCall internal types
+type txArgs struct {
+	From     common.Address  `json:"from"`
+	To       *common.Address `json:"to"`
+	Gas      hexutil.Uint64  `json:"gas"`
+	GasPrice *hexutil.Big    `json:"gasPrice"`
+	Data     hexutil.Bytes   `json:"data"`
+	Value    *hexutil.Big    `json:"value"`
+}
+type callFrame struct {
+	Logs  []callLog   `json:"logs"`
+	Calls []callFrame `json:"calls"`
+}
+type callLog struct {
+	Address common.Address `json:"address"`
+	Topics  []common.Hash  `json:"topics"`
+	Data    hexutil.Bytes  `json:"data"`
+}
+
+func (a *Anvil) SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]types.Log, error) {
+	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve tx sender: %w", err)
+	}
+
+	txArgs := txArgs{From: from, To: tx.To(), Gas: hexutil.Uint64(tx.Gas()), GasPrice: (*hexutil.Big)(tx.GasPrice()), Data: tx.Data(), Value: (*hexutil.Big)(tx.Value())}
+	result := callFrame{}
+	if err = a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "latest", logTracerParams); err != nil {
+		return nil, err
+	}
+
+	// aggregate all logs from the top-level and nested calls
+	logs, stack := []types.Log{}, []callFrame{result}
+	for len(stack) > 0 {
+		call := stack[0]
+		stack = stack[1:]
+		for _, log := range call.Logs {
+			logs = append(logs, types.Log{Address: log.Address, Topics: log.Topics, Data: log.Data})
+		}
+		stack = append(stack, call.Calls...)
+	}
+
+	return logs, err
 }

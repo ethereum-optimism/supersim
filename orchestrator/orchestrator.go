@@ -42,7 +42,9 @@ func NewOrchestrator(log log.Logger, networkConfig *config.NetworkConfig) (*Orch
 
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], cfg.L2Config, l2Anvils)
+
+		l2Anvil := l2Anvils[cfg.ChainID]
+		l2OpSims[cfg.ChainID] = opsimulator.New(log, nextL2Port, l1Anvil, l2Anvil, l2Anvils)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
@@ -63,10 +65,6 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		if err := anvil.Start(ctx); err != nil {
 			return fmt.Errorf("anvil instance %s failed to start: %w", anvil.Name(), err)
 		}
-	}
-
-	if err := o.WaitUntilAnvilsAreReady(); err != nil {
-		return fmt.Errorf("anvil instances failed to get ready: %w", err)
 	}
 
 	for _, opSim := range o.l2OpSims {
@@ -102,67 +100,6 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 	}
 
 	return errors.Join(errs...)
-}
-
-func (o *Orchestrator) Stopped() bool {
-	if stopped := o.l1Anvil.Stopped(); stopped {
-		return stopped
-	}
-	for _, anvil := range o.l2Anvils {
-		if stopped := anvil.Stopped(); !stopped {
-			return stopped
-		}
-	}
-	for _, opSim := range o.l2OpSims {
-		if stopped := opSim.Stopped(); !stopped {
-			return stopped
-		}
-	}
-	return true
-}
-
-func (o *Orchestrator) WaitUntilAnvilsAreReady() error {
-	var once sync.Once
-	var err error
-	ctx, cancel := context.WithCancel(context.Background())
-
-	handleErr := func(e error) {
-		if e == nil {
-			return
-		}
-
-		once.Do(func() {
-			err = e
-			cancel()
-		})
-	}
-
-	var wg sync.WaitGroup
-	anvils := []*anvil.Anvil{o.l1Anvil}
-	for _, chain := range o.l2Anvils {
-		anvils = append(anvils, chain)
-	}
-
-	waitForAnvil := func(anvil *anvil.Anvil) {
-		defer wg.Done()
-		handleErr(anvil.WaitUntilReady(ctx))
-	}
-	for _, chain := range anvils {
-		wg.Add(1)
-		go waitForAnvil(chain)
-	}
-
-	wg.Wait()
-
-	if err != nil {
-		return err
-	}
-
-	if err := o.kickOffMining(ctx, anvils); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (o *Orchestrator) kickOffMining(ctx context.Context, anvils []*anvil.Anvil) error {

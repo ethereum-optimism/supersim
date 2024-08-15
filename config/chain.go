@@ -3,14 +3,12 @@ package config
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/genesis"
 	"github.com/ethereum-optimism/supersim/hdaccount"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -106,15 +104,7 @@ type Chain interface {
 	Config() *ChainConfig
 	EthClient() *ethclient.Client
 
-	// TODO: Delete these and use EthClient directly
-	// API methods
-	EthGetCode(ctx context.Context, account common.Address) ([]byte, error)
-	EthGetLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error)
-	EthSendTransaction(ctx context.Context, tx *types.Transaction) error
-	EthBlockByNumber(ctx context.Context, blockHeight *big.Int) (*types.Block, error)
-
-	SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error)
-	DebugTraceCall(ctx context.Context, txArgs TransactionArgs) (TraceCallRaw, error)
+	SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]types.Log, error)
 	SetCode(ctx context.Context, result interface{}, address string, code string) error
 	SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error
 	SetIntervalMining(ctx context.Context, result interface{}, interval int64) error
