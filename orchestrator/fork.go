@@ -22,9 +22,23 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 	networkConfig := config.NetworkConfig{}
 
 	// L1
-	l1Client, err := ethclient.Dial(superchain.Config.L1.PublicRPC)
+	l1RpcUrl := superchain.Config.L1.PublicRPC
+	if url, ok := os.LookupEnv(fmt.Sprintf("%s_RPC_URL_%s", envPrefix, strings.ToUpper(forkConfig.Network))); ok {
+		log.Info("detected rpc override", "name", forkConfig.Network, "url", url)
+		l1RpcUrl = url
+	}
+
+	l1Client, err := ethclient.Dial(l1RpcUrl)
 	if err != nil {
 		return networkConfig, fmt.Errorf("failed to dial l1 public rpc: %w", err)
+	}
+
+	chainId, err := l1Client.ChainID(context.Background())
+	if err != nil {
+		return networkConfig, fmt.Errorf("failed to fetch l1 chain id: %w", err)
+	}
+	if superchain.Config.L1.ChainID != chainId.Uint64() {
+		return networkConfig, fmt.Errorf("mismatched network chain id. Expected %d, Got %s", superchain.Config.L1.ChainID, chainId)
 	}
 
 	var l1ForkHeight *big.Int
@@ -34,12 +48,6 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 	l1Header, err := l1Client.HeaderByNumber(context.Background(), l1ForkHeight)
 	if err != nil {
 		return networkConfig, fmt.Errorf("failed to retrieve L1 header: %w", err)
-	}
-
-	l1RpcUrl := superchain.Config.L1.PublicRPC
-	if url, ok := os.LookupEnv(fmt.Sprintf("%s_RPC_URL_%s", envPrefix, strings.ToUpper(forkConfig.Network))); ok {
-		log.Info("detected rpc override", "name", forkConfig.Network, "url", url)
-		l1RpcUrl = url
 	}
 
 	networkConfig.L1Config = config.ChainConfig{
@@ -59,15 +67,28 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 			return networkConfig, fmt.Errorf("unrecoginized chain %s. superchain %s", chain, superchain.Superchain)
 		}
 
-		l2ForkHeight, err := latestL2HeightFromL1Header(chainCfg, l1Header)
-		if err != nil {
-			return networkConfig, fmt.Errorf("failed to find right l2 height: %w", err)
-		}
-
-		rpcUrl := chainCfg.PublicRPC
+		l2RpcUrl := chainCfg.PublicRPC
 		if url, ok := os.LookupEnv(fmt.Sprintf("%s_RPC_URL_%s", envPrefix, strings.ToUpper(chainCfg.Chain))); ok {
 			log.Info("detected rpc override", "name", chainCfg.Chain, "url", url)
-			rpcUrl = url
+			l2RpcUrl = url
+		}
+
+		l2Client, err := ethclient.Dial(l2RpcUrl)
+		if err != nil {
+			return networkConfig, fmt.Errorf("failed to dial l2 public rpc: %w", err)
+		}
+
+		chainId, err := l2Client.ChainID(context.Background())
+		if err != nil {
+			return networkConfig, fmt.Errorf("failed to fetch l2 chain id: %w", err)
+		}
+		if chainCfg.ChainID != chainId.Uint64() {
+			return networkConfig, fmt.Errorf("mismatched l2 chain id for %s. Expected %d, Got %s", chainCfg.Chain, chainCfg.ChainID, chainId)
+		}
+
+		l2ForkHeight, err := latestL2HeightFromL1Header(chainCfg, l2Client, l1Header)
+		if err != nil {
+			return networkConfig, fmt.Errorf("failed to find right l2 height for chain %s: %w", chainCfg.Chain, err)
 		}
 
 		l2ChainConfig := config.ChainConfig{
@@ -75,7 +96,7 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 			ChainID:       chainCfg.ChainID,
 			SecretsConfig: config.DefaultSecretsConfig,
 			ForkConfig: &config.ForkConfig{
-				RPCUrl:      rpcUrl,
+				RPCUrl:      l2RpcUrl,
 				BlockNumber: l2ForkHeight,
 				UseInterop:  forkConfig.UseInterop,
 			},
@@ -105,14 +126,9 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 	return networkConfig, nil
 }
 
-func latestL2HeightFromL1Header(l2Cfg *registry.ChainConfig, l1Header *types.Header) (uint64, error) {
+func latestL2HeightFromL1Header(l2Cfg *registry.ChainConfig, l2Client *ethclient.Client, l1Header *types.Header) (uint64, error) {
 	if l1Header.Time < l2Cfg.Genesis.L2Time {
-		return 0, fmt.Errorf("l1 height precedes l2 genesis time for chain %s", l2Cfg.Chain)
-	}
-
-	l2Client, err := ethclient.Dial(l2Cfg.PublicRPC)
-	if err != nil {
-		return 0, fmt.Errorf("failed to dial l2 public rpc: %w", err)
+		return 0, fmt.Errorf("l1 height precedes l2 genesis time")
 	}
 
 	latestHeader, err := l2Client.HeaderByNumber(context.Background(), nil)

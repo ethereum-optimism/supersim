@@ -63,7 +63,6 @@ type TestSuite struct {
 
 	Cfg      *config.CLIConfig
 	Supersim *Supersim
-	OpSims   []*opsimulator.OpSimulator
 }
 
 type InteropTestSuite struct {
@@ -73,14 +72,10 @@ type InteropTestSuite struct {
 	Cfg      *config.CLIConfig
 	Supersim *Supersim
 
-	// Op Simulator for the source chain.
-	SourceOpSim     *opsimulator.OpSimulator
 	SourceEthClient *ethclient.Client
-	// Op Simulator for the destination chain.
-	DestOpSim     *opsimulator.OpSimulator
-	DestEthClient *ethclient.Client
-	SourceChainID *big.Int
-	DestChainID   *big.Int
+	DestEthClient   *ethclient.Client
+	SourceChainID   *big.Int
+	DestChainID     *big.Int
 }
 
 func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
@@ -104,16 +99,10 @@ func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
 		return nil
 	}
 
-	var opSims []*opsimulator.OpSimulator
-	for _, opSim := range supersim.Orchestrator.L2OpSims {
-		opSims = append(opSims, opSim)
-	}
-
 	return &TestSuite{
 		t:              t,
 		Cfg:            cliConfig,
 		Supersim:       supersim,
-		OpSims:         opSims,
 		HdAccountStore: hdAccountStore,
 	}
 }
@@ -133,12 +122,12 @@ func createForkedInteropTestSuite(t *testing.T) *InteropTestSuite {
 	destChainCfg := config.OPChainByName(superchain, destChain)
 
 	testSuite := createTestSuite(t, cliConfig)
-	sourceOpSim := testSuite.Supersim.Orchestrator.L2OpSims[srcChainCfg.ChainID]
-	sourceEthClient, _ := ethclient.Dial(sourceOpSim.Endpoint())
+	sourceURL := testSuite.Supersim.Orchestrator.Endpoint(srcChainCfg.ChainID)
+	sourceEthClient, _ := ethclient.Dial(sourceURL)
 	defer sourceEthClient.Close()
 
-	destOpSim := testSuite.Supersim.Orchestrator.L2OpSims[destChainCfg.ChainID]
-	destEthClient, _ := ethclient.Dial(destOpSim.Endpoint())
+	destURL := testSuite.Supersim.Orchestrator.Endpoint(destChainCfg.ChainID)
+	destEthClient, _ := ethclient.Dial(destURL)
 	defer destEthClient.Close()
 
 	destChainID := new(big.Int).SetUint64(destChainCfg.ChainID)
@@ -152,9 +141,7 @@ func createForkedInteropTestSuite(t *testing.T) *InteropTestSuite {
 		Cfg:             testSuite.Cfg,
 		Supersim:        testSuite.Supersim,
 		HdAccountStore:  testSuite.HdAccountStore,
-		SourceOpSim:     sourceOpSim,
 		SourceEthClient: sourceEthClient,
-		DestOpSim:       destOpSim,
 		DestEthClient:   destEthClient,
 		SourceChainID:   sourceChainID,
 		DestChainID:     destChainID,
@@ -164,16 +151,13 @@ func createForkedInteropTestSuite(t *testing.T) *InteropTestSuite {
 func createInteropTestSuite(t *testing.T) *InteropTestSuite {
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
-	sourceOpSim := testSuite.OpSims[0]
-	sourceEthClient, _ := ethclient.Dial(sourceOpSim.Endpoint())
+	sourceURL := testSuite.Supersim.Orchestrator.Endpoint(testSuite.Supersim.Cfg.L2Configs[0].ChainID)
+	sourceEthClient, _ := ethclient.Dial(sourceURL)
 	defer sourceEthClient.Close()
 
-	destOpSim := testSuite.OpSims[1]
-	destEthClient, _ := ethclient.Dial(destOpSim.Endpoint())
+	destURL := testSuite.Supersim.Orchestrator.Endpoint(testSuite.Supersim.Cfg.L2Configs[1].ChainID)
+	destEthClient, _ := ethclient.Dial(destURL)
 	defer destEthClient.Close()
-
-	destChainID := new(big.Int).SetUint64(destOpSim.ChainID())
-	sourceChainID := new(big.Int).SetUint64(sourceOpSim.ChainID())
 
 	// TODO: fix when we add a wait for ready on the opsim
 	time.Sleep(3 * time.Second)
@@ -183,12 +167,10 @@ func createInteropTestSuite(t *testing.T) *InteropTestSuite {
 		Cfg:             testSuite.Cfg,
 		Supersim:        testSuite.Supersim,
 		HdAccountStore:  testSuite.HdAccountStore,
-		SourceOpSim:     sourceOpSim,
 		SourceEthClient: sourceEthClient,
-		DestOpSim:       destOpSim,
 		DestEthClient:   destEthClient,
-		SourceChainID:   sourceChainID,
-		DestChainID:     destChainID,
+		SourceChainID:   new(big.Int).SetUint64(testSuite.Supersim.Cfg.L2Configs[0].ChainID),
+		DestChainID:     new(big.Int).SetUint64(testSuite.Supersim.Cfg.L2Configs[1].ChainID),
 	}
 }
 
@@ -327,8 +309,8 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 func TestDependencySet(t *testing.T) {
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
-	for _, opSim := range testSuite.Supersim.Orchestrator.L2OpSims {
-		l2Client, err := ethclient.Dial(opSim.Endpoint())
+	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
+		l2Client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.Endpoint(chain.ChainID()))
 		require.NoError(t, err)
 		defer l2Client.Close()
 
@@ -339,11 +321,14 @@ func TestDependencySet(t *testing.T) {
 		time.Sleep(3 * time.Second)
 
 		depSetSize, err := l1BlockInterop.DependencySetSize(&bind.CallOpts{})
-
 		require.NoError(t, err)
-		require.Equal(t, len(opSim.L2Config.DependencySet), int(depSetSize), "Dependency set size is incorrect")
 
-		for _, chainID := range opSim.L2Config.DependencySet {
+		cfg := chain.Config()
+		require.NotNil(t, cfg)
+		require.NotNil(t, cfg.L2Config)
+		require.Equal(t, len(cfg.L2Config.DependencySet), int(depSetSize), "Dependency set size is incorrect")
+
+		for _, chainID := range cfg.L2Config.DependencySet {
 			dep, err := l1BlockInterop.IsInDependencySet(&bind.CallOpts{}, big.NewInt(int64(chainID)))
 			require.NoError(t, err)
 			require.True(t, dep, "ChainID is not in dependency set")
@@ -393,8 +378,8 @@ func TestDeployContractsL1WithDevAccounts(t *testing.T) {
 func TestBatchJsonRpcRequests(t *testing.T) {
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
-	for _, opSim := range testSuite.Supersim.Orchestrator.L2OpSims {
-		client, err := ethclient.Dial(opSim.Endpoint())
+	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
+		client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.Endpoint(chain.ChainID()))
 		require.NoError(t, err)
 		defer client.Close()
 
