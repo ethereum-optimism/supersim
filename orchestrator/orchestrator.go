@@ -73,6 +73,10 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		}
 	}
 
+	if err := o.kickOffMining(ctx); err != nil {
+		return fmt.Errorf("unable to start mining: %w", err)
+	}
+
 	o.log.Debug("orchestrator is ready")
 	return nil
 }
@@ -102,10 +106,10 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-func (o *Orchestrator) kickOffMining(ctx context.Context, anvils []*anvil.Anvil) error {
+func (o *Orchestrator) kickOffMining(ctx context.Context) error {
 	var once sync.Once
 	var err error
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 
 	handleErr := func(e error) {
 		if e == nil {
@@ -119,8 +123,12 @@ func (o *Orchestrator) kickOffMining(ctx context.Context, anvils []*anvil.Anvil)
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(len(anvils))
-	for _, chain := range anvils {
+	wg.Add(len(o.l2Anvils) + 1)
+
+	handleErr(o.l1Anvil.SetIntervalMining(ctx, nil, 2))
+	wg.Done()
+
+	for _, chain := range o.l2Anvils {
 		go func() {
 			defer wg.Done()
 			handleErr(chain.SetIntervalMining(ctx, nil, 2))
