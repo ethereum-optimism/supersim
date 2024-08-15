@@ -34,7 +34,7 @@ func NewOrchestrator(log log.Logger, networkConfig *config.NetworkConfig) (*Orch
 	l2Anvils, l2OpSims := make(map[uint64]*anvil.Anvil), make(map[uint64]*opsimulator.OpSimulator)
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
-		cfg.Port = 0 // explicity set to zero as this instance sits behind a proxy
+		cfg.Port = 0 // explicitly set to zero as this instance sits behind a proxy
 
 		l2Anvil := anvil.New(log, &cfg)
 		l2Anvils[cfg.ChainID] = l2Anvil
