@@ -10,9 +10,10 @@ A local development environment for testing against multiple nodes running simul
   - [Features](#features)
     - [Vanilla mode](#vanilla-mode)
     - [Forked mode](#forked-mode)
+      - [Enabling Interop in Fork Mode](#enabling-interop-in-fork-mode)
   - [Examples](#examples)
   - [SuperchainERC20](#superchainerc20)
-    - [L2NativeSuperchainERC20](#L2NativeSuperchainERC20)
+    - [L2NativeSuperchainERC20](#l2nativesuperchainerc20)
       - [Minting new tokens](#minting-new-tokens)
     - [OptimismSuperchainERC20](#optimismsuperchainerc20)
   - [Join Discord](#join-discord)
@@ -93,7 +94,7 @@ Supersim by default includes the following SuperchainERC20 contracts for testing
 
 |Contract| Address  |
 |---|---|
-|L2NativeSuperchainERC20| 0x62Ad787572105243B9cCB3CFEaFc5d70b2c89755|
+|L2NativeSuperchainERC20| 0x61a6eF395d217eD7C79e1B84880167a417796172|
 |OptimismSuperchainERC20 |TODO |
 
 ### L2NativeSuperchainERC20 
@@ -104,7 +105,7 @@ Simple ERC20 that adheres to the SuperchainERC20 standard
 
 #### Minting new tokens
 ```bash
-cast send 0x62Ad787572105243B9cCB3CFEaFc5d70b2c89755 "mint(address _to, uint256 _amount)" $RECIPIENT_ADDRESS 1ether  --rpc-url $L2_RPC_URL
+cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 _amount)" $RECIPIENT_ADDRESS 1ether  --rpc-url $L2_RPC_URL
 ```
 
 ### OptimismSuperchainERC20
