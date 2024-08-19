@@ -10,8 +10,6 @@ import (
 	"github.com/ethereum-optimism/supersim/hdaccount"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -65,35 +63,6 @@ type NetworkConfig struct {
 
 	L2StartingPort uint64
 	L2Configs      []ChainConfig
-}
-
-type TransactionArgs struct {
-	From     common.Address  `json:"from"`
-	To       *common.Address `json:"to"`
-	Gas      hexutil.Uint64  `json:"gas"`
-	GasPrice *hexutil.Big    `json:"gasPrice"`
-	Data     hexutil.Bytes   `json:"data"`
-	Value    *hexutil.Big    `json:"value"`
-}
-
-type TraceCallRaw struct {
-	Error   *string            `json:"error,omitempty"`
-	Type    string             `json:"type"`
-	From    string             `json:"from"`
-	To      string             `json:"to"`
-	Value   string             `json:"value"`
-	Gas     string             `json:"gas"`
-	GasUsed string             `json:"gasUsed"`
-	Input   string             `json:"input"`
-	Output  string             `json:"output"`
-	Logs    []*TraceCallRawLog `json:"logs"`
-	Calls   []TraceCallRaw     `json:"calls"`
-}
-
-type TraceCallRawLog struct {
-	Address common.Address `json:"address"`
-	Topics  []common.Hash  `json:"topics"`
-	Data    string         `json:"data"`
 }
 
 type Chain interface {
