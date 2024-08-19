@@ -3,17 +3,13 @@ package config
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/genesis"
 	"github.com/ethereum-optimism/supersim/hdaccount"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -69,35 +65,6 @@ type NetworkConfig struct {
 	L2Configs      []ChainConfig
 }
 
-type TransactionArgs struct {
-	From     common.Address  `json:"from"`
-	To       *common.Address `json:"to"`
-	Gas      hexutil.Uint64  `json:"gas"`
-	GasPrice *hexutil.Big    `json:"gasPrice"`
-	Data     hexutil.Bytes   `json:"data"`
-	Value    *hexutil.Big    `json:"value"`
-}
-
-type TraceCallRaw struct {
-	Error   *string            `json:"error,omitempty"`
-	Type    string             `json:"type"`
-	From    string             `json:"from"`
-	To      string             `json:"to"`
-	Value   string             `json:"value"`
-	Gas     string             `json:"gas"`
-	GasUsed string             `json:"gasUsed"`
-	Input   string             `json:"input"`
-	Output  string             `json:"output"`
-	Logs    []*TraceCallRawLog `json:"logs"`
-	Calls   []TraceCallRaw     `json:"calls"`
-}
-
-type TraceCallRawLog struct {
-	Address common.Address `json:"address"`
-	Topics  []common.Hash  `json:"topics"`
-	Data    string         `json:"data"`
-}
-
 type Chain interface {
 	Name() string
 	Endpoint() string
@@ -106,15 +73,7 @@ type Chain interface {
 	Config() *ChainConfig
 	EthClient() *ethclient.Client
 
-	// TODO: Delete these and use EthClient directly
-	// API methods
-	EthGetCode(ctx context.Context, account common.Address) ([]byte, error)
-	EthGetLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error)
-	EthSendTransaction(ctx context.Context, tx *types.Transaction) error
-	EthBlockByNumber(ctx context.Context, blockHeight *big.Int) (*types.Block, error)
-
-	SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error)
-	DebugTraceCall(ctx context.Context, txArgs TransactionArgs) (TraceCallRaw, error)
+	SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]types.Log, error)
 	SetCode(ctx context.Context, result interface{}, address string, code string) error
 	SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error
 	SetIntervalMining(ctx context.Context, result interface{}, interval int64) error

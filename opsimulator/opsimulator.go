@@ -39,8 +39,6 @@ type OpSimulator struct {
 	l1Chain config.Chain
 	l2Chain config.Chain
 
-	L2Config *config.L2Config
-
 	// Long running tasks
 	bgTasks       tasks.Group
 	bgTasksCtx    context.Context
@@ -58,7 +56,7 @@ type OpSimulator struct {
 	stopped atomic.Bool
 }
 
-func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *config.L2Config, anvilChains map[uint64]*anvil.Anvil) *OpSimulator {
+func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, anvilChains map[uint64]*anvil.Anvil) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 	startupTasksCtx, startupTasksCancel := context.WithCancel(context.Background())
 
@@ -68,17 +66,17 @@ func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *c
 	}
 
 	return &OpSimulator{
-		port:     port,
-		log:      log,
-		l1Chain:  l1Chain,
-		l2Chain:  l2Chain,
-		L2Config: l2Config,
+		port:    port,
+		log:     log,
+		l1Chain: l1Chain,
+		l2Chain: l2Chain,
 
 		bgTasksCtx:    bgTasksCtx,
 		bgTasksCancel: bgTasksCancel,
 		bgTasks: tasks.Group{
 			HandleCrit: func(err error) {
-				log.Error("bg task failed", "err", err)
+				log.Error("opsim bg task failed", "err", err)
+				panic(err)
 			},
 		},
 
@@ -86,7 +84,8 @@ func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, l2Config *c
 		startupTasksCancel: startupTasksCancel,
 		startupTasks: tasks.Group{
 			HandleCrit: func(err error) {
-				log.Error("startup task failed", err)
+				log.Error("opsim startup task failed", err)
+				panic(err)
 			},
 		},
 		chains: chains,
@@ -133,10 +132,6 @@ func (opSim *OpSimulator) Stop(ctx context.Context) error {
 	return opSim.httpServer.Stop(ctx)
 }
 
-func (opSim *OpSimulator) Stopped() bool {
-	return opSim.stopped.Load()
-}
-
 func (opSim *OpSimulator) startStartupTasks(ctx context.Context) {
 	opSim.startupTasks.Go(func() error {
 		if opSim.Config().ForkConfig != nil && opSim.Config().ForkConfig.UseInterop {
@@ -145,27 +140,22 @@ func (opSim *OpSimulator) startStartupTasks(ctx context.Context) {
 			}
 		}
 
-		if err := opSim.addDependencies(); err != nil {
-			return fmt.Errorf("failed to configure dependency set: %w", err)
+		for _, chainID := range opSim.l2Chain.Config().L2Config.DependencySet {
+			if err := opSim.AddDependency(chainID); err != nil {
+				return fmt.Errorf("failed to configure dependency set: %w", err)
+			}
 		}
+
 		return nil
 	})
-}
-
-func (opSim *OpSimulator) addDependencies() error {
-	for _, chainID := range opSim.L2Config.DependencySet {
-		if err := opSim.AddDependency(chainID); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (opSim *OpSimulator) startBackgroundTasks() {
 	// Relay deposit tx from L1 to L2
 	opSim.bgTasks.Go(func() error {
 		depositTxCh := make(chan *types.DepositTx)
-		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain, common.Address(opSim.L2Config.L1Addresses.OptimismPortalProxy), depositTxCh)
+		portalAddress := common.Address(opSim.l2Chain.Config().L2Config.L1Addresses.OptimismPortalProxy)
+		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain.EthClient(), portalAddress, depositTxCh)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
 		}
@@ -175,7 +165,9 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			case dep := <-depositTxCh:
 				depTx := types.NewTx(dep)
 				opSim.log.Debug("received deposit tx", "hash", depTx.Hash().String())
-				if err := opSim.l2Chain.EthSendTransaction(opSim.bgTasksCtx, depTx); err != nil {
+
+				clnt := opSim.l2Chain.EthClient()
+				if err := clnt.SendTransaction(opSim.bgTasksCtx, depTx); err != nil {
 					opSim.log.Error("failed to submit deposit tx: %w", err)
 				}
 
@@ -325,17 +317,16 @@ func forwardRPCRequest(ctx context.Context, rpcClient *rpc.Client, req *jsonRpcM
 // Update dependency set on the L2#L1BlockInterop using a deposit tx
 func (opSim *OpSimulator) AddDependency(chainID uint64) error {
 	dep, err := NewAddDependencyDepositTx(big.NewInt(int64(chainID)))
-
 	if err != nil {
 		return fmt.Errorf("failed to create setConfig deposit tx: %w", err)
 	}
 
-	tx := types.NewTx(dep)
-	if err := opSim.l2Chain.EthSendTransaction(context.Background(), tx); err != nil {
+	tx, clnt := types.NewTx(dep), opSim.l2Chain.EthClient()
+	if err := clnt.SendTransaction(opSim.startupTasksCtx, tx); err != nil {
 		return fmt.Errorf("failed to send setConfig deposit tx: %w", err)
 	}
 
-	txReceipt, err := bind.WaitMined(context.Background(), opSim.l2Chain.EthClient(), tx)
+	txReceipt, err := bind.WaitMined(opSim.startupTasksCtx, clnt, tx)
 	if err != nil {
 		return fmt.Errorf("failed to get tx receipt for deposit tx: %w", err)
 	}
@@ -347,24 +338,14 @@ func (opSim *OpSimulator) AddDependency(chainID uint64) error {
 }
 
 func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.Transaction) error {
-	from, err := getFromAddress(tx)
-
-	if err != nil {
-		return fmt.Errorf("failed to find sender of transaction: %w", err)
-	}
-
-	result, err := opSim.l2Chain.DebugTraceCall(ctx, config.TransactionArgs{From: from, To: tx.To(), Gas: hexutil.Uint64(tx.Gas()), GasPrice: (*hexutil.Big)(tx.GasPrice()), Data: tx.Data(), Value: (*hexutil.Big)(tx.Value())})
+	logs, err := opSim.l2Chain.SimulatedLogs(ctx, tx)
 	if err != nil {
 		return fmt.Errorf("failed to simulate transaction: %w", err)
 	}
-	if result.Error != nil {
-		return fmt.Errorf("tx trace error: %s", *result.Error)
-	}
-	simulatedLogs := toSimulatedLogs(result)
 
 	crossL2Inbox := NewCrossL2Inbox()
 	var executingMessages []executingMessage
-	for _, log := range simulatedLogs {
+	for _, log := range logs {
 		executingMessage, err := crossL2Inbox.decodeExecutingMessageLog(&log)
 		if err != nil {
 			return fmt.Errorf("failed to decode executing messages from transaction logs: %w", err)
@@ -377,35 +358,32 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 
 	if len(executingMessages) >= 1 {
 		for _, executingMessage := range executingMessages {
-			sourceChain, ok := opSim.chains[executingMessage.Identifier.ChainId.Uint64()]
+			identifier := executingMessage.Identifier
+			sourceChain, ok := opSim.chains[identifier.ChainId.Uint64()]
 			if !ok {
-				return fmt.Errorf("no chain found for chain id: %d", executingMessage.Identifier.ChainId)
+				return fmt.Errorf("no chain found for chain id: %d", identifier.ChainId)
 			}
 
-			identifierBlock, err := sourceChain.EthBlockByNumber(ctx, executingMessage.Identifier.BlockNumber)
+			sourceClient := sourceChain.EthClient()
+			identifierBlock, err := sourceClient.BlockByNumber(ctx, identifier.BlockNumber)
 			if err != nil {
 				return fmt.Errorf("failed to fetch executing message block: %w", err)
 			}
 
-			if executingMessage.Identifier.Timestamp.Cmp(new(big.Int).SetUint64(identifierBlock.Time())) != 0 {
+			if identifier.Timestamp.Cmp(new(big.Int).SetUint64(identifierBlock.Time())) != 0 {
 				return fmt.Errorf("executing message identifier does not match block timestamp: %w", err)
 			}
 
-			logs, err := sourceChain.EthGetLogs(
-				ctx,
-				ethereum.FilterQuery{
-					Addresses: []common.Address{executingMessage.Identifier.Origin},
-					FromBlock: executingMessage.Identifier.BlockNumber,
-					ToBlock:   executingMessage.Identifier.BlockNumber,
-				},
-			)
+			filterQuery := ethereum.FilterQuery{Addresses: []common.Address{identifier.Origin}, FromBlock: identifier.BlockNumber, ToBlock: identifier.BlockNumber}
+			logs, err := sourceClient.FilterLogs(ctx, filterQuery)
 			if err != nil {
 				return fmt.Errorf("failed to fetch initiating message logs: %w", err)
 			}
+
 			var initiatingMessageLogs []types.Log
 			for _, log := range logs {
 				logIndex := big.NewInt(int64(log.Index))
-				if logIndex.Cmp(executingMessage.Identifier.LogIndex) == 0 {
+				if logIndex.Cmp(identifier.LogIndex) == 0 {
 					initiatingMessageLogs = append(initiatingMessageLogs, log)
 				}
 			}
@@ -429,43 +407,12 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 	return nil
 }
 
-func toSimulatedLogs(call config.TraceCallRaw) []types.Log {
-	var logs []types.Log
-	var stack []config.TraceCallRaw
-
-	stack = append(stack, call)
-
-	for len(stack) > 0 {
-		n := len(stack) - 1
-		currentCall := stack[n]
-		stack = stack[:n]
-
-		for _, log := range currentCall.Logs {
-			logs = append(logs, types.Log{
-				Address: log.Address,
-				Topics:  log.Topics,
-				Data:    common.FromHex(log.Data),
-			})
-		}
-
-		stack = append(stack, currentCall.Calls...)
-	}
-
-	return logs
-}
-
 func messagePayloadBytes(log *types.Log) []byte {
 	msg := []byte{}
 	for _, topic := range log.Topics {
 		msg = append(msg, topic.Bytes()...)
 	}
 	return append(msg, log.Data...)
-}
-
-func getFromAddress(tx *types.Transaction) (common.Address, error) {
-	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
-
-	return from, err
 }
 
 func (opSim *OpSimulator) Endpoint() string {

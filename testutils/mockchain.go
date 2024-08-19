@@ -2,12 +2,9 @@ package testutils
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/ethereum-optimism/supersim/config"
 
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -53,28 +50,8 @@ func (c *MockChain) EthClient() *ethclient.Client {
 	return nil
 }
 
-func (c *MockChain) EthGetCode(ctx context.Context, account common.Address) ([]byte, error) {
-	return []byte{}, nil
-}
-
-func (c *MockChain) EthGetLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
-	return []types.Log{}, nil
-}
-
-func (c *MockChain) EthSendTransaction(ctx context.Context, tx *types.Transaction) error {
-	return nil
-}
-
-func (c *MockChain) EthBlockByNumber(ctx context.Context, blockHeight *big.Int) (*types.Block, error) {
-	return &types.Block{}, nil
-}
-
-func (c *MockChain) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
-	return &MockSubscription{}, nil
-}
-
-func (c *MockChain) DebugTraceCall(ctx context.Context, txArgs config.TransactionArgs) (config.TraceCallRaw, error) {
-	return config.TraceCallRaw{}, nil
+func (c *MockChain) SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]types.Log, error) {
+	return nil, nil
 }
 
 func (c *MockChain) SetCode(ctx context.Context, result interface{}, address string, code string) error {
