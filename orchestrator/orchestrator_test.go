@@ -41,20 +41,20 @@ func createTestSuite(t *testing.T) *TestSuite {
 func TestStartup(t *testing.T) {
 	testSuite := createTestSuite(t)
 
-	require.Equal(t, testSuite.orchestrator.L1Chain().ChainID(), uint64(900))
+	require.Equal(t, testSuite.orchestrator.L1Chain().Config().ChainID, uint64(900))
 	require.Nil(t, testSuite.orchestrator.L1Chain().Config().L2Config)
 
 	chains := testSuite.orchestrator.L2Chains()
 	require.Equal(t, len(chains), 2)
 
 	require.True(t, slices.ContainsFunc(chains, func(chain config.Chain) bool {
-		return chain.ChainID() == uint64(901)
+		return chain.Config().ChainID == uint64(901)
 	}))
 	require.NotNil(t, chains[0].Config().L2Config)
 	require.Equal(t, chains[0].Config().L2Config.L1ChainID, uint64(900))
 
 	require.True(t, slices.ContainsFunc(chains, func(chain config.Chain) bool {
-		return chain.ChainID() == uint64(902)
+		return chain.Config().ChainID == uint64(902)
 	}))
 	require.NotNil(t, chains[1].Config().L2Config)
 	require.Equal(t, chains[1].Config().L2Config.L1ChainID, uint64(900))

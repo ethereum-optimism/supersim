@@ -17,7 +17,6 @@ import (
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
 	"github.com/ethereum-optimism/optimism/op-service/tasks"
 
-	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -34,16 +33,17 @@ const (
 )
 
 type OpSimulator struct {
+	config.Chain // the chain that op-sim is wrapping
+
 	log log.Logger
 
 	l1Chain config.Chain
-	l2Chain config.Chain
 
 	// Long running tasks
 	bgTasks       tasks.Group
 	bgTasksCtx    context.Context
 	bgTasksCancel context.CancelFunc
-	chains        map[uint64]config.Chain
+	peers         map[uint64]config.Chain
 
 	// One time tasks at startup
 	startupTasks       tasks.Group
@@ -56,20 +56,17 @@ type OpSimulator struct {
 	stopped atomic.Bool
 }
 
-func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, anvilChains map[uint64]*anvil.Anvil) *OpSimulator {
+// OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
+func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 	startupTasksCtx, startupTasksCancel := context.WithCancel(context.Background())
 
-	chains := make(map[uint64]config.Chain)
-	for chainId, chain := range anvilChains {
-		chains[chainId] = chain
-	}
-
 	return &OpSimulator{
-		port:    port,
+		Chain: l2Chain,
+
 		log:     log,
+		port:    port,
 		l1Chain: l1Chain,
-		l2Chain: l2Chain,
 
 		bgTasksCtx:    bgTasksCtx,
 		bgTasksCancel: bgTasksCancel,
@@ -88,7 +85,8 @@ func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, anvilChains
 				panic(err)
 			},
 		},
-		chains: chains,
+
+		peers: peers,
 	}
 }
 
@@ -101,7 +99,8 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start HTTP RPC server: %w", err)
 	}
 
-	opSim.log.Debug("started opsimulator", "name", opSim.Name(), "chain.id", opSim.ChainID(), "addr", hs.Addr())
+	cfg := opSim.Config()
+	opSim.log.Debug("started opsimulator", "name", cfg.Name, "chain.id", cfg.ChainID, "addr", hs.Addr())
 	opSim.httpServer = hs
 
 	if opSim.port == 0 {
@@ -135,13 +134,13 @@ func (opSim *OpSimulator) Stop(ctx context.Context) error {
 func (opSim *OpSimulator) startStartupTasks(ctx context.Context) {
 	opSim.startupTasks.Go(func() error {
 		if opSim.Config().ForkConfig != nil && opSim.Config().ForkConfig.UseInterop {
-			if err := configureInteropForChain(ctx, opSim.l2Chain); err != nil {
+			if err := configureInteropForChain(ctx, opSim.Chain); err != nil {
 				return fmt.Errorf("failed to configure interop: %w", err)
 			}
 		}
 
-		for _, chainID := range opSim.l2Chain.Config().L2Config.DependencySet {
-			if err := opSim.AddDependency(chainID); err != nil {
+		for _, chainID := range opSim.Config().L2Config.DependencySet {
+			if err := opSim.addDependency(chainID); err != nil {
 				return fmt.Errorf("failed to configure dependency set: %w", err)
 			}
 		}
@@ -154,7 +153,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 	// Relay deposit tx from L1 to L2
 	opSim.bgTasks.Go(func() error {
 		depositTxCh := make(chan *types.DepositTx)
-		portalAddress := common.Address(opSim.l2Chain.Config().L2Config.L1Addresses.OptimismPortalProxy)
+		portalAddress := common.Address(opSim.Config().L2Config.L1Addresses.OptimismPortalProxy)
 		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain.EthClient(), portalAddress, depositTxCh)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
@@ -166,7 +165,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 				depTx := types.NewTx(dep)
 				opSim.log.Debug("received deposit tx", "hash", depTx.Hash().String())
 
-				clnt := opSim.l2Chain.EthClient()
+				clnt := opSim.EthClient()
 				if err := clnt.SendTransaction(opSim.bgTasksCtx, depTx); err != nil {
 					opSim.log.Error("failed to submit deposit tx: %w", err)
 				}
@@ -195,11 +194,7 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 			return
 		}
 
-		rpcClient, err := rpc.Dial(opSim.l2Chain.Endpoint())
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to connect to RPC server: %s", err), http.StatusInternalServerError)
-		}
-
+		rpcClient := opSim.EthClient().Client()
 		batchRes := make([]jsonRpcMessage, len(msgs))
 		for i, msg := range msgs {
 			if msg.Method == "eth_sendRawTransaction" {
@@ -315,13 +310,13 @@ func forwardRPCRequest(ctx context.Context, rpcClient *rpc.Client, req *jsonRpcM
 }
 
 // Update dependency set on the L2#L1BlockInterop using a deposit tx
-func (opSim *OpSimulator) AddDependency(chainID uint64) error {
+func (opSim *OpSimulator) addDependency(chainID uint64) error {
 	dep, err := NewAddDependencyDepositTx(big.NewInt(int64(chainID)))
 	if err != nil {
 		return fmt.Errorf("failed to create setConfig deposit tx: %w", err)
 	}
 
-	tx, clnt := types.NewTx(dep), opSim.l2Chain.EthClient()
+	tx, clnt := types.NewTx(dep), opSim.EthClient()
 	if err := clnt.SendTransaction(opSim.startupTasksCtx, tx); err != nil {
 		return fmt.Errorf("failed to send setConfig deposit tx: %w", err)
 	}
@@ -338,7 +333,7 @@ func (opSim *OpSimulator) AddDependency(chainID uint64) error {
 }
 
 func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.Transaction) error {
-	logs, err := opSim.l2Chain.SimulatedLogs(ctx, tx)
+	logs, err := opSim.SimulatedLogs(ctx, tx)
 	if err != nil {
 		return fmt.Errorf("failed to simulate transaction: %w", err)
 	}
@@ -359,7 +354,7 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 	if len(executingMessages) >= 1 {
 		for _, executingMessage := range executingMessages {
 			identifier := executingMessage.Identifier
-			sourceChain, ok := opSim.chains[identifier.ChainId.Uint64()]
+			sourceChain, ok := opSim.peers[identifier.ChainId.Uint64()]
 			if !ok {
 				return fmt.Errorf("no chain found for chain id: %d", identifier.ChainId)
 			}
@@ -415,25 +410,25 @@ func messagePayloadBytes(log *types.Log) []byte {
 	return append(msg, log.Data...)
 }
 
+// Overridden such that the port field can appropiately be set
+func (opSim *OpSimulator) Config() *config.ChainConfig {
+	// we dereference the config so that a copy is made.
+	//  - NOTE: This is only okay since the field were modifying are non-pointer fields
+	cfg := *opSim.Chain.Config()
+	cfg.Port = opSim.port
+	return &cfg
+}
+
+// Overridden such that the correct port is used
 func (opSim *OpSimulator) Endpoint() string {
 	return fmt.Sprintf("http://%s:%d", host, opSim.port)
 }
 
-func (opSim *OpSimulator) Name() string {
-	return opSim.l2Chain.Name()
-}
-
-func (opSim *OpSimulator) ChainID() uint64 {
-	return opSim.l2Chain.ChainID()
-}
-
-func (opSim *OpSimulator) Config() *config.ChainConfig {
-	return opSim.l2Chain.Config()
-}
-
+// Overridden such that the right endpoint is used
 func (opSim *OpSimulator) String() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Name: %s    Chain ID: %d    RPC: %s    LogPath: %s", opSim.Name(), opSim.ChainID(), opSim.Endpoint(), opSim.l2Chain.LogPath())
+	cfg := opSim.Config()
+	fmt.Fprintf(&b, "Name: %s    Chain ID: %d    RPC: %s    LogPath: %s", cfg.Name, cfg.ChainID, opSim.Endpoint(), opSim.LogPath())
 	return b.String()
 }
 
