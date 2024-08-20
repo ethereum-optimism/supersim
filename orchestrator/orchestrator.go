@@ -39,9 +39,14 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		l2Anvil := anvil.New(log, closeApp, &cfg)
 		l2Anvils[cfg.ChainID] = l2Anvil
 	}
+	l2ToL2MessageStoreManager, err := opsimulator.NewL2ToL2MessageStoreManager()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create L2ToL2MessageStoreManager: %w", err)
+	}
+
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils)
+		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, l2ToL2MessageStoreManager)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
