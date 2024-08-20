@@ -31,7 +31,8 @@ import (
 )
 
 const (
-	host = "127.0.0.1"
+	host                        = "127.0.0.1"
+	l2NativeSuperchainERC20Addr = "0x61a6eF395d217eD7C79e1B84880167a417796172"
 )
 
 type OpSimulator struct {
@@ -202,7 +203,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 		for {
 			select {
 			case log := <-logCh:
-				// Anonymous log without any topics is a SentMessage event
+				// SentMessage event is an anonymous log without any topics
 				if len(log.Topics) == 0 {
 					err := opSim.l2ToL2MessageStoreManager.HandleSentEvent(&log)
 					if err != nil {
@@ -261,6 +262,38 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 
 			case <-opSim.bgTasksCtx.Done():
 				sub.Unsubscribe()
+			}
+		}
+	})
+
+	opSim.bgTasks.Go(func() error {
+		superchainERC20, err := bindings.NewL2NativeSuperchainERC20(common.HexToAddress(l2NativeSuperchainERC20Addr), opSim.peers[opSim.Config().ChainID].EthClient())
+		if err != nil {
+			return fmt.Errorf("failed to create L2NativeSuperchainERC20 contract: %w", err)
+		}
+
+		sendEventChan := make(chan *bindings.L2NativeSuperchainERC20SendERC20)
+		sendSub, err := superchainERC20.WatchSendERC20(&bind.WatchOpts{Context: opSim.bgTasksCtx}, sendEventChan, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to L2NativeSuperchainERC20#SendERC20: %w", err)
+		}
+
+		relayEventChan := make(chan *bindings.L2NativeSuperchainERC20RelayERC20)
+		relaySub, err := superchainERC20.WatchRelayERC20(&bind.WatchOpts{Context: opSim.bgTasksCtx}, relayEventChan, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to L2NativeSuperchainERC20#RelayERC20: %w", err)
+		}
+
+		for {
+			select {
+			case event := <-sendEventChan:
+				opSim.log.Info("L2NativeSuperchainERC20#SendERC20", "from", event.From, "to", event.To, "amount", event.Amount, "destination", event.Destination)
+			case event := <-relayEventChan:
+				opSim.log.Info("L2NativeSuperchainERC20#RelayERC20", "from", event.From, "to", event.To, "amount", event.Amount, "source", event.Source)
+			case <-opSim.bgTasksCtx.Done():
+				sendSub.Unsubscribe()
+				relaySub.Unsubscribe()
+				return nil
 			}
 		}
 	})
