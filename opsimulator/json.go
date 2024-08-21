@@ -20,8 +20,6 @@ const (
 	ParseErr = -32700
 )
 
-var null = json.RawMessage("null")
-
 type jsonRpcMessage struct {
 	Version string          `json:"jsonrpc,omitempty"`
 	ID      json.RawMessage `json:"id,omitempty"`
