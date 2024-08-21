@@ -17,6 +17,7 @@ import (
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
 	"github.com/ethereum-optimism/optimism/op-service/tasks"
 
+	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -50,30 +51,31 @@ type OpSimulator struct {
 	startupTasksCtx    context.Context
 	startupTasksCancel context.CancelFunc
 
-	port       uint64
-	httpServer *ophttp.HTTPServer
+	port         uint64
+	httpServer   *ophttp.HTTPServer
+	crossL2Inbox *bindings.CrossL2Inbox
 
 	stopped atomic.Bool
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
-func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain) *OpSimulator {
+func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 	startupTasksCtx, startupTasksCancel := context.WithCancel(context.Background())
-
 	return &OpSimulator{
 		Chain: l2Chain,
 
-		log:     log,
-		port:    port,
-		l1Chain: l1Chain,
+		log:          log,
+		port:         port,
+		l1Chain:      l1Chain,
+		crossL2Inbox: bindings.NewCrossL2Inbox(),
 
 		bgTasksCtx:    bgTasksCtx,
 		bgTasksCancel: bgTasksCancel,
 		bgTasks: tasks.Group{
 			HandleCrit: func(err error) {
 				log.Error("opsim bg task failed", "err", err)
-				panic(err)
+				closeApp(err)
 			},
 		},
 
@@ -82,7 +84,7 @@ func New(log log.Logger, port uint64, l1Chain, l2Chain config.Chain, peers map[u
 		startupTasks: tasks.Group{
 			HandleCrit: func(err error) {
 				log.Error("opsim startup task failed", err)
-				panic(err)
+				closeApp(err)
 			},
 		},
 
@@ -101,8 +103,8 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 
 	cfg := opSim.Config()
 	opSim.log.Debug("started opsimulator", "name", cfg.Name, "chain.id", cfg.ChainID, "addr", hs.Addr())
-	opSim.httpServer = hs
 
+	opSim.httpServer = hs
 	if opSim.port == 0 {
 		opSim.port, err = strconv.ParseUint(strings.Split(hs.Addr().String(), ":")[1], 10, 64)
 		if err != nil {
@@ -195,84 +197,52 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 		}
 
 		rpcClient := opSim.EthClient().Client()
-		batchRes := make([]jsonRpcMessage, len(msgs))
+		batchRes := make([]*jsonRpcMessage, len(msgs))
 		for i, msg := range msgs {
 			if msg.Method == "eth_sendRawTransaction" {
 				var params []hexutil.Bytes
 				if err := json.Unmarshal(msg.Params, &params); err != nil {
-					opSim.log.Error(fmt.Sprintf("bad params sent to eth_sendRawTransaction: %s", err))
-					batchRes[i] = jsonRpcMessage{
-						Version: vsn,
-						Error: &jsonError{
-							Code:    ParseErr,
-							Message: err.Error(),
-						},
-						ID: msg.ID,
-					}
+					opSim.log.Error("bad params sent to eth_sendRawTransaction", "err", err)
+					batchRes[i] = msg.errorResponse(err)
 					continue
 				}
 				if len(params) != 1 {
 					opSim.log.Error("eth_sendRawTransaction request has invalid number of params")
-					batchRes[i] = jsonRpcMessage{
-						Version: vsn,
-						Error: &jsonError{
-							Code:    InvalidParams,
-							Message: "eth_sendRawTransaction request has invalid number of params",
-						},
-						ID: msg.ID,
-					}
+					batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: "invalid request params"})
 					continue
 				}
 
 				tx := new(types.Transaction)
 				if err := tx.UnmarshalBinary(params[0]); err != nil {
-					opSim.log.Error(fmt.Sprintf("failed to decode transaction data: %s", err))
-					batchRes[i] = jsonRpcMessage{
-						Version: vsn,
-						Error: &jsonError{
-							Code:    InvalidParams,
-							Message: err.Error(),
-						},
-						ID: msg.ID,
-					}
+					opSim.log.Error("failed to decode transaction data", "err", err)
+					batchRes[i] = msg.errorResponse(err)
 					continue
 				}
-
 				if err := opSim.checkInteropInvariants(ctx, tx); err != nil {
-					opSim.log.Error(fmt.Sprintf("interop invariants not met: %s", err))
-					batchRes[i] = jsonRpcMessage{
-						Version: vsn,
-						Error: &jsonError{
-							Code:    InvalidParams,
-							Message: err.Error(),
-						},
-						ID: msg.ID,
-					}
+					opSim.log.Error("interop invariants not met", "err", err)
+					batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: err.Error()})
 					continue
 				}
 			}
 
+			// NOTE: This fans out the batch request into individual requests. To match expected behavior, this
+			// should instead filter out messages that are invalid and reconstruct a single batch request to forward
 			var jsonErr *jsonError
 			batchRes[i], jsonErr = forwardRPCRequest(ctx, rpcClient, msg)
 			if jsonErr != nil {
-				opSim.log.Error(fmt.Sprintf("RPC returned an error: %s", jsonErr))
-				batchRes[i] = jsonRpcMessage{
-					Version: vsn,
-					Error:   jsonErr,
-					ID:      msg.ID,
-				}
+				batchRes[i] = msg.errorResponse(jsonErr)
 			}
 		}
 
 		if isBatchRequest {
 			if err := json.NewEncoder(w).Encode(batchRes); err != nil {
-				opSim.log.Error(fmt.Sprintf("failed to write batch response: %s", err))
+				opSim.log.Error("failed to write batch response", "err", err)
 				http.Error(w, "Failed to write batch response", http.StatusInternalServerError)
 				return
 			}
 		} else {
 			if err := json.NewEncoder(w).Encode(batchRes[0]); err != nil {
-				opSim.log.Error(fmt.Sprintf("failed to write response: %s", err))
+				opSim.log.Error("failed to write response", "err", err)
 				http.Error(w, "Failed to write batch response", http.StatusInternalServerError)
 				return
 			}
@@ -281,32 +251,19 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 }
 
 // Forward a JSON-RPC request to the Geth RPC server
-func forwardRPCRequest(ctx context.Context, rpcClient *rpc.Client, req *jsonRpcMessage) (jsonRpcMessage, *jsonError) {
+func forwardRPCRequest(ctx context.Context, rpcClient *rpc.Client, req *jsonRpcMessage) (*jsonRpcMessage, *jsonError) {
 	var result json.RawMessage
 	var params []interface{}
-
 	if len(req.Params) > 0 {
 		if err := json.Unmarshal(req.Params, &params); err != nil {
-			return jsonRpcMessage{}, &jsonError{
-				Code:    InvalidParams,
-				Message: err.Error(),
-			}
+			return nil, &jsonError{Code: InvalidParams, Message: err.Error()}
 		}
 	}
 
 	if err := rpcClient.CallContext(ctx, &result, req.Method, params...); err != nil {
-		if je, ok := err.(*jsonError); ok {
-			return jsonRpcMessage{}, je
-		}
-
-		return jsonRpcMessage{}, errorMessage(err).Error
+		return nil, toJsonError(err)
 	}
-
-	return jsonRpcMessage{
-		Version: vsn,
-		Result:  result,
-		ID:      req.ID,
-	}, nil
+	return &jsonRpcMessage{Version: vsn, Result: result, ID: req.ID}, nil
 }
 
 // Update dependency set on the L2#L1BlockInterop using a deposit tx
@@ -338,17 +295,17 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 		return fmt.Errorf("failed to simulate transaction: %w", err)
 	}
 
-	crossL2Inbox := NewCrossL2Inbox()
-	var executingMessages []executingMessage
+	var executingMessages []*bindings.ExecutingMessage
 	for _, log := range logs {
-		executingMessage, err := crossL2Inbox.decodeExecutingMessageLog(&log)
+		if !isExecutingMessageLog(&log) {
+			continue
+		}
+
+		executingMessage, err := opSim.crossL2Inbox.DecodeExecutingMessageLog(&log)
 		if err != nil {
 			return fmt.Errorf("failed to decode executing messages from transaction logs: %w", err)
 		}
-
-		if executingMessage != nil {
-			executingMessages = append(executingMessages, *executingMessage)
-		}
+		executingMessages = append(executingMessages, executingMessage)
 	}
 
 	if len(executingMessages) >= 1 {
@@ -369,8 +326,8 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 				return fmt.Errorf("executing message identifier does not match block timestamp: %w", err)
 			}
 
-			filterQuery := ethereum.FilterQuery{Addresses: []common.Address{identifier.Origin}, FromBlock: identifier.BlockNumber, ToBlock: identifier.BlockNumber}
-			logs, err := sourceClient.FilterLogs(ctx, filterQuery)
+			fq := ethereum.FilterQuery{Addresses: []common.Address{identifier.Origin}, FromBlock: identifier.BlockNumber, ToBlock: identifier.BlockNumber}
+			logs, err := sourceClient.FilterLogs(ctx, fq)
 			if err != nil {
 				return fmt.Errorf("failed to fetch initiating message logs: %w", err)
 			}
@@ -392,7 +349,7 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 				return fmt.Errorf("unexpected number of initiating messages found: %d", len(initiatingMessageLogs))
 			}
 
-			initiatingMsgPayloadHash := crypto.Keccak256Hash(messagePayloadBytes(&initiatingMessageLogs[0]))
+			initiatingMsgPayloadHash := crypto.Keccak256Hash(executingMessagePayloadBytes(&initiatingMessageLogs[0]))
 			if common.BytesToHash(executingMessage.MsgHash[:]).Cmp(initiatingMsgPayloadHash) != 0 {
 				return fmt.Errorf("executing and initiating message fields are not equal")
 			}
@@ -400,14 +357,6 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 	}
 
 	return nil
-}
-
-func messagePayloadBytes(log *types.Log) []byte {
-	msg := []byte{}
-	for _, topic := range log.Topics {
-		msg = append(msg, topic.Bytes()...)
-	}
-	return append(msg, log.Data...)
 }
 
 // Overridden such that the port field can appropiately be set

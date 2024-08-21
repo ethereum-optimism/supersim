@@ -8,22 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-type jsonError struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-}
-
 // some parts copied over from op-geth as these are private
-
-type jsonRpcMessage struct {
-	Version string          `json:"jsonrpc,omitempty"`
-	ID      json.RawMessage `json:"id,omitempty"`
-	Method  string          `json:"method,omitempty"`
-	Params  json.RawMessage `json:"params,omitempty"`
-	Error   *jsonError      `json:"error,omitempty"`
-	Result  json.RawMessage `json:"result,omitempty"`
-}
 
 const (
 	vsn            = "2.0"
@@ -37,6 +22,15 @@ const (
 
 var null = json.RawMessage("null")
 
+type jsonRpcMessage struct {
+	Version string          `json:"jsonrpc,omitempty"`
+	ID      json.RawMessage `json:"id,omitempty"`
+	Method  string          `json:"method,omitempty"`
+	Params  json.RawMessage `json:"params,omitempty"`
+	Error   *jsonError      `json:"error,omitempty"`
+	Result  json.RawMessage `json:"result,omitempty"`
+}
+
 func readJsonMessages(body io.Reader) ([]*jsonRpcMessage, bool, error) {
 	var rawmsg json.RawMessage
 	if err := json.NewDecoder(body).Decode(&rawmsg); err != nil {
@@ -44,7 +38,6 @@ func readJsonMessages(body io.Reader) ([]*jsonRpcMessage, bool, error) {
 	}
 
 	isBatch := isJsonRpcBatch(rawmsg)
-
 	if !isBatch {
 		msgs := []*jsonRpcMessage{{}}
 		err := json.Unmarshal(rawmsg, &msgs[0])
@@ -54,6 +47,10 @@ func readJsonMessages(body io.Reader) ([]*jsonRpcMessage, bool, error) {
 	var msgs []*jsonRpcMessage
 	err := json.Unmarshal(rawmsg, &msgs)
 	return msgs, isBatch, err
+}
+
+func (msg *jsonRpcMessage) errorResponse(err error) *jsonRpcMessage {
+	return &jsonRpcMessage{Version: vsn, Error: toJsonError(err), ID: msg.ID}
 }
 
 // isBatch returns true when the first non-whitespace characters is '['
@@ -68,20 +65,27 @@ func isJsonRpcBatch(raw json.RawMessage) bool {
 	return false
 }
 
-func errorMessage(err error) *jsonRpcMessage {
-	msg := &jsonRpcMessage{Version: vsn, ID: null, Error: &jsonError{
-		Code:    errcodeDefault,
-		Message: err.Error(),
-	}}
+type jsonError struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+func toJsonError(err error) *jsonError {
+	if je, ok := err.(*jsonError); ok {
+		return je
+	}
+
+	je := &jsonError{Code: errcodeDefault, Message: err.Error()}
 	ec, ok := err.(rpc.Error)
 	if ok {
-		msg.Error.Code = ec.ErrorCode()
+		je.Code = ec.ErrorCode()
 	}
 	de, ok := err.(rpc.DataError)
 	if ok {
-		msg.Error.Data = de.ErrorData()
+		je.Data = de.ErrorData()
 	}
-	return msg
+	return je
 }
 
 func (err *jsonError) Error() string {

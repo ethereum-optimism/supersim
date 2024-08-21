@@ -20,7 +20,7 @@ type Supersim struct {
 	Orchestrator *orchestrator.Orchestrator
 }
 
-func NewSupersim(log log.Logger, envPrefix string, cliConfig *config.CLIConfig) (*Supersim, error) {
+func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseFunc, cliConfig *config.CLIConfig) (*Supersim, error) {
 	cfg := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()))
 	if cliConfig.ForkConfig != nil {
 		superchain := registry.Superchains[cliConfig.ForkConfig.Network]
@@ -47,7 +47,7 @@ func NewSupersim(log log.Logger, envPrefix string, cliConfig *config.CLIConfig) 
 	cfg.L1Config.Port = cliConfig.L1Port
 	cfg.L2StartingPort = cliConfig.L2StartingPort
 
-	o, err := orchestrator.NewOrchestrator(log, &cfg)
+	o, err := orchestrator.NewOrchestrator(log, closeApp, &cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create orchestrator")
 	}

@@ -25,9 +25,9 @@ type Orchestrator struct {
 	l2OpSims map[uint64]*opsimulator.OpSimulator
 }
 
-func NewOrchestrator(log log.Logger, networkConfig *config.NetworkConfig) (*Orchestrator, error) {
+func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig) (*Orchestrator, error) {
 	// Spin up L1 anvil instance
-	l1Anvil := anvil.New(log, &networkConfig.L1Config)
+	l1Anvil := anvil.New(log, closeApp, &networkConfig.L1Config)
 
 	// Spin up L2 anvil instances fronted by opsim
 	nextL2Port := networkConfig.L2StartingPort
@@ -36,12 +36,12 @@ func NewOrchestrator(log log.Logger, networkConfig *config.NetworkConfig) (*Orch
 		cfg := networkConfig.L2Configs[i]
 		cfg.Port = 0 // explicitly set to zero as this instance sits behind a proxy
 
-		l2Anvil := anvil.New(log, &cfg)
+		l2Anvil := anvil.New(log, closeApp, &cfg)
 		l2Anvils[cfg.ChainID] = l2Anvil
 	}
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils)
+		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {

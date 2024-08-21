@@ -80,21 +80,22 @@ type InteropTestSuite struct {
 
 func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
 	testlog := testlog.Logger(t, log.LevelInfo)
-	supersim, _ := NewSupersim(testlog, "", cliConfig)
-
 	hdAccountStore, err := hdaccount.NewHdAccountStore(defaultTestMnemonic, defaultTestMnemonicDerivationPath)
 	if err != nil {
 		t.Fatalf("unable to create hd account store: %s", err)
 		return nil
 	}
 
+	ctx, closeApp := context.WithCancelCause(context.Background())
+	supersim, _ := NewSupersim(testlog, "", closeApp, cliConfig)
 	t.Cleanup(func() {
+		closeApp(nil)
 		if err := supersim.Stop(context.Background()); err != nil {
 			t.Errorf("failed to stop supersim: %s", err)
 		}
 	})
 
-	if err := supersim.Start(context.Background()); err != nil {
+	if err := supersim.Start(ctx); err != nil {
 		t.Fatalf("unable to start supersim: %s", err)
 		return nil
 	}
@@ -433,11 +434,11 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	// Create a bad executing message that will throw an error using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
-	crossL2Inbox := opsimulator.NewCrossL2Inbox()
+	crossL2Inbox := bindings.NewCrossL2Inbox()
 	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := opsimulator.MessageIdentifier{
+	identifier := bindings.MessageIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -499,11 +500,11 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	// Create executing message using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
-	crossL2Inbox := opsimulator.NewCrossL2Inbox()
+	crossL2Inbox := bindings.NewCrossL2Inbox()
 	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := opsimulator.MessageIdentifier{
+	identifier := bindings.MessageIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -559,11 +560,11 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 	// Create executing message using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
-	crossL2Inbox := opsimulator.NewCrossL2Inbox()
+	crossL2Inbox := bindings.NewCrossL2Inbox()
 	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := opsimulator.MessageIdentifier{
+	identifier := bindings.MessageIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(1),
@@ -618,12 +619,12 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	// Create executing message using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
-	crossL2Inbox := opsimulator.NewCrossL2Inbox()
+	crossL2Inbox := bindings.NewCrossL2Inbox()
 	wrongBlockNumber := new(big.Int).Add(initiatingMessageTxReceipt.BlockNumber, big.NewInt(1))
 	wrongMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), wrongBlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := opsimulator.MessageIdentifier{
+	identifier := bindings.MessageIdentifier{
 		Origin:      origin,
 		BlockNumber: wrongBlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -676,11 +677,11 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 	// Create executing message using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
-	crossL2Inbox := opsimulator.NewCrossL2Inbox()
+	crossL2Inbox := bindings.NewCrossL2Inbox()
 	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := opsimulator.MessageIdentifier{
+	identifier := bindings.MessageIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -733,11 +734,11 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 	// Create executing message using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
-	crossL2Inbox := opsimulator.NewCrossL2Inbox()
+	crossL2Inbox := bindings.NewCrossL2Inbox()
 	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := opsimulator.MessageIdentifier{
+	identifier := bindings.MessageIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
