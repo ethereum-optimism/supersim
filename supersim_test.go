@@ -187,7 +187,7 @@ func TestStartup(t *testing.T) {
 
 		var chainId math.HexOrDecimal64
 		require.NoError(t, l2Client.CallContext(context.Background(), &chainId, "eth_chainId"))
-		require.Equal(t, chain.ChainID(), uint64(chainId))
+		require.Equal(t, chain.Config().ChainID, uint64(chainId))
 
 		l2Client.Close()
 	}
@@ -198,7 +198,7 @@ func TestStartup(t *testing.T) {
 
 	var chainId math.HexOrDecimal64
 	require.NoError(t, l1Client.CallContext(context.Background(), &chainId, "eth_chainId"))
-	require.Equal(t, testSuite.Supersim.Orchestrator.L1Chain().ChainID(), uint64(chainId))
+	require.Equal(t, testSuite.Supersim.Orchestrator.L1Chain().Config().ChainID, uint64(chainId))
 
 	l1Client.Close()
 }
@@ -280,7 +280,7 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 			oneEth := big.NewInt(1e18)
 			prevBalance, _ := l2EthClient.BalanceAt(context.Background(), senderAddress, nil)
 
-			transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(l1Chain.ChainID())))
+			transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(l1Chain.Config().ChainID)))
 			transactor.Value = oneEth
 			optimismPortal, _ := opbindings.NewOptimismPortal(common.Address(chain.Config().L2Config.L1Addresses.OptimismPortalProxy), l1EthClient)
 
@@ -312,7 +312,7 @@ func TestDependencySet(t *testing.T) {
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
-		l2Client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.Endpoint(chain.ChainID()))
+		l2Client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.Endpoint(chain.Config().ChainID))
 		require.NoError(t, err)
 		defer l2Client.Close()
 
@@ -359,7 +359,7 @@ func TestDeployContractsL1WithDevAccounts(t *testing.T) {
 			senderAddress := common.HexToAddress(senderAddressHex)
 
 			for range 5 {
-				transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(testSuite.Supersim.Orchestrator.L1Chain().ChainID())))
+				transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(testSuite.Supersim.Orchestrator.L1Chain().Config().ChainID)))
 
 				// Test deploying a contract with CREATE
 				_, tx, _, err := opbindings.DeployProxyAdmin(transactor, l1Client, senderAddress)
@@ -381,7 +381,7 @@ func TestBatchJsonRpcRequests(t *testing.T) {
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
-		client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.Endpoint(chain.ChainID()))
+		client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.Endpoint(chain.Config().ChainID))
 		require.NoError(t, err)
 		defer client.Close()
 

@@ -66,17 +66,22 @@ type NetworkConfig struct {
 }
 
 type Chain interface {
-	Name() string
+	// Properties
 	Endpoint() string
-	ChainID() uint64
 	LogPath() string
+	String() string
 	Config() *ChainConfig
 	EthClient() *ethclient.Client
 
+	// Additional methods
 	SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]types.Log, error)
 	SetCode(ctx context.Context, result interface{}, address string, code string) error
 	SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error
 	SetIntervalMining(ctx context.Context, result interface{}, interval int64) error
+
+	// Lifecycle
+	Start(ctx context.Context) error
+	Stop(ctx context.Context) error
 }
 
 func GetDefaultNetworkConfig(startingTimestamp uint64) NetworkConfig {

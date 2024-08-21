@@ -26,14 +26,6 @@ func NewMockChain() *MockChain {
 	return &MockChain{}
 }
 
-func (c *MockChain) Name() string {
-	return "mockchain"
-}
-
-func (c *MockChain) ChainID() uint64 {
-	return 1
-}
-
 func (c *MockChain) Endpoint() string {
 	return "http://localhost:8545"
 }
@@ -42,7 +34,22 @@ func (c *MockChain) LogPath() string {
 	return "var/chain/log"
 }
 
+func (c *MockChain) String() string {
+	return "mockchain"
+}
+
 func (c *MockChain) Config() *config.ChainConfig {
+	return &config.ChainConfig{
+		Name:    "mockchain",
+		ChainID: 1,
+	}
+}
+
+func (c *MockChain) Start(_ context.Context) error {
+	return nil
+}
+
+func (c *MockChain) Stop(_ context.Context) error {
 	return nil
 }
 

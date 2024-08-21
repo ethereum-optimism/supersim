@@ -194,7 +194,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 	return nil
 }
 
-func (a *Anvil) Stop() error {
+func (a *Anvil) Stop(_ context.Context) error {
 	if a.stopped.Load() {
 		return errors.New("already stopped")
 	}

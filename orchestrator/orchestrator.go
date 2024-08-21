@@ -19,9 +19,9 @@ import (
 type Orchestrator struct {
 	log log.Logger
 
-	l1Anvil *anvil.Anvil
+	l1Chain config.Chain
 
-	l2Anvils map[uint64]*anvil.Anvil
+	l2Chains map[uint64]config.Chain
 	l2OpSims map[uint64]*opsimulator.OpSimulator
 }
 
@@ -31,7 +31,7 @@ func NewOrchestrator(log log.Logger, networkConfig *config.NetworkConfig) (*Orch
 
 	// Spin up L2 anvil instances fronted by opsim
 	nextL2Port := networkConfig.L2StartingPort
-	l2Anvils, l2OpSims := make(map[uint64]*anvil.Anvil), make(map[uint64]*opsimulator.OpSimulator)
+	l2Anvils, l2OpSims := make(map[uint64]config.Chain), make(map[uint64]*opsimulator.OpSimulator)
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
 		cfg.Port = 0 // explicitly set to zero as this instance sits behind a proxy
@@ -39,7 +39,6 @@ func NewOrchestrator(log log.Logger, networkConfig *config.NetworkConfig) (*Orch
 		l2Anvil := anvil.New(log, &cfg)
 		l2Anvils[cfg.ChainID] = l2Anvil
 	}
-
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
 		l2OpSims[cfg.ChainID] = opsimulator.New(log, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils)
@@ -55,19 +54,18 @@ func NewOrchestrator(log log.Logger, networkConfig *config.NetworkConfig) (*Orch
 
 func (o *Orchestrator) Start(ctx context.Context) error {
 	o.log.Info("starting orchestrator")
-	if err := o.l1Anvil.Start(ctx); err != nil {
-		return fmt.Errorf("anvil instance %s failed to start: %w", o.l1Anvil.Name(), err)
+	if err := o.l1Chain.Start(ctx); err != nil {
+		return fmt.Errorf("l1 chain %s failed to start: %w", o.l1Chain.Config().Name, err)
 	}
 
-	for _, anvil := range o.l2Anvils {
-		if err := anvil.Start(ctx); err != nil {
-			return fmt.Errorf("anvil instance %s failed to start: %w", anvil.Name(), err)
+	for _, chain := range o.l2Chains {
+		if err := chain.Start(ctx); err != nil {
+			return fmt.Errorf("l2 chain %s failed to start: %w", chain.Config().Name, err)
 		}
 	}
-
 	for _, opSim := range o.l2OpSims {
 		if err := opSim.Start(ctx); err != nil {
-			return fmt.Errorf("op simulator instance %s failed to start: %w", opSim.Name(), err)
+			return fmt.Errorf("op simulator instance %s failed to start: %w", opSim.Config().Name, err)
 		}
 	}
 
@@ -84,21 +82,21 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 
 	o.log.Info("stopping orchestrator")
 	for _, opSim := range o.l2OpSims {
-		o.log.Debug("stopping op simulator", "chain.id", opSim.ChainID())
+		o.log.Debug("stopping op simulator", "chain.id", opSim.Config().ChainID)
 		if err := opSim.Stop(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("op simulator instance %s failed to stop: %w", opSim.Name(), err))
+			errs = append(errs, fmt.Errorf("op simulator instance %s failed to stop: %w", opSim.Config().Name, err))
 		}
 	}
-	for _, anvil := range o.l2Anvils {
-		o.log.Debug("stopping anvil", "chain.id", anvil.ChainID())
-		if err := anvil.Stop(); err != nil {
-			errs = append(errs, fmt.Errorf("anvil instance %s failed to stop: %w", anvil.Name(), err))
+	for _, chain := range o.l2Chains {
+		o.log.Debug("stopping l2 chain", "chain.id", chain.Config().ChainID)
+		if err := chain.Stop(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("l2 chain %s failed to stop: %w", chain.Config().Name, err))
 		}
 	}
 
-	if err := o.l1Anvil.Stop(); err != nil {
-		o.log.Debug("stopping anvil", "chain.id", o.l1Anvil.ChainID())
-		errs = append(errs, fmt.Errorf("anvil instance %s failed to stop: %w", o.l1Anvil.Name(), err))
+	if err := o.l1Chain.Stop(ctx); err != nil {
+		o.log.Debug("stopping l1 chain", "chain.id", o.l1Chain.Config().ChainID)
+		errs = append(errs, fmt.Errorf("l1 chain %s failed to stop: %w", o.l1Chain.Config().Name, err))
 	}
 
 	return errors.Join(errs...)
@@ -121,12 +119,12 @@ func (o *Orchestrator) kickOffMining(ctx context.Context) error {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(len(o.l2Anvils) + 1)
+	wg.Add(len(o.l2Chains) + 1)
 
-	handleErr(o.l1Anvil.SetIntervalMining(ctx, nil, 2))
+	handleErr(o.l1Chain.SetIntervalMining(ctx, nil, 2))
 	wg.Done()
 
-	for _, chain := range o.l2Anvils {
+	for _, chain := range o.l2Chains {
 		go func() {
 			defer wg.Done()
 			handleErr(chain.SetIntervalMining(ctx, nil, 2))
@@ -139,23 +137,20 @@ func (o *Orchestrator) kickOffMining(ctx context.Context) error {
 }
 
 func (o *Orchestrator) L1Chain() config.Chain {
-	return o.l1Anvil
+	return o.l1Chain
 }
 
-// TODO: op-sim should satisfy the same interface and
-// this should return op-sim, not anvil. will refactor this
-// once the interface is updated to remove EthClient stubs
 func (o *Orchestrator) L2Chains() []config.Chain {
 	var chains []config.Chain
-	for _, chain := range o.l2Anvils {
+	for _, chain := range o.l2OpSims {
 		chains = append(chains, chain)
 	}
 	return chains
 }
 
 func (o *Orchestrator) Endpoint(chainId uint64) string {
-	if o.l1Anvil.ChainID() == chainId {
-		return o.l1Anvil.Endpoint()
+	if o.l1Chain.Config().ChainID == chainId {
+		return o.l1Chain.Endpoint()
 	}
 	return o.l2OpSims[chainId].Endpoint()
 }
@@ -163,9 +158,9 @@ func (o *Orchestrator) Endpoint(chainId uint64) string {
 func (o *Orchestrator) ConfigAsString() string {
 	var b strings.Builder
 
-	if o.l1Anvil != nil {
+	if o.l1Chain != nil {
 		fmt.Fprintf(&b, "L1:\n")
-		fmt.Fprintf(&b, "  %s\n", o.l1Anvil.String())
+		fmt.Fprintf(&b, "  %s\n", o.l1Chain.String())
 	}
 
 	if len(o.l2OpSims) > 0 {
