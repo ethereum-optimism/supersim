@@ -51,18 +51,20 @@ type Anvil struct {
 
 	resourceCtx    context.Context
 	resourceCancel context.CancelFunc
+	closeApp       context.CancelCauseFunc
 
 	stopped   atomic.Bool
 	stoppedCh chan struct{}
 }
 
-func New(log log.Logger, cfg *config.ChainConfig) *Anvil {
+func New(log log.Logger, closeApp context.CancelCauseFunc, cfg *config.ChainConfig) *Anvil {
 	resCtx, resCancel := context.WithCancel(context.Background())
 	return &Anvil{
 		log:            log,
 		cfg:            cfg,
 		resourceCtx:    resCtx,
 		resourceCancel: resCancel,
+		closeApp:       closeApp,
 		stoppedCh:      make(chan struct{}, 1),
 	}
 }
@@ -171,6 +173,8 @@ func (a *Anvil) Start(ctx context.Context) error {
 			anvilLog.Debug("anvil terminated")
 		}
 
+		// If anvil stops, signal that the entire app should be closed
+		a.closeApp(nil)
 		a.stoppedCh <- struct{}{}
 	}()
 

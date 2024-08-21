@@ -23,14 +23,17 @@ type TestSuite struct {
 func createTestSuite(t *testing.T) *TestSuite {
 	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()))
 	testlog := testlog.Logger(t, log.LevelInfo)
-	orchestrator, _ := NewOrchestrator(testlog, &networkConfig)
+
+	ctx, closeApp := context.WithCancelCause(context.Background())
+	orchestrator, _ := NewOrchestrator(testlog, closeApp, &networkConfig)
 	t.Cleanup(func() {
+		closeApp(nil)
 		if err := orchestrator.Stop(context.Background()); err != nil {
 			t.Errorf("failed to stop orchestrator: %s", err)
 		}
 	})
 
-	if err := orchestrator.Start(context.Background()); err != nil {
+	if err := orchestrator.Start(ctx); err != nil {
 		t.Fatalf("unable to start orchestrator: %s", err)
 		return nil
 	}

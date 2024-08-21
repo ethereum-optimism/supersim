@@ -17,9 +17,12 @@ import (
 func TestAnvil(t *testing.T) {
 	cfg := config.ChainConfig{ChainID: 10, Port: 0}
 	testlog := testlog.Logger(t, log.LevelInfo)
-	anvil := New(testlog, &cfg)
 
-	require.NoError(t, anvil.Start(context.Background()))
+	ctx, closeApp := context.WithCancelCause(context.Background())
+	anvil := New(testlog, closeApp, &cfg)
+	t.Cleanup(func() { closeApp(nil) })
+
+	require.NoError(t, anvil.Start(ctx))
 
 	// port overridden on startup
 	require.NotEqual(t, cfg.Port, 0)

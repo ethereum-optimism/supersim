@@ -24,13 +24,7 @@ var L1BlockInteropABI, _ = abi.JSON(strings.NewReader(bindings.L1BlockInteropMet
 var L1BlockAddress = common.HexToAddress(predeploys.L1Block)
 
 func NewAddDependencyDepositTx(chainID *big.Int) (*types.DepositTx, error) {
-
-	data, err := L1BlockInteropABI.Pack(
-		"setConfig",
-		ConfigTypeAddDependency,
-		chainID.FillBytes(make([]byte, 32)),
-	)
-
+	data, err := L1BlockInteropABI.Pack("setConfig", ConfigTypeAddDependency, chainID.FillBytes(make([]byte, 32)))
 	if err != nil {
 		return nil, err
 	}
@@ -47,4 +41,16 @@ func NewAddDependencyDepositTx(chainID *big.Int) (*types.DepositTx, error) {
 		IsSystemTransaction: false, // Deprecated post-Regolith
 		Data:                data,
 	}, nil
+}
+
+func executingMessagePayloadBytes(log *types.Log) []byte {
+	msg := []byte{}
+	for _, topic := range log.Topics {
+		msg = append(msg, topic.Bytes()...)
+	}
+	return append(msg, log.Data...)
+}
+
+func isExecutingMessageLog(log *types.Log) bool {
+	return len(log.Topics) > 0 && log.Topics[0] == bindings.ExecutingMessageEventABIHash
 }

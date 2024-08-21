@@ -81,7 +81,7 @@ func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Li
 	}
 
 	// use config and setup supersim
-	s, err := supersim.NewSupersim(log, envVarPrefix, cfg)
+	s, err := supersim.NewSupersim(log, envVarPrefix, closeApp, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create supersim: %w", err)
 	}
