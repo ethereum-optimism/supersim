@@ -52,5 +52,5 @@ func executingMessagePayloadBytes(log *types.Log) []byte {
 }
 
 func isExecutingMessageLog(log *types.Log) bool {
-	return len(log.Topics) > 0 && log.Topics[0] == bindings.ExecutingMessageEventABIHash
+	return len(log.Topics) > 0 && log.Topics[0] == bindings.CrossL2InboxParsedABI.Events["ExecutingMessage"].ID
 }

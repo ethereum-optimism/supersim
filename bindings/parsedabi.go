@@ -14,6 +14,7 @@ func MustParseABI(abiStr string) *abi.ABI {
 	return &abi
 }
 
+var CrossL2InboxParsedABI = MustParseABI(CrossL2InboxMetaData.ABI)
 var L1BlockInteropParsedABI = MustParseABI(L1BlockInteropMetaData.ABI)
 var L2ToL2CrossDomainMessengerParsedABI = MustParseABI(L2ToL2CrossDomainMessengerMetaData.ABI)
 var L2NativeSuperchainERC20ParseABI = MustParseABI(L2NativeSuperchainERC20MetaData.ABI)

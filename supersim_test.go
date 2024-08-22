@@ -407,23 +407,20 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
 	// Create initiating message using L2ToL2CrossDomainMessenger
-	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
-	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
+	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
+
+	origin := predeploys.L2toL2CrossDomainMessengerAddr
 	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
 	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
 	require.NoError(t, err)
-	parsedSendMessageABI, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[{"name":"_destination","type":"uint256"},{"name":"_target","type":"address"},{"name":"_message","type":"bytes"}],"name":"sendMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
 	require.NoError(t, err)
-	sendMessage, err := parsedSendMessageABI.Pack("sendMessage", testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
 	require.NoError(t, err)
-	initiatingMsgTx := types.NewTransaction(initiatingMsgNonce, origin, big.NewInt(0), gasLimit, gasPrice, sendMessage)
-	require.NoError(t, err)
-	signedInitiatingMsgTx, err := types.SignTx(initiatingMsgTx, types.NewEIP155Signer(testSuite.SourceChainID), privateKey)
-	require.NoError(t, err)
-	err = testSuite.SourceEthClient.SendTransaction(context.Background(), signedInitiatingMsgTx)
-	require.NoError(t, err)
-	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
@@ -434,18 +431,17 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	// Create a bad executing message that will throw an error using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
-	crossL2Inbox := bindings.NewCrossL2Inbox()
 	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.MessageIdentifier{
+	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
 		Timestamp:   new(big.Int).Sub(new(big.Int).SetUint64(initiatingMessageBlock.Time()), big.NewInt(1)),
 		ChainId:     testSuite.SourceChainID,
 	}
-	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
+	executeMessageCallData, err := bindings.CrossL2InboxParsedABI.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
 	require.NoError(t, err)
 	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
 	require.NoError(t, err)
@@ -466,147 +462,25 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 
 func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	testSuite := createInteropTestSuite(t)
-	gasLimit := uint64(30000000)
-	gasPrice := big.NewInt(10000000)
 	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
-	// Create initiating message using L2ToL2CrossDomainMessenger
-	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
-	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
+	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := predeploys.L2toL2CrossDomainMessengerAddr
 	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
 	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
 	require.NoError(t, err)
-	parsedSendMessageABI, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[{"name":"_destination","type":"uint256"},{"name":"_target","type":"address"},{"name":"_message","type":"bytes"}],"name":"sendMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
-	require.NoError(t, err)
-	sendMessage, err := parsedSendMessageABI.Pack("sendMessage", testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
-	require.NoError(t, err)
-	initiatingMsgTx := types.NewTransaction(initiatingMsgNonce, origin, big.NewInt(0), gasLimit, gasPrice, sendMessage)
-	require.NoError(t, err)
-	signedInitiatingMsgTx, err := types.SignTx(initiatingMsgTx, types.NewEIP155Signer(testSuite.SourceChainID), privateKey)
-	require.NoError(t, err)
-	err = testSuite.SourceEthClient.SendTransaction(context.Background(), signedInitiatingMsgTx)
-	require.NoError(t, err)
-	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
-	require.NoError(t, err)
-	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
-	// progress forward one block before sending tx
-	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(1), uint64(2))
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+	tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
 	require.NoError(t, err)
 
-	// Create executing message using CrossL2Inbox
-	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
-	require.NoError(t, err)
-	crossL2Inbox := bindings.NewCrossL2Inbox()
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
-	require.NoError(t, err)
-	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.MessageIdentifier{
-		Origin:      origin,
-		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
-		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
-		ChainId:     testSuite.SourceChainID,
-	}
-	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
-	require.NoError(t, err)
-	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
-	require.NoError(t, err)
-	executeMessageSignedTx, err := types.SignTx(executeMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
-	require.NoError(t, err)
-	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
-	require.NoError(t, err)
-	executeMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.DestEthClient, executeMessageSignedTx)
-	require.NoError(t, err)
-	require.True(t, executeMessageTxReceipt.Status == 1, "execute message transaction failed")
-}
-
-func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
-	testSuite := createInteropTestSuite(t)
-	gasLimit := uint64(30000000)
-	gasPrice := big.NewInt(10000000)
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
-	require.NoError(t, err)
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
-
-	// Create initiating message using L2ToL2CrossDomainMessenger
-	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
-	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
-	require.NoError(t, err)
-	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
-	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
-	require.NoError(t, err)
-	parsedSendMessageABI, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[{"name":"_destination","type":"uint256"},{"name":"_target","type":"address"},{"name":"_message","type":"bytes"}],"name":"sendMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
-	require.NoError(t, err)
-	sendMessage, err := parsedSendMessageABI.Pack("sendMessage", testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
-	require.NoError(t, err)
-	initiatingMsgTx := types.NewTransaction(initiatingMsgNonce, origin, big.NewInt(0), gasLimit, gasPrice, sendMessage)
-	require.NoError(t, err)
-	signedInitiatingMsgTx, err := types.SignTx(initiatingMsgTx, types.NewEIP155Signer(testSuite.SourceChainID), privateKey)
-	require.NoError(t, err)
-	err = testSuite.SourceEthClient.SendTransaction(context.Background(), signedInitiatingMsgTx)
-	require.NoError(t, err)
-	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
-	require.NoError(t, err)
-	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
-
-	// progress forward one block before sending tx
-	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(1), uint64(2))
-	require.NoError(t, err)
-
-	// Create executing message using CrossL2Inbox
-	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
-	require.NoError(t, err)
-	crossL2Inbox := bindings.NewCrossL2Inbox()
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
-	require.NoError(t, err)
-	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.MessageIdentifier{
-		Origin:      origin,
-		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
-		LogIndex:    big.NewInt(1),
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
-		ChainId:     testSuite.SourceChainID,
-	}
-	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
-	require.NoError(t, err)
-	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
-	require.NoError(t, err)
-	executeMessageSignedTx, err := types.SignTx(executeMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
-	require.NoError(t, err)
-	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
-	require.Error(t, err)
-}
-
-func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
-	testSuite := createInteropTestSuite(t)
-	gasLimit := uint64(30000000)
-	gasPrice := big.NewInt(10000000)
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
-	require.NoError(t, err)
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
-
-	// Create initiating message using L2ToL2CrossDomainMessenger
-	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
-	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
-	require.NoError(t, err)
-	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
-	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
-	require.NoError(t, err)
-	parsedSendMessageABI, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[{"name":"_destination","type":"uint256"},{"name":"_target","type":"address"},{"name":"_message","type":"bytes"}],"name":"sendMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
-	require.NoError(t, err)
-	sendMessage, err := parsedSendMessageABI.Pack("sendMessage", testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
-	require.NoError(t, err)
-	initiatingMsgTx := types.NewTransaction(initiatingMsgNonce, origin, big.NewInt(0), gasLimit, gasPrice, sendMessage)
-	require.NoError(t, err)
-	signedInitiatingMsgTx, err := types.SignTx(initiatingMsgTx, types.NewEIP155Signer(testSuite.SourceChainID), privateKey)
-	require.NoError(t, err)
-	err = testSuite.SourceEthClient.SendTransaction(context.Background(), signedInitiatingMsgTx)
-	require.NoError(t, err)
-	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
@@ -616,144 +490,233 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	err = testSuite.SourceEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
 	require.NoError(t, err)
 
-	// Create executing message using CrossL2Inbox
-	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
-	crossL2Inbox := bindings.NewCrossL2Inbox()
-	wrongBlockNumber := new(big.Int).Add(initiatingMessageTxReceipt.BlockNumber, big.NewInt(1))
-	wrongMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), wrongBlockNumber)
-	require.NoError(t, err)
-	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.MessageIdentifier{
-		Origin:      origin,
-		BlockNumber: wrongBlockNumber,
-		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(wrongMessageBlock.Time()),
-		ChainId:     testSuite.SourceChainID,
-	}
-	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
-	require.NoError(t, err)
-	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
-	require.NoError(t, err)
-	executeMessageSignedTx, err := types.SignTx(executeMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
-	require.NoError(t, err)
-	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
-	require.Error(t, err)
-}
-
-func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
-	testSuite := createInteropTestSuite(t)
-	gasLimit := uint64(30000000)
-	gasPrice := big.NewInt(10000000)
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
-	require.NoError(t, err)
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
-
-	// Create initiating message using L2ToL2CrossDomainMessenger
-	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
-	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
-	require.NoError(t, err)
-	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
-	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
-	require.NoError(t, err)
-	parsedSendMessageABI, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[{"name":"_destination","type":"uint256"},{"name":"_target","type":"address"},{"name":"_message","type":"bytes"}],"name":"sendMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
-	require.NoError(t, err)
-	sendMessage, err := parsedSendMessageABI.Pack("sendMessage", testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
-	require.NoError(t, err)
-	initiatingMsgTx := types.NewTransaction(initiatingMsgNonce, origin, big.NewInt(0), gasLimit, gasPrice, sendMessage)
-	require.NoError(t, err)
-	signedInitiatingMsgTx, err := types.SignTx(initiatingMsgTx, types.NewEIP155Signer(testSuite.SourceChainID), privateKey)
-	require.NoError(t, err)
-	err = testSuite.SourceEthClient.SendTransaction(context.Background(), signedInitiatingMsgTx)
-	require.NoError(t, err)
-	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
-	require.NoError(t, err)
-	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
-
-	// progress forward one block before sending tx
-	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(1), uint64(2))
-	require.NoError(t, err)
-
-	// Create executing message using CrossL2Inbox
-	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
-	require.NoError(t, err)
-	crossL2Inbox := bindings.NewCrossL2Inbox()
 	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.MessageIdentifier{
-		Origin:      origin,
-		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
-		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).Sub(new(big.Int).SetUint64(initiatingMessageBlock.Time()), big.NewInt(1)),
-		ChainId:     testSuite.SourceChainID,
-	}
-	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
-	require.NoError(t, err)
-	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
-	require.NoError(t, err)
-	executeMessageSignedTx, err := types.SignTx(executeMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
-	require.NoError(t, err)
-	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
-	require.Error(t, err)
-}
-
-func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
-	testSuite := createForkedInteropTestSuite(t)
-	gasLimit := uint64(30000000)
-	gasPrice := big.NewInt(10000000)
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
-	require.NoError(t, err)
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
-
-	// Create initiating message using L2ToL2CrossDomainMessenger
-	origin := common.HexToAddress(l2toL2CrossDomainMessengerAddress)
-	initiatingMsgNonce, err := testSuite.SourceEthClient.PendingNonceAt(context.Background(), fromAddress)
-	require.NoError(t, err)
-	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
-	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
-	require.NoError(t, err)
-	parsedSendMessageABI, err := abi.JSON(strings.NewReader(`[{"constant":false,"inputs":[{"name":"_destination","type":"uint256"},{"name":"_target","type":"address"},{"name":"_message","type":"bytes"}],"name":"sendMessage","outputs":[],"stateMutability":"payable","type":"function"}]`))
-	require.NoError(t, err)
-	sendMessage, err := parsedSendMessageABI.Pack("sendMessage", testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
-	require.NoError(t, err)
-	initiatingMsgTx := types.NewTransaction(initiatingMsgNonce, origin, big.NewInt(0), gasLimit, gasPrice, sendMessage)
-	require.NoError(t, err)
-	signedInitiatingMsgTx, err := types.SignTx(initiatingMsgTx, types.NewEIP155Signer(testSuite.SourceChainID), privateKey)
-	require.NoError(t, err)
-	err = testSuite.SourceEthClient.SendTransaction(context.Background(), signedInitiatingMsgTx)
-	require.NoError(t, err)
-	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, signedInitiatingMsgTx)
-	require.NoError(t, err)
-	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
-
-	// progress forward one block before sending tx
-	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(1), uint64(2))
-	require.NoError(t, err)
-
-	// Create executing message using CrossL2Inbox
-	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
-	require.NoError(t, err)
-	crossL2Inbox := bindings.NewCrossL2Inbox()
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
-	require.NoError(t, err)
-	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.MessageIdentifier{
+	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
 		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
 		ChainId:     testSuite.SourceChainID,
 	}
-	executeMessageCallData, err := crossL2Inbox.Abi.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
+	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
 	require.NoError(t, err)
-	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
+
+	// Should succeed
+	tx, err = crossL2Inbox.ExecuteMessage(transactor, identifier, fromAddress, initiatingMessageLog.Data)
 	require.NoError(t, err)
-	executeMessageSignedTx, err := types.SignTx(executeMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
+
+	receipt, err := bind.WaitMined(context.Background(), testSuite.DestEthClient, tx)
 	require.NoError(t, err)
-	err = testSuite.DestEthClient.SendTransaction(context.Background(), executeMessageSignedTx)
+	require.True(t, receipt.Status == 1, "initiating message transaction failed")
+}
+
+func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
+	testSuite := createInteropTestSuite(t)
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
 	require.NoError(t, err)
-	executeMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.DestEthClient, executeMessageSignedTx)
+	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
-	require.True(t, executeMessageTxReceipt.Status == 1, "execute message transaction failed")
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := predeploys.L2toL2CrossDomainMessengerAddr
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+	tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+
+	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
+	require.NoError(t, err)
+	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	require.NoError(t, err)
+
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := bindings.ICrossL2InboxIdentifier{
+		Origin:      origin,
+		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+		LogIndex:    big.NewInt(1), // Wrong index
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
+		ChainId:     testSuite.SourceChainID,
+	}
+	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
+	require.NoError(t, err)
+
+	// Should fail because the block number is incorrect
+	_, err = crossL2Inbox.ExecuteMessage(transactor, identifier, fromAddress, initiatingMessageLog.Data)
+	require.Error(t, err)
+}
+
+func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
+	testSuite := createInteropTestSuite(t)
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	require.NoError(t, err)
+	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
+	require.NoError(t, err)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := predeploys.L2toL2CrossDomainMessengerAddr
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+	tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+
+	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
+	require.NoError(t, err)
+	wrongBlockNumber := new(big.Int).Add(initiatingMessageTxReceipt.BlockNumber, big.NewInt(1))
+	wrongMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), wrongBlockNumber)
+	require.NoError(t, err)
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := bindings.ICrossL2InboxIdentifier{
+		Origin:      origin,
+		BlockNumber: wrongBlockNumber,
+		LogIndex:    big.NewInt(0),
+		Timestamp:   new(big.Int).SetUint64(wrongMessageBlock.Time()),
+		ChainId:     testSuite.SourceChainID,
+	}
+	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
+	require.NoError(t, err)
+
+	// Should fail because the block number is incorrect
+	_, err = crossL2Inbox.ExecuteMessage(transactor, identifier, fromAddress, initiatingMessageLog.Data)
+	require.Error(t, err)
+}
+
+func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
+	testSuite := createInteropTestSuite(t)
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	require.NoError(t, err)
+	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
+	require.NoError(t, err)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := predeploys.L2toL2CrossDomainMessengerAddr
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+	tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+
+	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
+	require.NoError(t, err)
+	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	require.NoError(t, err)
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := bindings.ICrossL2InboxIdentifier{
+		Origin:      origin,
+		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+		LogIndex:    big.NewInt(0),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time() + 1),
+		ChainId:     testSuite.SourceChainID,
+	}
+	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
+	require.NoError(t, err)
+
+	// Should fail because the block timestamp is incorrect
+	_, err = crossL2Inbox.ExecuteMessage(transactor, identifier, fromAddress, initiatingMessageLog.Data)
+	require.Error(t, err)
+}
+
+func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
+	testSuite := createForkedInteropTestSuite(t)
+
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	require.NoError(t, err)
+	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
+	require.NoError(t, err)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := predeploys.L2toL2CrossDomainMessengerAddr
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+	tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+
+	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
+	require.NoError(t, err)
+	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	require.NoError(t, err)
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := bindings.ICrossL2InboxIdentifier{
+		Origin:      origin,
+		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+		LogIndex:    big.NewInt(0),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
+		ChainId:     testSuite.SourceChainID,
+	}
+	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
+	require.NoError(t, err)
+
+	// Should succeed
+	tx, err = crossL2Inbox.ExecuteMessage(transactor, identifier, fromAddress, initiatingMessageLog.Data)
+	require.NoError(t, err)
+
+	receipt, err := bind.WaitMined(context.Background(), testSuite.DestEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, receipt.Status == 1, "initiating message transaction failed")
 }

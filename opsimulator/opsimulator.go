@@ -66,13 +66,19 @@ type OpSimulator struct {
 func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, l2ToL2MessageStoreManager *L2ToL2MessageStoreManager) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 	startupTasksCtx, startupTasksCancel := context.WithCancel(context.Background())
+
+	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, l2Chain.EthClient())
+	if err != nil {
+		closeApp(fmt.Errorf("failed to create cross L2 inbox: %w", err))
+	}
+
 	return &OpSimulator{
 		Chain: l2Chain,
 
 		log:          log,
 		port:         port,
 		l1Chain:      l1Chain,
-		crossL2Inbox: bindings.NewCrossL2Inbox(),
+		crossL2Inbox: crossL2Inbox,
 
 		bgTasksCtx:    bgTasksCtx,
 		bgTasksCancel: bgTasksCancel,
@@ -412,13 +418,13 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 		return fmt.Errorf("failed to simulate transaction: %w", err)
 	}
 
-	var executingMessages []*bindings.ExecutingMessage
+	var executingMessages []*bindings.CrossL2InboxExecutingMessage
 	for _, log := range logs {
 		if !isExecutingMessageLog(&log) {
 			continue
 		}
 
-		executingMessage, err := opSim.crossL2Inbox.DecodeExecutingMessageLog(&log)
+		executingMessage, err := opSim.crossL2Inbox.ParseExecutingMessage(log)
 		if err != nil {
 			return fmt.Errorf("failed to decode executing messages from transaction logs: %w", err)
 		}
@@ -427,7 +433,7 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 
 	if len(executingMessages) >= 1 {
 		for _, executingMessage := range executingMessages {
-			identifier := executingMessage.Identifier
+			identifier := executingMessage.Id
 			sourceChain, ok := opSim.peers[identifier.ChainId.Uint64()]
 			if !ok {
 				return fmt.Errorf("no chain found for chain id: %d", identifier.ChainId)
