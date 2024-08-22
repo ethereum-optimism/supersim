@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
+	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/tasks"
 
 	"github.com/ethereum-optimism/supersim/bindings"
@@ -46,6 +47,8 @@ type OpSimulator struct {
 	bgTasksCancel context.CancelFunc
 	peers         map[uint64]config.Chain
 
+	l2ToL2MessageStoreManager *L2ToL2MessageStoreManager
+
 	// One time tasks at startup
 	startupTasks       tasks.Group
 	startupTasksCtx    context.Context
@@ -59,7 +62,7 @@ type OpSimulator struct {
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
-func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain) *OpSimulator {
+func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, l2ToL2MessageStoreManager *L2ToL2MessageStoreManager) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 	startupTasksCtx, startupTasksCancel := context.WithCancel(context.Background())
 	return &OpSimulator{
@@ -88,7 +91,8 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain,
 			},
 		},
 
-		peers: peers,
+		peers:                     peers,
+		l2ToL2MessageStoreManager: l2ToL2MessageStoreManager,
 	}
 }
 
@@ -180,6 +184,86 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			}
 		}
 	})
+
+	// Store and log L2 to L2 messages
+	opSim.bgTasks.Go(func() error {
+		logCh := make(chan types.Log)
+
+		sub, err := opSim.peers[opSim.Config().ChainID].EthClient().SubscribeFilterLogs(context.Background(), ethereum.FilterQuery{
+			Addresses: []common.Address{predeploys.L2toL2CrossDomainMessengerAddr},
+		}, logCh)
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to L2ToL2CrossDomainMessenger events: %w", err)
+		}
+
+		relayedMessageEventId := bindings.L2ToL2CrossDomainMessengerParsedABI.Events["RelayedMessage"].ID
+		failedRelayedMessageEventId := bindings.L2ToL2CrossDomainMessengerParsedABI.Events["FailedRelayedMessage"].ID
+
+		for {
+			select {
+			case log := <-logCh:
+				// Anonymous log without any topics is a SentMessage event
+				if len(log.Topics) == 0 {
+					err := opSim.l2ToL2MessageStoreManager.HandleSentEvent(&log)
+					if err != nil {
+						opSim.log.Error("failed to handle SentMessage event", "err", err)
+					}
+
+					message, err := NewL2ToL2MessageFromSentMessageEventData(log.Data)
+					if err != nil {
+						opSim.log.Error("failed to create L2ToL2Message", "err", err)
+						continue
+					}
+
+					msgHash, err := message.Hash()
+					if err != nil {
+						opSim.log.Error("failed to calculate message hash", "err", err)
+						continue
+					}
+
+					opSim.log.Info("L2ToL2CrossChainMessenger#SentMessage", "msgHash", msgHash, "sourceChainID", message.Source, "destinationChainID", message.Destination, "nonce", message.Nonce, "sender", message.Sender, "target", message.Target, "message", hexutil.Encode(message.Message))
+
+				} else if log.Topics[0] == relayedMessageEventId {
+					msgHash := log.Topics[1]
+					if err := opSim.l2ToL2MessageStoreManager.HandleRelayedEvent(&log); err != nil {
+						opSim.log.Error("failed to handle RelayedMessage event", "err", err)
+						continue
+					}
+
+					messageEntry, err := opSim.l2ToL2MessageStoreManager.Get(msgHash)
+					if err != nil {
+						opSim.log.Error("failed to get message from store", "err", err)
+						continue
+					}
+					message := messageEntry.message
+
+					opSim.log.Info("L2ToL2CrossChainMessenger#RelayedMessage", "msgHash", msgHash, "sourceChainID", message.Source, "destinationChainID", message.Destination, "nonce", message.Nonce, "sender", message.Sender, "target", message.Target, "message", hexutil.Encode(message.Message))
+
+				} else if log.Topics[0] == failedRelayedMessageEventId {
+					msgHash := log.Topics[1]
+					if err := opSim.l2ToL2MessageStoreManager.HandleFailedRelayedEvent(&log); err != nil {
+						opSim.log.Error("failed to handle FailedRelayedMessage event", "err", err)
+						continue
+					}
+
+					messageEntry, err := opSim.l2ToL2MessageStoreManager.Get(msgHash)
+					if err != nil {
+						opSim.log.Error("failed to get message from store", "err", err)
+						continue
+					}
+
+					message := messageEntry.message
+					opSim.log.Info("L2ToL2CrossChainMessenger#RelayedMessage", "msgHash", msgHash, "sourceChainID", message.Source, "destinationChainID", message.Destination, "nonce", message.Nonce, "sender", message.Sender, "target", message.Target, "message", hexutil.Encode(message.Message))
+
+				} else {
+					opSim.log.Error("unexpected event type", "log", log)
+				}
+
+			case <-opSim.bgTasksCtx.Done():
+				sub.Unsubscribe()
+			}
+		}
+	})
 }
 
 func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
@@ -226,7 +310,7 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 			}
 
 			// NOTE: This fans out the batch request into individual requests. To match expected behavior, this
-			// should instead filter out messages that are invalid and reconstruct a single batch request to forward
+			// should filter out messages that are invalid and reconstruct a single batch request to forward
 			var jsonErr *jsonError
 			batchRes[i], jsonErr = forwardRPCRequest(ctx, rpcClient, msg)
 			if jsonErr != nil {
