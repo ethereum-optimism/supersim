@@ -89,6 +89,12 @@ To apply the changes needed for enabling interop on forked chains, pass `--exper
 TODO
 
 
+## Contracts
+|Contract| Address  |
+|---|---|
+|CrossL2Inbox| 0x4200000000000000000000000000000000000022|
+|L2ToL2CrossDomainMessenger |0x4200000000000000000000000000000000000023 |
+
 ## SuperchainERC20
 Supersim by default includes the following SuperchainERC20 contracts for testing purposes.
 
