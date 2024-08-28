@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 )
@@ -56,6 +57,8 @@ type OpSimulator struct {
 	port         uint64
 	httpServer   *ophttp.HTTPServer
 	crossL2Inbox *bindings.CrossL2Inbox
+
+	ethClient *ethclient.Client
 
 	stopped atomic.Bool
 }
@@ -125,6 +128,12 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start opsimulator: %w", err)
 	}
 
+	ethClient, err := ethclient.Dial(opSim.Endpoint())
+	if err != nil {
+		return fmt.Errorf("failed to create eth client: %w", err)
+	}
+	opSim.ethClient = ethClient
+
 	opSim.startBackgroundTasks()
 	return nil
 }
@@ -139,6 +148,10 @@ func (opSim *OpSimulator) Stop(ctx context.Context) error {
 
 	opSim.bgTasksCancel()
 	return opSim.httpServer.Stop(ctx)
+}
+
+func (opSim *OpSimulator) EthClient() *ethclient.Client {
+	return opSim.ethClient
 }
 
 func (opSim *OpSimulator) startStartupTasks(ctx context.Context) {
@@ -175,7 +188,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 				depTx := types.NewTx(dep)
 				opSim.log.Debug("received deposit tx", "hash", depTx.Hash().String())
 
-				clnt := opSim.EthClient()
+				clnt := opSim.Chain.EthClient()
 				if err := clnt.SendTransaction(opSim.bgTasksCtx, depTx); err != nil {
 					opSim.log.Error("failed to submit deposit tx: %w", err)
 				}
@@ -192,7 +205,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 
 	// Log L2NativeSuperchainERC20 events
 	opSim.bgTasks.Go(func() error {
-		superchainERC20, err := bindings.NewL2NativeSuperchainERC20(common.HexToAddress(l2NativeSuperchainERC20Addr), opSim.peers[opSim.Config().ChainID].EthClient())
+		superchainERC20, err := bindings.NewL2NativeSuperchainERC20(common.HexToAddress(l2NativeSuperchainERC20Addr), opSim.Chain.EthClient())
 		if err != nil {
 			return fmt.Errorf("failed to create L2NativeSuperchainERC20 contract: %w", err)
 		}
@@ -238,7 +251,7 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 			return
 		}
 
-		rpcClient := opSim.EthClient().Client()
+		rpcClient := opSim.Chain.EthClient().Client()
 		batchRes := make([]*jsonRpcMessage, len(msgs))
 		for i, msg := range msgs {
 			if msg.Method == "eth_sendRawTransaction" {
@@ -315,7 +328,7 @@ func (opSim *OpSimulator) addDependency(chainID uint64) error {
 		return fmt.Errorf("failed to create setConfig deposit tx: %w", err)
 	}
 
-	tx, clnt := types.NewTx(dep), opSim.EthClient()
+	tx, clnt := types.NewTx(dep), opSim.Chain.EthClient()
 	if err := clnt.SendTransaction(opSim.startupTasksCtx, tx); err != nil {
 		return fmt.Errorf("failed to send setConfig deposit tx: %w", err)
 	}

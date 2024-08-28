@@ -19,8 +19,10 @@ const (
 
 	ChainsFlagName         = "chains"
 	NetworkFlagName        = "network"
-	InteropFlagName        = "experiment.interop"
 	L2StartingPortFlagName = "l2.starting.port"
+
+	InteropEnabledInForkModeFlagName = "interop.enabled"
+	InteropAutoRelayFlagName         = "interop.autorelay"
 )
 
 func BaseCLIFlags(envPrefix string) []cli.Flag {
@@ -36,6 +38,12 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "Starting port to increment from for L2 chains. `0` binds each chain to any available port",
 			Value:   9545,
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "L2_STARTING_PORT"),
+		},
+		&cli.BoolFlag{
+			Name:    InteropAutoRelayFlagName,
+			Value:   false,
+			Usage:   "Automatically relay messages sent to the L2ToL2CrossDomainMessenger using account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "AUTORELAY"),
 		},
 	}
 }
@@ -63,7 +71,7 @@ func ForkCLIFlags(envPrefix string) []cli.Flag {
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "NETWORK"),
 		},
 		&cli.BoolFlag{
-			Name:    InteropFlagName,
+			Name:    InteropEnabledInForkModeFlagName,
 			Value:   false,
 			Usage:   "Enable interop in fork mode",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "FORK_WITH_INTEROP"),
@@ -79,16 +87,18 @@ type ForkCLIConfig struct {
 }
 
 type CLIConfig struct {
-	L1Port         uint64
-	L2StartingPort uint64
+	L1Port           uint64
+	L2StartingPort   uint64
+	InteropAutoRelay bool
 
 	ForkConfig *ForkCLIConfig
 }
 
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 	cfg := &CLIConfig{
-		L1Port:         ctx.Uint64(L1PortFlagName),
-		L2StartingPort: ctx.Uint64(L2StartingPortFlagName),
+		L1Port:           ctx.Uint64(L1PortFlagName),
+		L2StartingPort:   ctx.Uint64(L2StartingPortFlagName),
+		InteropAutoRelay: ctx.Bool(InteropAutoRelayFlagName),
 	}
 
 	if ctx.Command.Name == ForkCommandName {
@@ -96,7 +106,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 			L1ForkHeight: ctx.Uint64(L1ForkHeightFlagName),
 			Network:      ctx.String(NetworkFlagName),
 			Chains:       ctx.StringSlice(ChainsFlagName),
-			UseInterop:   ctx.Bool(InteropFlagName),
+			UseInterop:   ctx.Bool(InteropEnabledInForkModeFlagName),
 		}
 	}
 
