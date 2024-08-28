@@ -11,8 +11,10 @@ import (
 
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum-optimism/supersim/l2tol2msg"
 	opsimulator "github.com/ethereum-optimism/supersim/opsimulator"
 
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -23,6 +25,8 @@ type Orchestrator struct {
 
 	l2Chains map[uint64]config.Chain
 	l2OpSims map[uint64]*opsimulator.OpSimulator
+
+	l2ToL2MsgIndexer *l2tol2msg.L2ToL2MessageIndexer
 }
 
 func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig) (*Orchestrator, error) {
@@ -34,19 +38,16 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 	l2Anvils, l2OpSims := make(map[uint64]config.Chain), make(map[uint64]*opsimulator.OpSimulator)
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
-		cfg.Port = 0 // explicitly set to zero as this instance sits behind a proxy
+		cfg.Port = 0 // explicitly set to zero as this anvil sits behind a proxy
 
 		l2Anvil := anvil.New(log, closeApp, &cfg)
 		l2Anvils[cfg.ChainID] = l2Anvil
 	}
-	l2ToL2MessageStoreManager, err := opsimulator.NewL2ToL2MessageStoreManager()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create L2ToL2MessageStoreManager: %w", err)
-	}
+	l2ToL2MsgIndexer := l2tol2msg.NewL2ToL2MessageIndexer(log)
 
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, l2ToL2MessageStoreManager)
+		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
@@ -54,10 +55,11 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		}
 	}
 
-	return &Orchestrator{log, l1Anvil, l2Anvils, l2OpSims}, nil
+	return &Orchestrator{log, l1Anvil, l2Anvils, l2OpSims, l2ToL2MsgIndexer}, nil
 }
 
 func (o *Orchestrator) Start(ctx context.Context) error {
+
 	o.log.Info("starting orchestrator")
 	if err := o.l1Chain.Start(ctx); err != nil {
 		return fmt.Errorf("l1 chain %s failed to start: %w", o.l1Chain.Config().Name, err)
@@ -78,6 +80,15 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		return fmt.Errorf("unable to start mining: %w", err)
 	}
 
+	l2ClientByChainId := make(map[uint64]*ethclient.Client)
+	for chainID, opSim := range o.l2OpSims {
+		l2ClientByChainId[chainID] = opSim.EthClient()
+	}
+
+	if err := o.l2ToL2MsgIndexer.Start(ctx, l2ClientByChainId); err != nil {
+		return fmt.Errorf("l2 to l2 message indexer failed to start: %w", err)
+	}
+
 	o.log.Debug("orchestrator is ready")
 	return nil
 }
@@ -86,6 +97,11 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 	var errs []error
 
 	o.log.Info("stopping orchestrator")
+
+	if err := o.l2ToL2MsgIndexer.Stop(ctx); err != nil {
+		errs = append(errs, fmt.Errorf("l2 to l2 message indexer failed to stop: %w", err))
+	}
+
 	for _, opSim := range o.l2OpSims {
 		o.log.Debug("stopping op simulator", "chain.id", opSim.Config().ChainID)
 		if err := opSim.Stop(ctx); err != nil {

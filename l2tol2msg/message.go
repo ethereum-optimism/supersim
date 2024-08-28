@@ -1,4 +1,4 @@
-package opsimulator
+package l2tol2msg
 
 import (
 	"errors"
@@ -51,6 +51,10 @@ func (m *L2ToL2Message) Hash() (common.Hash, error) {
 		return common.Hash{}, err
 	}
 	return crypto.Keccak256Hash(encoded), nil
+}
+
+func (m *L2ToL2Message) EventData() ([]byte, error) {
+	return bindings.L2ToL2CrossDomainMessengerParsedABI.Pack("relayMessage", big.NewInt(int64(m.Destination)), big.NewInt(int64(m.Source)), m.Nonce, m.Sender, m.Target, m.Message)
 }
 
 func NewL2ToL2MessageFromSentMessageEventData(logData []byte) (*L2ToL2Message, error) {

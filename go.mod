@@ -3,6 +3,7 @@ module github.com/ethereum-optimism/supersim
 go 1.22.3
 
 require (
+	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/btcsuite/btcd v0.24.2
 	github.com/btcsuite/btcd/btcutil v1.1.5
 	github.com/ethereum-optimism/optimism v1.9.1-0.20240808190618-0c8d7c8c5186
