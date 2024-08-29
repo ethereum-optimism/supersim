@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -12,7 +11,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync/atomic"
 
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
@@ -58,8 +56,6 @@ type OpSimulator struct {
 	port         uint64
 	httpServer   *ophttp.HTTPServer
 	crossL2Inbox *bindings.CrossL2Inbox
-
-	stopped atomic.Bool
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
@@ -127,13 +123,6 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 }
 
 func (opSim *OpSimulator) Stop(ctx context.Context) error {
-	if opSim.stopped.Load() {
-		return errors.New("already stopped")
-	}
-	if !opSim.stopped.CompareAndSwap(false, true) {
-		return nil // someone else stopped
-	}
-
 	opSim.bgTasksCancel()
 	return opSim.httpServer.Stop(ctx)
 }
