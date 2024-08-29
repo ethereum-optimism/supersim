@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
@@ -333,7 +334,7 @@ func (opSim *OpSimulator) addDependency(chainID uint64) error {
 		return fmt.Errorf("failed to send setConfig deposit tx: %w", err)
 	}
 
-	txReceipt, err := bind.WaitMined(opSim.startupTasksCtx, clnt, tx)
+	txReceipt, err := waitMinedWithTicker(opSim.startupTasksCtx, clnt, tx, time.Millisecond*20)
 	if err != nil {
 		return fmt.Errorf("failed to get tx receipt for deposit tx: %w", err)
 	}
@@ -449,4 +450,31 @@ func corsHandler(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// From bind.WaitMined with additional ticker param
+func waitMinedWithTicker(ctx context.Context, b bind.DeployBackend, tx *types.Transaction, tickerDuration time.Duration) (*types.Receipt, error) {
+	queryTicker := time.NewTicker(tickerDuration)
+	defer queryTicker.Stop()
+
+	logger := log.New("hash", tx.Hash())
+	for {
+		receipt, err := b.TransactionReceipt(ctx, tx.Hash())
+		if err == nil {
+			return receipt, nil
+		}
+
+		if errors.Is(err, ethereum.NotFound) {
+			logger.Trace("Transaction not yet mined")
+		} else {
+			logger.Trace("Receipt retrieval failed", "err", err)
+		}
+
+		// Wait for the next round.
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-queryTicker.C:
+		}
+	}
 }
