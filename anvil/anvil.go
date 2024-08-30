@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
-	"sync/atomic"
+	"time"
 
 	"github.com/ethereum-optimism/supersim/config"
 
@@ -53,8 +53,7 @@ type Anvil struct {
 	resourceCancel context.CancelFunc
 	closeApp       context.CancelCauseFunc
 
-	stopped   atomic.Bool
-	stoppedCh chan struct{}
+	ipcFile net.Conn
 }
 
 func New(log log.Logger, closeApp context.CancelCauseFunc, cfg *config.ChainConfig) *Anvil {
@@ -65,7 +64,6 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, cfg *config.ChainConf
 		resourceCtx:    resCtx,
 		resourceCancel: resCancel,
 		closeApp:       closeApp,
-		stoppedCh:      make(chan struct{}, 1),
 	}
 }
 
@@ -74,13 +72,21 @@ func (a *Anvil) Start(ctx context.Context) error {
 		return errors.New("anvil already started")
 	}
 
+	socketPath := fmt.Sprintf("/tmp/supersim-anvil-%d.sock", a.cfg.ChainID)
+	if _, err := os.Stat(socketPath); err == nil {
+		if err := os.Remove(socketPath); err != nil {
+			return fmt.Errorf("failed to remove existing socket file: %w", err)
+		}
+	}
+
 	args := []string{
 		"--host", host,
 		"--accounts", fmt.Sprintf("%d", a.cfg.SecretsConfig.Accounts),
 		"--mnemonic", a.cfg.SecretsConfig.Mnemonic,
 		"--derivation-path", a.cfg.SecretsConfig.DerivationPath.String(),
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainID),
-		"--port", fmt.Sprintf("%d", a.cfg.Port),
+		"--port", "0",
+		"--ipc", socketPath,
 	}
 
 	if a.cfg.L2Config != nil {
@@ -115,10 +121,6 @@ func (a *Anvil) Start(ctx context.Context) error {
 		a.resourceCancel()
 	}()
 
-	// In the event anvil is started with port 0, we'll need to block
-	// and see what port anvil eventually binds to when started
-	anvilPortCh := make(chan uint64)
-
 	// Handle stdout/stderr
 	logFile, err := os.CreateTemp("", fmt.Sprintf("anvil-chain-%d-", a.cfg.ChainID))
 	if err != nil {
@@ -144,14 +146,6 @@ func (a *Anvil) Start(ctx context.Context) error {
 				anvilLog.Warn("err piping stdout to log file", "err", err)
 			}
 
-			// extract the port from the log
-			if strings.HasPrefix(txt, anvilListeningLogStr) {
-				port, err := strconv.ParseInt(strings.Split(txt, ":")[1], 10, 64)
-				if err != nil {
-					panic(fmt.Errorf("unexpected anvil listening port log: %w", err))
-				}
-				anvilPortCh <- uint64(port)
-			}
 		}
 	}()
 	go func() {
@@ -175,20 +169,11 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 		// If anvil stops, signal that the entire app should be closed
 		a.closeApp(nil)
-		a.stoppedCh <- struct{}{}
 	}()
 
-	// wait & update the port. Since we're in the same routine to which `Start` is called,
-	// we're safe to overrwrite the `Port` field which the caller can observe. The update
-	// should be a no-op if bound to an explicit non-zero port
-	done := ctx.Done()
-	select {
-	case a.cfg.Port = <-anvilPortCh:
-	case <-done:
-		return ctx.Err()
-	}
+	time.Sleep(time.Second * 1)
 
-	rpcClient, err := rpc.Dial(a.wsEndpoint())
+	rpcClient, err := rpc.Dial(socketPath)
 	if err != nil {
 		return fmt.Errorf("failed to create RPC client: %w", err)
 	}
@@ -199,16 +184,8 @@ func (a *Anvil) Start(ctx context.Context) error {
 }
 
 func (a *Anvil) Stop(_ context.Context) error {
-	if a.stopped.Load() {
-		return errors.New("already stopped")
-	}
-	if !a.stopped.CompareAndSwap(false, true) {
-		return nil // someone else stopped
-	}
-
 	a.rpcClient.Close()
 	a.resourceCancel()
-	<-a.stoppedCh
 	return nil
 }
 
