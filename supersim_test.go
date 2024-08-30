@@ -149,8 +149,8 @@ func createForkedInteropTestSuite(t *testing.T) *InteropTestSuite {
 	}
 }
 
-func createInteropTestSuite(t *testing.T) *InteropTestSuite {
-	testSuite := createTestSuite(t, &config.CLIConfig{})
+func createInteropTestSuite(t *testing.T, cliConfig config.CLIConfig) *InteropTestSuite {
+	testSuite := createTestSuite(t, &cliConfig)
 
 	sourceURL := testSuite.Supersim.Orchestrator.Endpoint(testSuite.Supersim.Cfg.L2Configs[0].ChainID)
 	sourceEthClient, _ := ethclient.Dial(sourceURL)
@@ -285,7 +285,7 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 			transactor.Value = oneEth
 			optimismPortal, _ := opbindings.NewOptimismPortal(common.Address(chain.Config().L2Config.L1Addresses.OptimismPortalProxy), l1EthClient)
 
-			// needs a lock because the gas estimation can become outdated between transactions
+			// needs a lock because the gas estimation can be outdated between transactions
 			l1TxMutex.Lock()
 			tx, err := optimismPortal.DepositTransaction(transactor, senderAddress, oneEth, 100000, false, make([]byte, 0))
 			l1TxMutex.Unlock()
@@ -399,7 +399,7 @@ func TestBatchJsonRpcRequests(t *testing.T) {
 }
 
 func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
-	testSuite := createInteropTestSuite(t)
+	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	gasLimit := uint64(30000000)
 	gasPrice := big.NewInt(10000000)
 	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
@@ -461,7 +461,7 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 }
 
 func TestInteropInvariantCheckSucceeds(t *testing.T) {
-	testSuite := createInteropTestSuite(t)
+	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
@@ -515,7 +515,7 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 }
 
 func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
-	testSuite := createInteropTestSuite(t)
+	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
@@ -566,7 +566,7 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 }
 
 func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
-	testSuite := createInteropTestSuite(t)
+	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
@@ -617,7 +617,7 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 }
 
 func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
-	testSuite := createInteropTestSuite(t)
+	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
@@ -719,4 +719,60 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 	receipt, err := bind.WaitMined(context.Background(), testSuite.DestEthClient, tx)
 	require.NoError(t, err)
 	require.True(t, receipt.Status == 1, "initiating message transaction failed")
+}
+
+func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
+	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	require.NoError(t, err)
+
+	destinationTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
+	require.NoError(t, err)
+
+	simpleStorageAddress, deployTx, _, err := bind.DeployContract(destinationTransactor, *bindings.SimpleStorageParsedABI, common.FromHex(bindings.SimpleStorageMetaData.Bin), testSuite.DestEthClient)
+	require.NoError(t, err)
+
+	_, err = bind.WaitDeployed(context.Background(), testSuite.DestEthClient, deployTx)
+	require.NoError(t, err)
+
+	simpleStorage, err := bindings.NewSimpleStorage(simpleStorageAddress, testSuite.DestEthClient)
+	require.NoError(t, err)
+
+	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
+	require.NoError(t, err)
+
+	// Sanity check current value on SimpleStorage
+	key := common.HexToHash("0xf00")
+	val := common.HexToHash("0xba7")
+
+	initialVal, err := simpleStorage.Get(&bind.CallOpts{}, key)
+	require.NoError(t, err)
+	require.Equal(t, common.Hash(initialVal), common.HexToHash("0x"), "SimpleStorage initial value is incorrect")
+
+	// Calls SimpleStorage on the destination chain using L2ToL2CrossDomainMessenger
+
+	calldata, err := bindings.SimpleStorageParsedABI.Pack("set", key, val)
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+	tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, testSuite.DestChainID, simpleStorageAddress, calldata)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	time.Sleep(time.Second * 2)
+
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+
+	// message should have been auto-relayed by now
+	newVal, err := simpleStorage.Get(&bind.CallOpts{}, key)
+	require.NoError(t, err)
+	require.Equal(t, val, common.Hash(newVal), "SimpleStorage value is incorrect")
 }
