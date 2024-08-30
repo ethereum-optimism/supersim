@@ -114,7 +114,15 @@ cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 
 cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
 
-
+4. in a few seconds, you should see the relayed message (ie. `L2ToL2CrossChainMessenger#RelayedMessage`) appear on chain 902
+```sh
+# example
+INFO [08-30|14:30:14.698] L2ToL2CrossChainMessenger#RelayedMessage sourceChainID=901 destinationChainID=902 nonce=0 sender=0x61a6eF395d217eD7C79e1B84880167a417796172 target=0x61a6eF395d217eD7C79e1B84880167a417796172
+```
+5. check the increased balance of the `L2NativeSuperchainERC20` on the destination chain (902)
+```sh
+cast balance --erc20 0x61a6eF395d217eD7C79e1B84880167a417796172 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
+```
 
 ## Contracts
 |Contract| Address  |
