@@ -50,43 +50,70 @@ determines the maximum timestamp for the forked L2 state of each chain to create
 Help Text:
 ```
 NAME:
-   supersim fork - Locally fork a network in the superchain registry
+   supersim - Superchain Multi-L2 Simulator
 
 USAGE:
-   supersim fork [command options] [arguments...]
+   supersim [global options] command [command options]
 
-OPTIONS:
+VERSION:
+   untagged
 
-          --l1.fork.height value              (default: 0)                       ($SUPERSIM_L1_FORK_HEIGHT)
-                L1 height to fork the superchain (bounds L2 time). `0` for latest
+DESCRIPTION:
+   Local multichain optimism development environment
 
-          --chains value                                                         ($SUPERSIM_CHAINS)
-                chains to fork in the superchain, mainnet options: [base, lyra, metal, mode, op,
-                orderly, pgn, superlumio, zora]. In order to replace the public rpc endpoint for
-                a chain, specify the ($SUPERSIM_RPC_URL_<CHAIN>) env variable. i.e SUPERSIM_RPC_URL_OP=http://optimism-mainnet.infura.io/v3/<API-KEY>
+COMMANDS:
+   fork     Locally fork a network in the superchain registry
+   help, h  Shows a list of commands or help for one command
 
-          --network value                     (default: "mainnet")               ($SUPERSIM_NETWORK)
-                superchain network. options: mainnet, sepolia, sepolia-dev-0. In order to
-                replace the public rpc endpoint for the network, specify the
-                ($SUPERSIM_RPC_URL_<NETWORK>) env variable. i.e SUPERSIM_RPC_URL_MAINNET=http://mainnet.infura.io/v3/<API-KEY>
+GLOBAL OPTIONS:
 
-          --experiment.interop                (default: false)                   ($SUPERSIM_FORK_WITH_INTEROP)
-                Enable interop in fork mode
-   
-          --l1.port value                     (default: 8545)                    ($SUPERSIM_L1_PORT)
-                Listening port for the L1 instance. `0` binds to any available port
-   
-          --l2.starting.port value            (default: 9545)                    ($SUPERSIM_L2_STARTING_PORT)
-                Starting port to increment from for L2 chains. `0` binds each chain to any
-                available port
-   
+    --interop.autorelay                 (default: false)                   ($SUPERSIM_AUTORELAY)
+          Automatically relay messages sent to the L2ToL2CrossDomainMessenger using
+          account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
+
+    --l1.port value                     (default: 8545)                    ($SUPERSIM_L1_PORT)
+          Listening port for the L1 instance. `0` binds to any available port
+
+    --l2.starting.port value            (default: 9545)                    ($SUPERSIM_L2_STARTING_PORT)
+          Starting port to increment from for L2 chains. `0` binds each chain to any
+          available port
+
+    --log.color                         (default: false)                   ($SUPERSIM_LOG_COLOR)
+          Color the log output if in terminal mode
+
+    --log.format value                  (default: text)                    ($SUPERSIM_LOG_FORMAT)
+          Format the log output. Supported formats: 'text', 'terminal', 'logfmt', 'json',
+          'json-pretty',
+
+    --log.level value                   (default: INFO)                    ($SUPERSIM_LOG_LEVEL)
+          The lowest log level that will be output
+
+    --log.pid                           (default: false)                   ($SUPERSIM_LOG_PID)
+          Show pid in the log   
 ```
 
 #### Enabling Interop in Fork Mode
 To apply the changes needed for enabling interop on forked chains, pass `--experiment.interop true` in when starting supersim in fork mode. This will configure interop such that all forked L2 chains are in one another's dependency sets and can pass messages between each other.
 
 ## Examples
-TODO
+
+### Transferring L2NativeSuperchainERC20
+
+1. run supersim with `interop.autorelay` enabled
+```sh
+supersim --interop.autorelay
+```
+
+2. mint some tokens to transfer
+```sh
+cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+```
+
+3. bridge the tokens using interop
+```sh
+cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+```
+
 
 
 ## Contracts
