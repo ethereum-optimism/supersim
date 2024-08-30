@@ -1,4 +1,4 @@
-package l2tol2msg
+package interop
 
 import (
 	"fmt"
