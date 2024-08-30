@@ -1,4 +1,4 @@
-package opsimulator
+package l2tol2msg
 
 import (
 	"math/big"

@@ -1,4 +1,4 @@
-package opsimulator
+package l2tol2msg
 
 import (
 	"fmt"
@@ -49,9 +49,27 @@ func (s *L2ToL2MessageLifecycle) Status() L2ToL2MessageState {
 
 }
 
+type L2ToL2MessageSentEvent struct {
+	Message *L2ToL2Message
+	TxHash  common.Hash
+}
+
 type L2ToL2MessageStoreEntry struct {
-	message   *L2ToL2Message
-	lifecycle *L2ToL2MessageLifecycle
+	message    *L2ToL2Message
+	identifier *bindings.ICrossL2InboxIdentifier
+	lifecycle  *L2ToL2MessageLifecycle
+}
+
+func (e *L2ToL2MessageStoreEntry) Message() *L2ToL2Message {
+	return e.message
+}
+
+func (e *L2ToL2MessageStoreEntry) Identifier() *bindings.ICrossL2InboxIdentifier {
+	return e.identifier
+}
+
+func (e *L2ToL2MessageStoreEntry) Lifecycle() *L2ToL2MessageLifecycle {
+	return e.lifecycle
 }
 
 type L2ToL2MessageStore struct {
@@ -114,21 +132,25 @@ type L2ToL2MessageStoreManager struct {
 	store *L2ToL2MessageStore
 }
 
-func NewL2ToL2MessageStoreManager() (*L2ToL2MessageStoreManager, error) {
+func NewL2ToL2MessageStoreManager() *L2ToL2MessageStoreManager {
 	return &L2ToL2MessageStoreManager{
 		store: NewL2ToL2MessageStore(),
-	}, nil
+	}
 }
 
-func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log) error {
+func (s *L2ToL2MessageStoreManager) Get(msgHash common.Hash) (*L2ToL2MessageStoreEntry, error) {
+	return s.store.Get(msgHash)
+}
+
+func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log, identifier *bindings.ICrossL2InboxIdentifier) (*L2ToL2MessageStoreEntry, error) {
 	msg, err := NewL2ToL2MessageFromSentMessageEventData(log.Data)
 	if err != nil {
-		return fmt.Errorf("failed to create L2ToL2Message: %w", err)
+		return nil, fmt.Errorf("failed to create L2ToL2Message: %w", err)
 	}
 
 	msgHash, err := msg.Hash()
 	if err != nil {
-		return fmt.Errorf("failed to calculate message hash: %w", err)
+		return nil, fmt.Errorf("failed to calculate message hash: %w", err)
 	}
 
 	lifecycle := &L2ToL2MessageLifecycle{
@@ -136,37 +158,43 @@ func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log) error {
 	}
 
 	entry := &L2ToL2MessageStoreEntry{
-		message:   msg,
-		lifecycle: lifecycle,
+		message:    msg,
+		identifier: identifier,
+		lifecycle:  lifecycle,
 	}
 
-	return m.store.Set(msgHash, entry)
+	if err := m.store.Set(msgHash, entry); err != nil {
+		return nil, fmt.Errorf("failed to store message: %w", err)
+	}
+
+	return entry, nil
 }
 
-func (m *L2ToL2MessageStoreManager) HandleRelayedEvent(log *types.Log) error {
+func (m *L2ToL2MessageStoreManager) HandleRelayedEvent(log *types.Log) (*L2ToL2MessageStoreEntry, error) {
 	msgHash := log.Topics[1]
 
-	if _, err := m.store.UpdateLifecycle(msgHash, func(lifecycle *L2ToL2MessageLifecycle) (*L2ToL2MessageLifecycle, error) {
+	updatedEntry, err := m.store.UpdateLifecycle(msgHash, func(lifecycle *L2ToL2MessageLifecycle) (*L2ToL2MessageLifecycle, error) {
 		if lifecycle.RelayedTxHash != (common.Hash{}) {
 			return nil, fmt.Errorf("message already relayed")
 		}
 
 		return lifecycle.WithRelayedTxHash(log.TxHash), nil
-	}); err != nil {
-		return fmt.Errorf("failed to update lifecycle for relayed event: %w", err)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update lifecycle for relayed event: %w", err)
 	}
 
-	return nil
+	return updatedEntry, nil
 }
 
-func (m *L2ToL2MessageStoreManager) HandleFailedRelayedEvent(log *types.Log) error {
+func (m *L2ToL2MessageStoreManager) HandleFailedRelayedEvent(log *types.Log) (*L2ToL2MessageStoreEntry, error) {
 	if log.Topics[0] != bindings.L2ToL2CrossDomainMessengerParsedABI.Events["FailedRelayedMessage"].ID {
-		return fmt.Errorf("unexpected event type")
+		return nil, fmt.Errorf("unexpected event type")
 	}
 
 	msgHash := log.Topics[1]
 
-	_, err := m.store.UpdateLifecycle(msgHash, func(lifecycle *L2ToL2MessageLifecycle) (*L2ToL2MessageLifecycle, error) {
+	updatedEntry, err := m.store.UpdateLifecycle(msgHash, func(lifecycle *L2ToL2MessageLifecycle) (*L2ToL2MessageLifecycle, error) {
 		if lifecycle.RelayedTxHash != (common.Hash{}) {
 			return nil, fmt.Errorf("message already relayed")
 		}
@@ -175,11 +203,7 @@ func (m *L2ToL2MessageStoreManager) HandleFailedRelayedEvent(log *types.Log) err
 	})
 
 	if err != nil {
-		return fmt.Errorf("failed to update lifecycle for failed relayed event: %w", err)
+		return nil, fmt.Errorf("failed to update lifecycle for failed relayed event: %w", err)
 	}
-	return nil
-}
-
-func (m *L2ToL2MessageStoreManager) Get(msgHash common.Hash) (*L2ToL2MessageStoreEntry, error) {
-	return m.store.Get(msgHash)
+	return updatedEntry, nil
 }
