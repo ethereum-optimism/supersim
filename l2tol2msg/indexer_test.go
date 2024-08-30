@@ -129,7 +129,7 @@ func TestProcessEventLogFailedRelayedMessage(t *testing.T) {
 	require.Equal(t, entry.Lifecycle().SentTxHash, sentMessageLog.TxHash)
 	require.Equal(t, entry.Lifecycle().FailedTxHashes[0], failedRelayedMessageLog.TxHash)
 
-	// process another FailedRelayedMessage event
+	// process FailedRelayedMessage event 2
 	err = indexer.processEventLog(context.Background(), mockChainReader, sourceChainID, &failedRelayedMessageLog)
 	require.NoError(t, err)
 

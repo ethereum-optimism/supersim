@@ -27,9 +27,10 @@ type Orchestrator struct {
 	l2OpSims map[uint64]*opsimulator.OpSimulator
 
 	l2ToL2MsgIndexer *l2tol2msg.L2ToL2MessageIndexer
+	l2ToL2MsgRelayer *l2tol2msg.L2ToL2MessageRelayer
 }
 
-func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig) (*Orchestrator, error) {
+func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig, enableAutoRelay bool) (*Orchestrator, error) {
 	// Spin up L1 anvil instance
 	l1Anvil := anvil.New(log, closeApp, &networkConfig.L1Config)
 
@@ -55,7 +56,12 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		}
 	}
 
-	return &Orchestrator{log, l1Anvil, l2Anvils, l2OpSims, l2ToL2MsgIndexer}, nil
+	var l2ToL2MessageRelayer *l2tol2msg.L2ToL2MessageRelayer
+	if enableAutoRelay {
+		l2ToL2MessageRelayer = l2tol2msg.NewL2ToL2MessageRelayer()
+	}
+
+	return &Orchestrator{log, l1Anvil, l2Anvils, l2OpSims, l2ToL2MsgIndexer, l2ToL2MessageRelayer}, nil
 }
 
 func (o *Orchestrator) Start(ctx context.Context) error {
@@ -80,13 +86,26 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		return fmt.Errorf("unable to start mining: %w", err)
 	}
 
-	l2ClientByChainId := make(map[uint64]*ethclient.Client)
+	// TODO: hack until opsim proxy supports websocket connections.
+	// We need websocket connections to make subscriptions.
+	// We should try to use make RPC through opsim not directly to the underlying chain
+	l2ChainClientByChainId := make(map[uint64]*ethclient.Client)
+	l2OpSimClientByChainId := make(map[uint64]*ethclient.Client)
+
 	for chainID, opSim := range o.l2OpSims {
-		l2ClientByChainId[chainID] = opSim.EthClient()
+		l2ChainClientByChainId[chainID] = opSim.Chain.EthClient()
+		l2OpSimClientByChainId[chainID] = opSim.EthClient()
 	}
 
-	if err := o.l2ToL2MsgIndexer.Start(ctx, l2ClientByChainId); err != nil {
+	if err := o.l2ToL2MsgIndexer.Start(ctx, l2ChainClientByChainId); err != nil {
 		return fmt.Errorf("l2 to l2 message indexer failed to start: %w", err)
+	}
+
+	if o.l2ToL2MsgRelayer != nil {
+		o.log.Info("starting L2ToL2CrossDomainMessenger autorelayer")
+		if err := o.l2ToL2MsgRelayer.Start(o.l2ToL2MsgIndexer, l2OpSimClientByChainId); err != nil {
+			return fmt.Errorf("l2 to l2 message relayer failed to start: %w", err)
+		}
 	}
 
 	o.log.Debug("orchestrator is ready")
@@ -98,10 +117,15 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 
 	o.log.Info("stopping orchestrator")
 
+	if o.l2ToL2MsgRelayer != nil {
+		o.log.Info("stopping L2ToL2CrossDomainMessenger autorelayer")
+		o.l2ToL2MsgRelayer.Stop(ctx)
+	}
+
+	o.log.Info("stopping L2ToL2CrossDomainMessenger indexer")
 	if err := o.l2ToL2MsgIndexer.Stop(ctx); err != nil {
 		errs = append(errs, fmt.Errorf("l2 to l2 message indexer failed to stop: %w", err))
 	}
-
 	for _, opSim := range o.l2OpSims {
 		o.log.Debug("stopping op simulator", "chain.id", opSim.Config().ChainID)
 		if err := opSim.Stop(ctx); err != nil {
