@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ethereum-optimism/supersim/accountabstraction"
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
@@ -23,20 +24,21 @@ type Orchestrator struct {
 
 	l1Chain config.Chain
 
-	l2Chains map[uint64]config.Chain
-	l2OpSims map[uint64]*opsimulator.OpSimulator
+	l2Chains     map[uint64]config.Chain
+	l2OpSims     map[uint64]*opsimulator.OpSimulator
+	l2AABundlers map[uint64]*accountabstraction.StackupBundler
 
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 	l2ToL2MsgRelayer *interop.L2ToL2MessageRelayer
 }
 
-func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig, enableAutoRelay bool) (*Orchestrator, error) {
+func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig, enableAutoRelay bool, enableAABundler bool) (*Orchestrator, error) {
 	// Spin up L1 anvil instance
 	l1Anvil := anvil.New(log, closeApp, &networkConfig.L1Config)
 
 	// Spin up L2 anvil instances fronted by opsim
 	nextL2Port := networkConfig.L2StartingPort
-	l2Anvils, l2OpSims := make(map[uint64]config.Chain), make(map[uint64]*opsimulator.OpSimulator)
+	l2Anvils, l2OpSims, l2AABundlers := make(map[uint64]config.Chain), make(map[uint64]*opsimulator.OpSimulator), make(map[uint64]*accountabstraction.StackupBundler)
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
 		cfg.Port = 0 // explicitly set to zero as this anvil sits behind a proxy
@@ -50,10 +52,15 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		cfg := networkConfig.L2Configs[i]
 		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils)
 
+		if enableAABundler {
+			l2AABundlers[cfg.ChainID] = accountabstraction.NewStackupBundler(cfg.ChainID, nextL2Port+50)
+		}
+
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
 			nextL2Port++
 		}
+
 	}
 
 	var l2ToL2MessageRelayer *interop.L2ToL2MessageRelayer
@@ -61,7 +68,7 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		l2ToL2MessageRelayer = interop.NewL2ToL2MessageRelayer()
 	}
 
-	return &Orchestrator{log, l1Anvil, l2Anvils, l2OpSims, l2ToL2MsgIndexer, l2ToL2MessageRelayer}, nil
+	return &Orchestrator{log, l1Anvil, l2Anvils, l2OpSims, l2AABundlers, l2ToL2MsgIndexer, l2ToL2MessageRelayer}, nil
 }
 
 func (o *Orchestrator) Start(ctx context.Context) error {
@@ -108,6 +115,11 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		}
 	}
 
+	for chainID, bundler := range o.l2AABundlers {
+		o.log.Info("starting ERC-4337 Bundler", "chain.id", chainID)
+		bundler.Start(l2OpSimClientByChainId[chainID])
+	}
+
 	o.log.Debug("orchestrator is ready")
 	return nil
 }
@@ -126,6 +138,14 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 	if err := o.l2ToL2MsgIndexer.Stop(ctx); err != nil {
 		errs = append(errs, fmt.Errorf("l2 to l2 message indexer failed to stop: %w", err))
 	}
+
+	for chainID, bundler := range o.l2AABundlers {
+		o.log.Debug("stopping AA bundler", "chain.id", chainID)
+		if err := bundler.Stop(); err != nil {
+			errs = append(errs, fmt.Errorf("l2 chain %d failed to stop: %w", chainID, err))
+		}
+	}
+
 	for _, opSim := range o.l2OpSims {
 		o.log.Debug("stopping op simulator", "chain.id", opSim.Config().ChainID)
 		if err := opSim.Stop(ctx); err != nil {
@@ -219,7 +239,11 @@ func (o *Orchestrator) ConfigAsString() string {
 		// sort by port number (retain ordering of chain flags)
 		sort.Slice(opSims, func(i, j int) bool { return opSims[i].Config().Port < opSims[j].Config().Port })
 		for _, opSim := range opSims {
-			fmt.Fprintf(&b, "  %s\n", opSim.String())
+			bundlerInfo := ""
+			if bundler, ok := o.l2AABundlers[opSim.Config().ChainID]; ok {
+				bundlerInfo = fmt.Sprintf("Bundler RPC: %s", bundler.Endpoint())
+			}
+			fmt.Fprintf(&b, "  %s  %s\n", opSim.String(), bundlerInfo)
 		}
 	}
 

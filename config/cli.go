@@ -23,6 +23,8 @@ const (
 
 	InteropEnabledInForkModeFlagName = "interop.enabled"
 	InteropAutoRelayFlagName         = "interop.autorelay"
+
+	AABundlerFlagName = "aa.bundler"
 )
 
 func BaseCLIFlags(envPrefix string) []cli.Flag {
@@ -44,6 +46,12 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Value:   false,
 			Usage:   "Automatically relay messages sent to the L2ToL2CrossDomainMessenger using account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "AUTORELAY"),
+		},
+		&cli.BoolFlag{
+			Name:    AABundlerFlagName,
+			Value:   false,
+			Usage:   "Run a ERC-4337 Bundler which sends transactions using account 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "AA_BUNDLER"),
 		},
 	}
 }
@@ -90,6 +98,7 @@ type CLIConfig struct {
 	L1Port           uint64
 	L2StartingPort   uint64
 	InteropAutoRelay bool
+	AABundler        bool
 
 	ForkConfig *ForkCLIConfig
 }
@@ -99,6 +108,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		L1Port:           ctx.Uint64(L1PortFlagName),
 		L2StartingPort:   ctx.Uint64(L2StartingPortFlagName),
 		InteropAutoRelay: ctx.Bool(InteropAutoRelayFlagName),
+		AABundler:        ctx.Bool(AABundlerFlagName),
 	}
 
 	if ctx.Command.Name == ForkCommandName {
