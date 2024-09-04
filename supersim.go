@@ -47,7 +47,7 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 	cfg.L1Config.Port = cliConfig.L1Port
 	cfg.L2StartingPort = cliConfig.L2StartingPort
 
-	o, err := orchestrator.NewOrchestrator(log, closeApp, &cfg, cliConfig.InteropAutoRelay)
+	o, err := orchestrator.NewOrchestrator(log, closeApp, &cfg, cliConfig.InteropAutoRelay, cliConfig.AABundler)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create orchestrator")
 	}
