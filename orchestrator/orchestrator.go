@@ -11,7 +11,7 @@ import (
 
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
-	"github.com/ethereum-optimism/supersim/l2tol2msg"
+	"github.com/ethereum-optimism/supersim/interop"
 	opsimulator "github.com/ethereum-optimism/supersim/opsimulator"
 
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -26,8 +26,8 @@ type Orchestrator struct {
 	l2Chains map[uint64]config.Chain
 	l2OpSims map[uint64]*opsimulator.OpSimulator
 
-	l2ToL2MsgIndexer *l2tol2msg.L2ToL2MessageIndexer
-	l2ToL2MsgRelayer *l2tol2msg.L2ToL2MessageRelayer
+	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
+	l2ToL2MsgRelayer *interop.L2ToL2MessageRelayer
 }
 
 func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig, enableAutoRelay bool) (*Orchestrator, error) {
@@ -44,7 +44,7 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		l2Anvil := anvil.New(log, closeApp, &cfg)
 		l2Anvils[cfg.ChainID] = l2Anvil
 	}
-	l2ToL2MsgIndexer := l2tol2msg.NewL2ToL2MessageIndexer(log)
+	l2ToL2MsgIndexer := interop.NewL2ToL2MessageIndexer(log)
 
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
@@ -56,9 +56,9 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		}
 	}
 
-	var l2ToL2MessageRelayer *l2tol2msg.L2ToL2MessageRelayer
+	var l2ToL2MessageRelayer *interop.L2ToL2MessageRelayer
 	if enableAutoRelay {
-		l2ToL2MessageRelayer = l2tol2msg.NewL2ToL2MessageRelayer()
+		l2ToL2MessageRelayer = interop.NewL2ToL2MessageRelayer()
 	}
 
 	return &Orchestrator{log, l1Anvil, l2Anvils, l2OpSims, l2ToL2MsgIndexer, l2ToL2MessageRelayer}, nil
