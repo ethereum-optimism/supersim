@@ -30,8 +30,11 @@ type jsonRpcMessage struct {
 }
 
 func readJsonMessages(body io.Reader) ([]*jsonRpcMessage, bool, error) {
+	dec := json.NewDecoder(body)
+	dec.UseNumber()
+
 	var rawmsg json.RawMessage
-	if err := json.NewDecoder(body).Decode(&rawmsg); err != nil {
+	if err := dec.Decode(&rawmsg); err != nil {
 		return nil, false, err
 	}
 

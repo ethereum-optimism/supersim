@@ -236,12 +236,6 @@ func (a *Anvil) Config() *config.ChainConfig {
 	return a.cfg
 }
 
-func (a *Anvil) String() string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "Name: %s    Chain ID: %d    RPC: %s    LogPath: %s", a.Name(), a.ChainID(), a.Endpoint(), a.LogPath())
-	return b.String()
-}
-
 func (a *Anvil) EthClient() *ethclient.Client {
 	return a.ethClient
 }

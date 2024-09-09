@@ -183,18 +183,19 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
 		}
 
+		chainId := opSim.Config().ChainID
+
 		for {
 			select {
 			case dep := <-depositTxCh:
 				depTx := types.NewTx(dep)
-				opSim.log.Debug("received deposit tx", "hash", depTx.Hash().String())
+				opSim.log.Debug("observed deposit event on L1", "hash", depTx.Hash().String())
 
 				clnt := opSim.Chain.EthClient()
 				if err := clnt.SendTransaction(opSim.bgTasksCtx, depTx); err != nil {
-					opSim.log.Error("failed to submit deposit tx: %w", err)
+					opSim.log.Error("failed to submit deposit tx to chain: %w", "chain.id", chainId, "err", err)
 				}
-
-				opSim.log.Debug("submitted deposit tx", "hash", depTx.Hash().String())
+				opSim.log.Debug("submitted deposit tx to chain", "chain.id", chainId, "hash", depTx.Hash().String())
 
 			case <-opSim.bgTasksCtx.Done():
 				sub.Unsubscribe()
@@ -290,18 +291,30 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 			}
 		}
 
+		var encdata []byte
 		if isBatchRequest {
-			if err := json.NewEncoder(w).Encode(batchRes); err != nil {
-				opSim.log.Error("failed to write batch response", "err", err)
-				http.Error(w, "Failed to write batch response", http.StatusInternalServerError)
-				return
-			}
+			encdata, err = json.Marshal(batchRes)
 		} else {
-			if err := json.NewEncoder(w).Encode(batchRes[0]); err != nil {
-				opSim.log.Error("failed to write response", "err", err)
-				http.Error(w, "Failed to write batch response", http.StatusInternalServerError)
-				return
-			}
+			encdata, err = json.Marshal(batchRes[0])
+		}
+
+		// encoding error
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// write to response
+		w.Header().Set("Content-Length", strconv.Itoa(len(encdata)))
+		w.Header().Set("Transfer-Encoding", "identity")
+		if _, err := w.Write(encdata); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// trigger a flush if applicable
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
 		}
 	}
 }
@@ -417,8 +430,8 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 
 // Overridden such that the port field can appropiately be set
 func (opSim *OpSimulator) Config() *config.ChainConfig {
-	// we dereference the config so that a copy is made.
-	//  - NOTE: This is only okay since the field were modifying are non-pointer fields
+	// we dereference the config so that a copy is made. This is only okay since
+	// the field were modifying is a non-pointer fields
 	cfg := *opSim.Chain.Config()
 	cfg.Port = opSim.port
 	return &cfg
@@ -427,14 +440,6 @@ func (opSim *OpSimulator) Config() *config.ChainConfig {
 // Overridden such that the correct port is used
 func (opSim *OpSimulator) Endpoint() string {
 	return fmt.Sprintf("http://%s:%d", host, opSim.port)
-}
-
-// Overridden such that the right endpoint is used
-func (opSim *OpSimulator) String() string {
-	var b strings.Builder
-	cfg := opSim.Config()
-	fmt.Fprintf(&b, "Name: %s    Chain ID: %d    RPC: %s    LogPath: %s", cfg.Name, cfg.ChainID, opSim.Endpoint(), opSim.LogPath())
-	return b.String()
 }
 
 func corsHandler(next http.Handler) http.Handler {

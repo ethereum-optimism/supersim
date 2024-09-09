@@ -69,7 +69,6 @@ type Chain interface {
 	// Properties
 	Endpoint() string
 	LogPath() string
-	String() string
 	Config() *ChainConfig
 	EthClient() *ethclient.Client
 
@@ -87,7 +86,7 @@ type Chain interface {
 func GetDefaultNetworkConfig(startingTimestamp uint64) NetworkConfig {
 	return NetworkConfig{
 		L1Config: ChainConfig{
-			Name:              "L1",
+			Name:              "Local",
 			ChainID:           genesis.GeneratedGenesisDeployment.L1.ChainID,
 			SecretsConfig:     DefaultSecretsConfig,
 			GenesisJSON:       genesis.GeneratedGenesisDeployment.L1.GenesisJSON,

@@ -202,14 +202,11 @@ func (o *Orchestrator) Endpoint(chainId uint64) string {
 
 func (o *Orchestrator) ConfigAsString() string {
 	var b strings.Builder
-
-	if o.l1Chain != nil {
-		fmt.Fprintf(&b, "L1:\n")
-		fmt.Fprintf(&b, "  %s\n", o.l1Chain.String())
-	}
+	l1Cfg := o.l1Chain.Config()
+	fmt.Fprintf(&b, "L1: Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", l1Cfg.Name, l1Cfg.ChainID, o.l1Chain.Endpoint(), o.l1Chain.LogPath())
 
 	if len(o.l2OpSims) > 0 {
-		fmt.Fprintf(&b, "L2:\n")
+		fmt.Fprintf(&b, "\nL2s: Predeploy Contracts Spec ( %s )\n", "https://specs.optimism.io/protocol/predeploys.html")
 
 		opSims := make([]*opsimulator.OpSimulator, 0, len(o.l2OpSims))
 		for _, chain := range o.l2OpSims {
@@ -219,7 +216,13 @@ func (o *Orchestrator) ConfigAsString() string {
 		// sort by port number (retain ordering of chain flags)
 		sort.Slice(opSims, func(i, j int) bool { return opSims[i].Config().Port < opSims[j].Config().Port })
 		for _, opSim := range opSims {
-			fmt.Fprintf(&b, "  %s\n", opSim.String())
+			cfg := opSim.Config()
+			fmt.Fprintf(&b, "\n")
+			fmt.Fprintf(&b, "  * Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", cfg.Name, cfg.ChainID, opSim.Endpoint(), opSim.LogPath())
+			fmt.Fprintf(&b, "    L1 Contracts:\n")
+			fmt.Fprintf(&b, "     - OptimismPortal:         %s\n", cfg.L2Config.L1Addresses.OptimismPortalProxy)
+			fmt.Fprintf(&b, "     - L1CrossDomainMessenger: %s\n", cfg.L2Config.L1Addresses.L1CrossDomainMessengerProxy)
+			fmt.Fprintf(&b, "     - L1StandardBridge:       %s\n", cfg.L2Config.L1Addresses.L1StandardBridgeProxy)
 		}
 	}
 
