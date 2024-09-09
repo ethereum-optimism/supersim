@@ -84,10 +84,11 @@ func (s *Supersim) Stopped() bool {
 
 func (s *Supersim) ConfigAsString() string {
 	var b strings.Builder
-	fmt.Fprint(&b, config.DefaultSecretsConfigAsString())
+	fmt.Fprintln(&b, config.DefaultSecretsConfigAsString())
 
-	fmt.Fprintf(&b, "\nOrchestrator Config:\n")
-	fmt.Fprint(&b, s.Orchestrator.ConfigAsString())
+	fmt.Fprintln(&b, "Orchestrator Config")
+	fmt.Fprintln(&b, "-----------------------")
+	fmt.Fprintln(&b, s.Orchestrator.ConfigAsString())
 
 	return b.String()
 }
