@@ -82,11 +82,9 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		}
 	}
 
-	/*
-		if err := o.kickOffMining(ctx); err != nil {
-			return fmt.Errorf("unable to start mining: %w", err)
-		}
-	*/
+	if err := o.kickOffMining(ctx); err != nil {
+		return fmt.Errorf("unable to start mining: %w", err)
+	}
 
 	// TODO: hack until opsim proxy supports websocket connections.
 	// We need websocket connections to make subscriptions.
