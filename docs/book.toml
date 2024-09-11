@@ -4,3 +4,6 @@ language = "en"
 multilingual = false
 src = "src"
 title = "Supersim"
+
+[output.html]
+git-repository-url = "https://github.com/ethereum-optimism/supersim"

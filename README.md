@@ -108,7 +108,7 @@ supersim --interop.autorelay
 ```
 
 **2. Mint tokens to transfer on chain 901**
-Run the following command to mint 1000 tokens to the recipient address:
+Run the following command to mint 1000 `L2NativeSuperchainERC20` tokens to the recipient address:
 
 ```sh
 cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
