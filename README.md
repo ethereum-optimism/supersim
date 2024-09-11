@@ -1,175 +1,179 @@
-# Supersim
-A local development environment for testing against multiple nodes running simultaneously.
+# 🛠️ Supersim
 
-## Table of Contents
-- [Supersim](#supersim)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Getting started](#getting-started)
-    - [Running Locally](#running-locally)
-  - [Features](#features)
-    - [Vanilla mode](#vanilla-mode)
-    - [Forked mode](#forked-mode)
-      - [Enabling Interop in Fork Mode](#enabling-interop-in-fork-mode)
-  - [Examples](#examples)
-  - [SuperchainERC20](#superchainerc20)
-    - [L2NativeSuperchainERC20](#l2nativesuperchainerc20)
-      - [Minting new tokens](#minting-new-tokens)
-    - [OptimismSuperchainERC20](#optimismsuperchainerc20)
-  - [Join Discord](#join-discord)
-  - [Contributing](#contributing)
-  - [License](#license)
+Supersim is a lightweight tool to simulate the Superchain locally (with a single L1 and multiple OP-Stack L2s). Run multiple local nodes with one command, and coordinate message passing between them.
 
-## Overview
-Supersim allows developers to start multiple local evm nodes with one command, and coordinates message passing and asset transfer between these chains, following the Superchain interoperability spec.
 
-Supersim is a lightweight tool that simulates an interoperable Superchain environment locally. It does not require a complicated devnet setup and is run using cli commands with configuration options that fall back to sensible defaults if they are not specified. Each chain is an instance of [anvil](https://book.getfoundry.sh/reference/anvil/), though future versions may support other local testing tools.
 
-### Why Supersim?
+## ❓ Why Supersim?
 
 While existing tools focus on isolated smart contract testing, Supersim takes a quantum leap forward by providing a holistic, local development environment that mirrors the complex interactions of the Superchain ecosystem. Imagine having the power to simulate entire cross-chain application flows, complete with deployed contracts, intricate message passing infrastructure, and OP-Stack specific logic. Supersim makes this a reality. 
 
 As we move towards a multi-chain future, the ability to develop and test applications that seamlessly operate across different layers and chains becomes crucial. Supersim provides a consistent and reliable environment that mimics real-world Superchain interactions. By leveraging Supersim, developers can focus on building groundbreaking applications, rather than grappling with the intricacies of cross-chain testing environments. This tool doesn't just make development easier; it unlocks new possibilities for innovation in the Superchain ecosystem.
 
 
-## Getting started
-### Running Locally
-1. build the binary by running:
-```
-go build cmd/main.go
-```
-2. start supersim in vanilla mode by running:
-```
-./main
-```
+## ✨ Features 
 
-## Features
-### Vanilla mode
-Brings up one L1 chain and 2 L2 chains with the appropriate OP Stack contracts already deployed, allowing you to locally test against the latest OP Stack features.
+- spin up multiple anvil nodes
+- predeployed OP Stack contracts and useful mock contracts (ERC20)
+- fork multiple remote chains (fork the entire Superchain)
+- simulate L1 <> L2 message passing (deposits)
+- simulate L2 <> L2 message passing (interoperability) and auto-relayer
 
-How to run in vanilla mode:
-TODO: insert command
+## 🚀 Getting Started
 
-### Forked mode
-Locally fork any of the available chains in a superchain network of the [superchain registry](https://github.com/ethereum-optimism/superchain-registry), default mainnet. The fork height is determined by L1 block height (default latest), which
-determines the maximum timestamp for the forked L2 state of each chain to create some level of consistency.
+### 1. Install prerequisites: `foundry`
 
-Help Text:
-```
-NAME:
-   supersim - Superchain Multi-L2 Simulator
+`supersim` requires `anvil` to be installed.
 
-USAGE:
-   supersim [global options] command [command options]
+Follow the guide [here](https://book.getfoundry.sh/getting-started/installation) to install the Foundry toolchain.
 
-VERSION:
-   untagged
+### 2. Install `supersim`
 
-DESCRIPTION:
-   Local multichain optimism development environment
+#### Precompiled Binaries
 
-COMMANDS:
-   fork     Locally fork a network in the superchain registry
-   help, h  Shows a list of commands or help for one command
+Download the executable for your platform from the [GitHub releases page](https://github.com/ethereum-optimism/supersim/releases).
 
-GLOBAL OPTIONS:
+#### Homebrew (OS X, Linux)
 
-    --interop.autorelay                 (default: false)                   ($SUPERSIM_AUTORELAY)
-          Automatically relay messages sent to the L2ToL2CrossDomainMessenger using
-          account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
+*Coming soon*
 
-    --l1.port value                     (default: 8545)                    ($SUPERSIM_L1_PORT)
-          Listening port for the L1 instance. `0` binds to any available port
+### 3. Start `supersim` in vanilla mode
 
-    --l2.starting.port value            (default: 9545)                    ($SUPERSIM_L2_STARTING_PORT)
-          Starting port to increment from for L2 chains. `0` binds each chain to any
-          available port
-
-    --log.color                         (default: false)                   ($SUPERSIM_LOG_COLOR)
-          Color the log output if in terminal mode
-
-    --log.format value                  (default: text)                    ($SUPERSIM_LOG_FORMAT)
-          Format the log output. Supported formats: 'text', 'terminal', 'logfmt', 'json',
-          'json-pretty',
-
-    --log.level value                   (default: INFO)                    ($SUPERSIM_LOG_LEVEL)
-          The lowest log level that will be output
-
-    --log.pid                           (default: false)                   ($SUPERSIM_LOG_PID)
-          Show pid in the log   
-```
-
-#### Enabling Interop in Fork Mode
-To apply the changes needed for enabling interop on forked chains, pass `--experiment.interop true` in when starting supersim in fork mode. This will configure interop such that all forked L2 chains are in one another's dependency sets and can pass messages between each other.
-
-## Examples
-
-### Transferring L2NativeSuperchainERC20
-
-1. run supersim with `interop.autorelay` enabled
 ```sh
-supersim --interop.autorelay
+supersim
+```
+Vanilla mode will start 3 chains, with the OP Stack contracts already deployed.
+
+```
+L1:
+  Name: L1    Chain ID: 900    RPC: http://127.0.0.1:8545    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-900
+L2:
+  Name: OPChainA    Chain ID: 901    RPC: http://127.0.0.1:9545    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-901
+  Name: OPChainB    Chain ID: 902    RPC: http://127.0.0.1:9546    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-902
 ```
 
-2. mint some tokens to transfer
+### 4. Start testing multichain features 🚀
+
+Some examples below! 
+
+## 🔀 First steps
+
+### Example A: (L1 to L2) Deposit ETH from the L1 into the L2 
+
+**1. Call `bridgeETH` function on the `L1StandardBridgeProxy` contract on the L1 (chain 900)**
+
+Initiate a bridge transaction on the L1:
+
+```sh
+cast send 0xa01ae68902e205B420FD164435F299E07b0C778b "bridgeETH(uint32 _minGasLimit, bytes calldata _extraData)" 50000 0x --value 0.1ether --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+```
+
+**2. Check the balance on the L2 (chain 901)**
+
+Verify that the ETH balance of the sender has increased on the L2:
+
+```sh
+cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545
+```
+
+### Example B: (L2 to L2) Send an interoperable SuperchainERC20 token from chain 901 to 902
+
+In a typical L2 to L2 cross-chain transfer, two transactions are required:
+
+1. Send transaction on the source chain – This initiates the token transfer on Chain 901.
+2. Relay message transaction on the destination chain – This relays the transfer details to Chain 902.
+
+To simplify this process, you can use the `--interop.autorelay` flag. This flag automatically triggers the relay message transaction once the initial send transaction is completed on the source chain, improving the developer experience by removing the need to manually send the relay message.
+
+**1. Start `supersim` with the autorelayer enabled.**
+
+```
+supersim --interop.autorelay 
+```
+
+**2. Mint tokens to transfer on chain 901**
+Run the following command to mint 1000 tokens to the recipient address:
+
 ```sh
 cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
 ```
 
-3. bridge the tokens using interop
+**3. Initiate the send transaction on chain 901**
+
+Send the tokens from Chain 901 to Chain 902 using the following command:
+
 ```sh
 cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
 
-4. in a few seconds, you should see the relayed message (ie. `L2ToL2CrossChainMessenger#RelayedMessage`) appear on chain 902
+**4. Wait for the relayed message to appear on chain 902** 
+
+In a few seconds, you should see the RelayedMessage on chain 902:
+
 ```sh
 # example
 INFO [08-30|14:30:14.698] L2ToL2CrossChainMessenger#RelayedMessage sourceChainID=901 destinationChainID=902 nonce=0 sender=0x61a6eF395d217eD7C79e1B84880167a417796172 target=0x61a6eF395d217eD7C79e1B84880167a417796172
 ```
-5. check the increased balance of the `L2NativeSuperchainERC20` on the destination chain (902)
+**5. Check the balance on chain 902** 
+
+Verify that the balance of the L2NativeSuperchainERC20 on chain 902 has increased:
+
 ```sh
 cast balance --erc20 0x61a6eF395d217eD7C79e1B84880167a417796172 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
 ```
 
-## Contracts
-|Contract| Address  |
-|---|---|
-|CrossL2Inbox| 0x4200000000000000000000000000000000000022|
-|L2ToL2CrossDomainMessenger |0x4200000000000000000000000000000000000023 |
 
-## SuperchainERC20
-Supersim by default includes the following SuperchainERC20 contracts for testing purposes.
+## 🌐 Fork mode
 
-|Contract| Address  |
-|---|---|
-|L2NativeSuperchainERC20| 0x61a6eF395d217eD7C79e1B84880167a417796172|
-|OptimismSuperchainERC20 |TODO |
+If you're relying on contracts already deployed on testnet / mainnet chains, use fork mode to simulate and interact with the state of the chain without needing to re-deploy or modify the contracts.
 
-### L2NativeSuperchainERC20 
+Locally fork any of the available chains in a superchain network of the [superchain registry](https://github.com/ethereum-optimism/superchain-registry), default `mainnet` versions. 
 
-Simple ERC20 that adheres to the SuperchainERC20 standard
-
-
-
-#### Minting new tokens
-```bash
-cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 _amount)" $RECIPIENT_ADDRESS 1ether  --rpc-url $L2_RPC_URL
+```
+supersim fork --chains=op,base,zora
 ```
 
-### OptimismSuperchainERC20
+The fork height is determined by L1 block height (default `latest`), which determines the maximum timestamp for the forked L2 state of each chain.
 
-TODO
+```
+Available Accounts
+-----------------------
+(0): 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+--- truncated for brevity ---
 
-## Join Discord
+Private Keys
+-----------------------
+(0): 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+--- truncated for brevity ---
+
+Orchestrator Config:
+L1:
+  Name: mainnet    Chain ID: 1    RPC: http://127.0.0.1:8545    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-1-1521250718
+L2:
+  Name: op    Chain ID: 10    RPC: http://127.0.0.1:9545    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-10
+  Name: base    Chain ID: 8453    RPC: http://127.0.0.1:9546    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-8453
+  Name: zora    Chain ID: 7777777    RPC: http://127.0.0.1:9547    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-7777777
+```
+
+### Note
+
+By default, interop contracts are not deployed on forked networks. To include them, run supersim with the `--interop.enabled` flag
+
+```sh
+supersim fork --chains=op,base,zora --interop.enabled
+```
+
+## 💬 Join Discord
 Join our discord [here](https://discord.gg/Scdnrw8d) and reach out to us in the [interop-devex](https://discord.com/channels/1244729134312198194/1255653436079210496) channel.
 
-## Contributing
+## 🤝 Contributing
 
 Contributions are encouraged, but please open an issue before making any major changes to ensure your changes will be accepted.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for contributing information.
 
-## License
+## 📜 License
 
 Files are licensed under the [MIT license](./LICENSE).
 
