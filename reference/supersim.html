@@ -1,0 +1,337 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>supersim - Supersim</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Getting Started</li><li class="chapter-item expanded "><a href="../getting-started/installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../getting-started/first-steps.html"><strong aria-hidden="true">2.</strong> First steps</a></li><li class="chapter-item expanded affix "><li class="part-title">CLI Reference</li><li class="chapter-item expanded "><a href="../reference/supersim.html" class="active"><strong aria-hidden="true">3.</strong> supersim</a></li><li class="chapter-item expanded "><a href="../reference/supersim-fork.html"><strong aria-hidden="true">4.</strong> supersim fork</a></li><li class="chapter-item expanded affix "><li class="part-title">Chain Environment</li><li class="chapter-item expanded "><a href="../chain-environment/contracts/index.html"><strong aria-hidden="true">5.</strong> Included contracts</a></li><li class="chapter-item expanded "><a href="../chain-environment/network-details/index.html"><strong aria-hidden="true">6.</strong> Network details & contract addresses</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../chain-environment/network-details/op-chain-a.html"><strong aria-hidden="true">6.1.</strong> OPChainA</a></li><li class="chapter-item expanded "><a href="../chain-environment/network-details/op-chain-b.html"><strong aria-hidden="true">6.2.</strong> OPChainB</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../guides/deposit-transactions.html"><strong aria-hidden="true">7.</strong> Sending deposit transactions</a></li><li class="chapter-item expanded "><a href="../guides/interop/index.html"><strong aria-hidden="true">8.</strong> Interoperability</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../guides/interop/interop-identifiers.html"><strong aria-hidden="true">8.1.</strong> Fetching identifiers for interop messages</a></li><li class="chapter-item expanded "><a href="../guides/interop/calling-destination-contract.html"><strong aria-hidden="true">8.2.</strong> Calling contract on other chain</a></li><li class="chapter-item expanded "><a href="../guides/interop/bridging-superchainweth.html"><strong aria-hidden="true">8.3.</strong> Bridging SuperchainWETH</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="../examples/cross-chain-tictactoe.html"><strong aria-hidden="true">9.</strong> Cross-chain tic-tac-toe</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Supersim</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <!-- omit in toc -->
+<h1 id="supersim-vanilla-mode"><a class="header" href="#supersim-vanilla-mode">supersim (vanilla mode)</a></h1>
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#configuration">Configuration</a></li>
+</ul>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>Start supersim in vanilla (non-forked) mode</p>
+<pre><code class="language-sh">supersim
+</code></pre>
+<p>Vanilla mode will start 3 chains, with the OP Stack contracts &amp; periphery contracts already deployed.</p>
+<ul>
+<li>(1) L1 Chain
+<ul>
+<li>Chain 900</li>
+</ul>
+</li>
+<li>(2) L2 Chains
+<ul>
+<li>Chain 901</li>
+<li>Chain 902</li>
+</ul>
+</li>
+</ul>
+<p><strong>Example startup logs</strong></p>
+<pre><code>Available Accounts
+-----------------------
+(0): 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+(1): 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+(2): 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+(3): 0x90F79bf6EB2c4f870365E785982E1f101E93b906
+(4): 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
+(5): 0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc
+(6): 0x976EA74026E726554dB657fA54763abd0C3a0aa9
+(7): 0x14dC79964da2C08b23698B3D3cc7Ca32193d9955
+(8): 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f
+(9): 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
+
+Private Keys
+-----------------------
+(0): 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+(1): 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+(2): 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+(3): 0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6
+(4): 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a
+(5): 0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba
+(6): 0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e
+(7): 0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356
+(8): 0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97
+(9): 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
+
+Orchestrator Config:
+L1:
+  Name: L1    Chain ID: 900    RPC: http://127.0.0.1:8545    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-900
+L2:
+  Name: OPChainA    Chain ID: 901    RPC: http://127.0.0.1:9545    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-901
+  Name: OPChainB    Chain ID: 902    RPC: http://127.0.0.1:9546    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-902
+</code></pre>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<pre><code>NAME:
+   supersim - Superchain Multi-L2 Simulator
+
+USAGE:
+   supersim [global options] command [command options]
+
+VERSION:
+   untagged
+
+DESCRIPTION:
+   Local multichain optimism development environment
+
+COMMANDS:
+   fork     Locally fork a network in the superchain registry
+   help, h  Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+
+    --interop.autorelay                 (default: false)                   ($SUPERSIM_AUTORELAY)
+          Automatically relay messages sent to the L2ToL2CrossDomainMessenger using
+          account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
+
+    --l1.port value                     (default: 8545)                    ($SUPERSIM_L1_PORT)
+          Listening port for the L1 instance. `0` binds to any available port
+
+    --l2.starting.port value            (default: 9545)                    ($SUPERSIM_L2_STARTING_PORT)
+          Starting port to increment from for L2 chains. `0` binds each chain to any
+          available port
+
+    --log.color                         (default: false)                   ($SUPERSIM_LOG_COLOR)
+          Color the log output if in terminal mode
+
+    --log.format value                  (default: text)                    ($SUPERSIM_LOG_FORMAT)
+          Format the log output. Supported formats: 'text', 'terminal', 'logfmt', 'json',
+          'json-pretty',
+
+    --log.level value                   (default: INFO)                    ($SUPERSIM_LOG_LEVEL)
+          The lowest log level that will be output
+
+    --log.pid                           (default: false)                   ($SUPERSIM_LOG_PID)
+          Show pid in the log
+
+   MISC
+
+
+    --help, -h                          (default: false)
+          show help
+
+    --version, -v                       (default: false)
+          print the version
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../getting-started/first-steps.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../reference/supersim-fork.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../getting-started/first-steps.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../reference/supersim-fork.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
