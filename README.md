@@ -25,7 +25,7 @@ As we move towards a multi-chain future, the ability to develop and test applica
 
 `supersim` requires `anvil` to be installed.
 
-Follow the guide [here](https://book.getfoundry.sh/getting-started/installation) to install the Foundry toolchain.
+Follow the guide [here](https://book.getfoundry.sh/getting-started/installation) to install the Foundry toolchain, which includes `anvil`.
 
 ### 2. Install `supersim`
 
