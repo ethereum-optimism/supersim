@@ -19,7 +19,7 @@ const blockTime = 2
 
 func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig *config.ForkCLIConfig) (config.NetworkConfig, error) {
 	superchain := registry.Superchains[forkConfig.Network]
-	networkConfig := config.NetworkConfig{}
+	networkConfig := config.NetworkConfig{InteropEnabled: forkConfig.InteropEnabled}
 
 	// L1
 	l1RpcUrl := superchain.Config.L1.PublicRPC
@@ -98,7 +98,6 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 			ForkConfig: &config.ForkConfig{
 				RPCUrl:      l2RpcUrl,
 				BlockNumber: l2ForkHeight,
-				UseInterop:  forkConfig.UseInterop,
 			},
 			L2Config: &config.L2Config{
 				L1ChainID:   superchain.Config.L1.ChainID,
@@ -106,17 +105,15 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 			},
 		}
 
-		if l2ChainConfig.ForkConfig.UseInterop {
+		if forkConfig.InteropEnabled {
 			var dependencySet []uint64
-			for _, chainToAddToDepSet := range forkConfig.Chains {
-				chainToAddToDepSetCfg := config.OPChainByName(superchain, chainToAddToDepSet)
-				if chainToAddToDepSetCfg == nil {
-					return networkConfig, fmt.Errorf("unrecognized chain %s. superchain %s", chainToAddToDepSet, superchain.Superchain)
-				}
-				if chainToAddToDepSetCfg.ChainID != l2ChainConfig.ChainID {
-					dependencySet = append(dependencySet, chainToAddToDepSetCfg.ChainID)
+			for _, chain := range forkConfig.Chains {
+				chainCfg := config.OPChainByName(superchain, chain)
+				if chainCfg.ChainID != l2ChainConfig.ChainID {
+					dependencySet = append(dependencySet, chainCfg.ChainID)
 				}
 			}
+
 			l2ChainConfig.L2Config.DependencySet = dependencySet
 		}
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/orchestrator"
@@ -16,18 +17,22 @@ import (
 type Supersim struct {
 	log log.Logger
 
-	Cfg          config.NetworkConfig
+	CLIConfig     *config.CLIConfig
+	NetworkConfig *config.NetworkConfig
+
 	Orchestrator *orchestrator.Orchestrator
 }
 
 func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseFunc, cliConfig *config.CLIConfig) (*Supersim, error) {
-	cfg := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()))
+	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()))
+
+	// If Forking, override the network config with the generated fork config
 	if cliConfig.ForkConfig != nil {
 		superchain := registry.Superchains[cliConfig.ForkConfig.Network]
 		log.Info("generating fork configuration", "superchain", superchain.Superchain)
 
 		var err error
-		cfg, err = orchestrator.NetworkConfigFromForkCLIConfig(log, envPrefix, cliConfig.ForkConfig)
+		networkConfig, err = orchestrator.NetworkConfigFromForkCLIConfig(log, envPrefix, cliConfig.ForkConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to construct fork configuration: %w", err)
 		}
@@ -36,28 +41,31 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 		if cliConfig.ForkConfig.L1ForkHeight > 0 {
 			l1ForkHeightStr = fmt.Sprintf("%d", cliConfig.ForkConfig.L1ForkHeight)
 		}
-		log.Info("forked l1 chain config", "name", superchain.Superchain, "chain.id", cfg.L1Config.ChainID, "fork.height", l1ForkHeightStr)
-		for _, chainCfg := range cfg.L2Configs {
+
+		log.Info("forked l1 chain config", "name", superchain.Superchain, "chain.id", networkConfig.L1Config.ChainID, "fork.height", l1ForkHeightStr)
+		for _, chainCfg := range networkConfig.L2Configs {
 			name := registry.OPChains[chainCfg.ChainID].Chain
 			log.Info("forked l2 chain config", "name", name, "chain.id", chainCfg.ChainID, "fork.height", chainCfg.ForkConfig.BlockNumber)
 		}
 	}
 
 	// Forward set ports. Setting `0` will work to allocate a random port
-	cfg.L1Config.Port = cliConfig.L1Port
-	cfg.L2StartingPort = cliConfig.L2StartingPort
+	networkConfig.L1Config.Port = cliConfig.L1Port
+	networkConfig.L2StartingPort = cliConfig.L2StartingPort
 
-	o, err := orchestrator.NewOrchestrator(log, closeApp, &cfg, cliConfig.InteropAutoRelay)
+	// Forward interop config
+	networkConfig.InteropAutoRelay = cliConfig.InteropAutoRelay
+
+	o, err := orchestrator.NewOrchestrator(log, closeApp, &networkConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create orchestrator")
 	}
 
-	return &Supersim{log, cfg, o}, nil
+	return &Supersim{log, cliConfig, &networkConfig, o}, nil
 }
 
 func (s *Supersim) Start(ctx context.Context) error {
 	s.log.Info("starting supersim")
-
 	if err := s.Orchestrator.Start(ctx); err != nil {
 		return fmt.Errorf("orchestrator failed to start: %w", err)
 	}
@@ -85,10 +93,19 @@ func (s *Supersim) Stopped() bool {
 func (s *Supersim) ConfigAsString() string {
 	var b strings.Builder
 	fmt.Fprintln(&b, config.DefaultSecretsConfigAsString())
-
-	fmt.Fprintln(&b, "Orchestrator Config")
+	fmt.Fprintln(&b, "Chain Configuration")
 	fmt.Fprintln(&b, "-----------------------")
 	fmt.Fprintln(&b, s.Orchestrator.ConfigAsString())
+
+	// Vanilla mode or enabled in fork mode
+	if s.NetworkConfig.InteropEnabled {
+		fmt.Fprintln(&b, "(EXPERIMENTAL) Interop!")
+		fmt.Fprintln(&b, "-----------------------")
+		fmt.Fprintln(&b, "For more information see the explainer! ( https://docs.optimism.io/stack/protocol/interop/explainer )")
+		fmt.Fprintln(&b, "\nAdded Predeploy Contracts:")
+		fmt.Fprintf(&b, " - L2ToL2CrossDomainMessenger: %s\n", predeploys.L2CrossDomainMessenger)
+		fmt.Fprintf(&b, " - CrossL2Inbox:               %s\n", predeploys.CrossL2Inbox)
+	}
 
 	return b.String()
 }

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
@@ -19,7 +18,8 @@ import (
 )
 
 type Orchestrator struct {
-	log log.Logger
+	log    log.Logger
+	config *config.NetworkConfig
 
 	l1Chain config.Chain
 
@@ -30,11 +30,11 @@ type Orchestrator struct {
 	l2ToL2MsgRelayer *interop.L2ToL2MessageRelayer
 }
 
-func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig, enableAutoRelay bool) (*Orchestrator, error) {
+func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig) (*Orchestrator, error) {
 	// Spin up L1 anvil instance
 	l1Anvil := anvil.New(log, closeApp, &networkConfig.L1Config)
 
-	// Spin up L2 anvil instances fronted by opsim
+	// Spin up L2 anvil instances
 	nextL2Port := networkConfig.L2StartingPort
 	l2Anvils, l2OpSims := make(map[uint64]config.Chain), make(map[uint64]*opsimulator.OpSimulator)
 	for i := range networkConfig.L2Configs {
@@ -44,8 +44,8 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		l2Anvil := anvil.New(log, closeApp, &cfg)
 		l2Anvils[cfg.ChainID] = l2Anvil
 	}
-	l2ToL2MsgIndexer := interop.NewL2ToL2MessageIndexer(log)
 
+	// Sping up OpSim to fornt the L2 instances
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
 		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils)
@@ -56,21 +56,26 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		}
 	}
 
-	var l2ToL2MessageRelayer *interop.L2ToL2MessageRelayer
-	if enableAutoRelay {
-		l2ToL2MessageRelayer = interop.NewL2ToL2MessageRelayer()
+	o := Orchestrator{log: log, config: networkConfig, l1Chain: l1Anvil, l2Chains: l2Anvils, l2OpSims: l2OpSims}
+
+	// Interop Setup
+	if networkConfig.InteropEnabled {
+		o.l2ToL2MsgIndexer = interop.NewL2ToL2MessageIndexer(log)
+		if networkConfig.InteropAutoRelay {
+			o.l2ToL2MsgRelayer = interop.NewL2ToL2MessageRelayer()
+		}
 	}
 
-	return &Orchestrator{log, l1Anvil, l2Anvils, l2OpSims, l2ToL2MsgIndexer, l2ToL2MessageRelayer}, nil
+	return &o, nil
 }
 
 func (o *Orchestrator) Start(ctx context.Context) error {
+	o.log.Debug("starting orchestrator")
 
-	o.log.Info("starting orchestrator")
+	// Start Chains
 	if err := o.l1Chain.Start(ctx); err != nil {
 		return fmt.Errorf("l1 chain %s failed to start: %w", o.l1Chain.Config().Name, err)
 	}
-
 	for _, chain := range o.l2Chains {
 		if err := chain.Start(ctx); err != nil {
 			return fmt.Errorf("l2 chain %s failed to start: %w", chain.Config().Name, err)
@@ -82,6 +87,7 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		}
 	}
 
+	// Start Mining Blocks
 	if err := o.kickOffMining(ctx); err != nil {
 		return fmt.Errorf("unable to start mining: %w", err)
 	}
@@ -91,20 +97,29 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 	// We should try to use make RPC through opsim not directly to the underlying chain
 	l2ChainClientByChainId := make(map[uint64]*ethclient.Client)
 	l2OpSimClientByChainId := make(map[uint64]*ethclient.Client)
-
 	for chainID, opSim := range o.l2OpSims {
 		l2ChainClientByChainId[chainID] = opSim.Chain.EthClient()
 		l2OpSimClientByChainId[chainID] = opSim.EthClient()
 	}
 
-	if err := o.l2ToL2MsgIndexer.Start(ctx, l2ChainClientByChainId); err != nil {
-		return fmt.Errorf("l2 to l2 message indexer failed to start: %w", err)
-	}
+	// Configure Interop (if applicable)
+	if o.config.InteropEnabled {
+		o.log.Info("configuring interop contracts")
+		for _, chain := range o.l2Chains {
+			if err := interop.Configure(ctx, chain); err != nil {
+				return fmt.Errorf("failed to configure interop for chain %s: %w", chain.Config().Name, err)
+			}
+		}
 
-	if o.l2ToL2MsgRelayer != nil {
-		o.log.Info("starting L2ToL2CrossDomainMessenger autorelayer")
-		if err := o.l2ToL2MsgRelayer.Start(o.l2ToL2MsgIndexer, l2OpSimClientByChainId); err != nil {
-			return fmt.Errorf("l2 to l2 message relayer failed to start: %w", err)
+		if err := o.l2ToL2MsgIndexer.Start(ctx, l2ChainClientByChainId); err != nil {
+			return fmt.Errorf("l2 to l2 message indexer failed to start: %w", err)
+		}
+
+		if o.l2ToL2MsgRelayer != nil {
+			o.log.Info("starting L2ToL2CrossDomainMessenger autorelayer") // `info` since it's explictly enabled
+			if err := o.l2ToL2MsgRelayer.Start(o.l2ToL2MsgIndexer, l2OpSimClientByChainId); err != nil {
+				return fmt.Errorf("l2 to l2 message relayer failed to start: %w", err)
+			}
 		}
 	}
 
@@ -114,18 +129,20 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 
 func (o *Orchestrator) Stop(ctx context.Context) error {
 	var errs []error
+	o.log.Debug("stopping orchestrator")
 
-	o.log.Info("stopping orchestrator")
+	if o.config.InteropEnabled {
+		if o.l2ToL2MsgRelayer != nil {
+			o.log.Info("stopping L2ToL2CrossDomainMessenger autorelayer")
+			o.l2ToL2MsgRelayer.Stop(ctx)
+		}
 
-	if o.l2ToL2MsgRelayer != nil {
-		o.log.Info("stopping L2ToL2CrossDomainMessenger autorelayer")
-		o.l2ToL2MsgRelayer.Stop(ctx)
+		o.log.Debug("stopping L2ToL2CrossDomainMessenger indexer")
+		if err := o.l2ToL2MsgIndexer.Stop(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("l2 to l2 message indexer failed to stop: %w", err))
+		}
 	}
 
-	o.log.Info("stopping L2ToL2CrossDomainMessenger indexer")
-	if err := o.l2ToL2MsgIndexer.Stop(ctx); err != nil {
-		errs = append(errs, fmt.Errorf("l2 to l2 message indexer failed to stop: %w", err))
-	}
 	for _, opSim := range o.l2OpSims {
 		o.log.Debug("stopping op simulator", "chain.id", opSim.Config().ChainID)
 		if err := opSim.Stop(ctx); err != nil {
@@ -148,37 +165,15 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 }
 
 func (o *Orchestrator) kickOffMining(ctx context.Context) error {
-	var once sync.Once
-	var err error
-	ctx, cancel := context.WithCancel(ctx)
-
-	handleErr := func(e error) {
-		if e == nil {
-			return
-		}
-
-		once.Do(func() {
-			err = e
-			cancel()
-		})
+	if err := o.l1Chain.SetIntervalMining(ctx, nil, 2); err != nil {
+		return errors.New("failed to start interval mining on l1")
 	}
-
-	var wg sync.WaitGroup
-	wg.Add(len(o.l2Chains) + 1)
-
-	handleErr(o.l1Chain.SetIntervalMining(ctx, nil, 2))
-	wg.Done()
-
 	for _, chain := range o.l2Chains {
-		go func() {
-			defer wg.Done()
-			handleErr(chain.SetIntervalMining(ctx, nil, 2))
-		}()
+		if err := chain.SetIntervalMining(ctx, nil, 2); err != nil {
+			return fmt.Errorf("failed to start interval mining for chain %s", chain.Config().Name)
+		}
 	}
-
-	wg.Wait()
-
-	return err
+	return nil
 }
 
 func (o *Orchestrator) L1Chain() config.Chain {
@@ -205,25 +200,22 @@ func (o *Orchestrator) ConfigAsString() string {
 	l1Cfg := o.l1Chain.Config()
 	fmt.Fprintf(&b, "L1: Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", l1Cfg.Name, l1Cfg.ChainID, o.l1Chain.Endpoint(), o.l1Chain.LogPath())
 
-	if len(o.l2OpSims) > 0 {
-		fmt.Fprintf(&b, "\nL2s: Predeploy Contracts Spec ( %s )\n", "https://specs.optimism.io/protocol/predeploys.html")
+	fmt.Fprintf(&b, "\nL2s: Predeploy Contracts Spec ( %s )\n", "https://specs.optimism.io/protocol/predeploys.html")
+	opSims := make([]*opsimulator.OpSimulator, 0, len(o.l2OpSims))
+	for _, chain := range o.l2OpSims {
+		opSims = append(opSims, chain)
+	}
 
-		opSims := make([]*opsimulator.OpSimulator, 0, len(o.l2OpSims))
-		for _, chain := range o.l2OpSims {
-			opSims = append(opSims, chain)
-		}
-
-		// sort by port number (retain ordering of chain flags)
-		sort.Slice(opSims, func(i, j int) bool { return opSims[i].Config().Port < opSims[j].Config().Port })
-		for _, opSim := range opSims {
-			cfg := opSim.Config()
-			fmt.Fprintf(&b, "\n")
-			fmt.Fprintf(&b, "  * Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", cfg.Name, cfg.ChainID, opSim.Endpoint(), opSim.LogPath())
-			fmt.Fprintf(&b, "    L1 Contracts:\n")
-			fmt.Fprintf(&b, "     - OptimismPortal:         %s\n", cfg.L2Config.L1Addresses.OptimismPortalProxy)
-			fmt.Fprintf(&b, "     - L1CrossDomainMessenger: %s\n", cfg.L2Config.L1Addresses.L1CrossDomainMessengerProxy)
-			fmt.Fprintf(&b, "     - L1StandardBridge:       %s\n", cfg.L2Config.L1Addresses.L1StandardBridgeProxy)
-		}
+	// sort by port number (retain ordering of chain flags)
+	sort.Slice(opSims, func(i, j int) bool { return opSims[i].Config().Port < opSims[j].Config().Port })
+	for _, opSim := range opSims {
+		cfg := opSim.Config()
+		fmt.Fprintf(&b, "\n")
+		fmt.Fprintf(&b, "  * Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", cfg.Name, cfg.ChainID, opSim.Endpoint(), opSim.LogPath())
+		fmt.Fprintf(&b, "    L1 Contracts:\n")
+		fmt.Fprintf(&b, "     - OptimismPortal:         %s\n", cfg.L2Config.L1Addresses.OptimismPortalProxy)
+		fmt.Fprintf(&b, "     - L1CrossDomainMessenger: %s\n", cfg.L2Config.L1Addresses.L1CrossDomainMessengerProxy)
+		fmt.Fprintf(&b, "     - L1StandardBridge:       %s\n", cfg.L2Config.L1Addresses.L1StandardBridgeProxy)
 	}
 
 	return b.String()
