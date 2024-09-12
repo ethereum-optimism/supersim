@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
@@ -168,12 +169,22 @@ func (o *Orchestrator) kickOffMining(ctx context.Context) error {
 	if err := o.l1Chain.SetIntervalMining(ctx, nil, 2); err != nil {
 		return errors.New("failed to start interval mining on l1")
 	}
-	for _, chain := range o.l2Chains {
-		if err := chain.SetIntervalMining(ctx, nil, 2); err != nil {
-			return fmt.Errorf("failed to start interval mining for chain %s", chain.Config().Name)
-		}
+
+	var wg sync.WaitGroup
+	wg.Add(len(o.l2Chains))
+
+	errs := make([]error, len(o.l2Chains))
+	for i, chain := range o.l2Chains {
+		go func(i uint64) {
+			if err := chain.SetIntervalMining(ctx, nil, 2); err != nil {
+				errs[i] = fmt.Errorf("failed to start interval mining for chain %s", chain.Config().Name)
+			}
+
+			wg.Done()
+		}(i)
 	}
-	return nil
+
+	return errors.Join(errs...)
 }
 
 func (o *Orchestrator) L1Chain() config.Chain {
