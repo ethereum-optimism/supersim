@@ -6,10 +6,14 @@ Supersim is a lightweight tool to simulate the Superchain locally (with a single
 
 ## ❓ Why Supersim?
 
-While existing tools focus on isolated smart contract testing, Supersim takes a quantum leap forward by providing a holistic, local development environment that mirrors the complex interactions of the Superchain ecosystem. Imagine having the power to simulate entire cross-chain application flows, complete with deployed contracts, intricate message passing infrastructure, and OP-Stack specific logic. Supersim makes this a reality. 
+While existing tools focus on isolated smart contract testing, Supersim provides a local development environment that mirrors the complex interactions of the Superchain ecosystem. Simulate entire cross-chain application flows, complete with deployed contracts, intricate message passing infrastructure, and OP-Stack specific logic with one command.
 
-As we move towards a multi-chain future, the ability to develop and test applications that seamlessly operate across different layers and chains becomes crucial. Supersim provides a consistent and reliable environment that mimics real-world Superchain interactions. By leveraging Supersim, developers can focus on building groundbreaking applications, rather than grappling with the intricacies of cross-chain testing environments. This tool doesn't just make development easier; it unlocks new possibilities for innovation in the Superchain ecosystem.
+Multichain development offers unique challenges:
+- Coordinating startup and running multiple local chains
+- Deploying system contracts to mimic desired functionality
+- Running local offchain services like message relayers
 
+Supersim enables fast, local iteration on cross-chain features, with a simple developer interface.
 
 ## ✨ Features 
 
