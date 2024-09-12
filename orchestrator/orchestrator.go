@@ -106,10 +106,19 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 	// Configure Interop (if applicable)
 	if o.config.InteropEnabled {
 		o.log.Info("configuring interop contracts")
-		for _, chain := range o.l2Chains {
-			if err := interop.Configure(ctx, chain); err != nil {
-				return fmt.Errorf("failed to configure interop for chain %s: %w", chain.Config().Name, err)
-			}
+
+		var wg sync.WaitGroup
+		wg.Add(len(o.l2Chains))
+		errs := make([]error, len(o.l2Chains))
+		for i, chain := range o.L2Chains() {
+			go func(i int) {
+				if err := interop.Configure(ctx, chain); err != nil {
+					errs[i] = fmt.Errorf("failed to configure interop for chain %s: %w", chain.Config().Name, err)
+				}
+			}(i)
+		}
+		if err := errors.Join(errs...); err != nil {
+			return err
 		}
 
 		if err := o.l2ToL2MsgIndexer.Start(ctx, l2ChainClientByChainId); err != nil {
@@ -174,8 +183,8 @@ func (o *Orchestrator) kickOffMining(ctx context.Context) error {
 	wg.Add(len(o.l2Chains))
 
 	errs := make([]error, len(o.l2Chains))
-	for i, chain := range o.l2Chains {
-		go func(i uint64) {
+	for i, chain := range o.L2Chains() {
+		go func(i int) {
 			if err := chain.SetIntervalMining(ctx, nil, 2); err != nil {
 				errs[i] = fmt.Errorf("failed to start interval mining for chain %s", chain.Config().Name)
 			}
