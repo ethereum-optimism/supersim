@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/tasks"
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/hdaccount"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -55,6 +57,7 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 
 	for destinationChainID, client := range r.clients {
 		r.tasks.Go(func() error {
+			var mu sync.Mutex
 			sentMessageCh := make(chan *L2ToL2MessageStoreEntry)
 			unsubscribe, err := r.l2ToL2MessageIndexer.SubscribeSentMessageToDestination(destinationChainID, sentMessageCh)
 
@@ -82,13 +85,35 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 					identifier := sentMessage.Identifier()
 					msg := sentMessage.Message()
 					calldata, err := msg.EventData()
+
 					if err != nil {
 						return fmt.Errorf("failed to get event data: %w", err)
 					}
 
-					if _, err = crossL2Inbox.ExecuteMessage(transactor, *identifier, predeploys.L2toL2CrossDomainMessengerAddr, calldata); err != nil {
+					// For some reason gas estimation does not work properly for some messages so estimating and padding gas (https://github.com/ethereum-optimism/supersim/issues/143)
+					txData, err := bindings.CrossL2InboxParsedABI.Pack("executeMessage", *identifier, predeploys.L2toL2CrossDomainMessengerAddr, calldata)
+					if err != nil {
+						return fmt.Errorf("failed to create execute message calldata: %w", err)
+					}
+					gasEstimate, err := client.EstimateGas(r.tasksCtx, ethereum.CallMsg{
+						From: transactor.From,
+						To:   &predeploys.CrossL2InboxAddr,
+						Data: txData,
+					})
+					if err != nil {
+						return fmt.Errorf("failed to estimate gas for execute message tx: %w", err)
+					}
+					// Pad gas by 33%.
+					paddedGas := (gasEstimate / 3) + gasEstimate
+					mu.Lock()
+					defer mu.Unlock()
+					originalTransactorGasLimit := transactor.GasLimit
+					transactor.GasLimit = paddedGas
+
+					if _, err := crossL2Inbox.ExecuteMessage(transactor, *identifier, predeploys.L2toL2CrossDomainMessengerAddr, calldata); err != nil {
 						return fmt.Errorf("failed to execute message: %w", err)
 					}
+					transactor.GasLimit = originalTransactorGasLimit
 				}
 			}
 

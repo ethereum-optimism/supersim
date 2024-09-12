@@ -34,6 +34,7 @@ import (
 const (
 	host                        = "127.0.0.1"
 	l2NativeSuperchainERC20Addr = "0x61a6eF395d217eD7C79e1B84880167a417796172"
+	superchainWETHAddr          = "0x4200000000000000000000000000000000000024"
 )
 
 type OpSimulator struct {
@@ -191,6 +192,39 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 				opSim.log.Info("L2NativeSuperchainERC20#SendERC20", "from", event.From, "to", event.To, "amount", event.Amount, "destination", event.Destination)
 			case event := <-relayEventChan:
 				opSim.log.Info("L2NativeSuperchainERC20#RelayERC20", "from", event.From, "to", event.To, "amount", event.Amount, "source", event.Source)
+			case <-opSim.bgTasksCtx.Done():
+				sendSub.Unsubscribe()
+				relaySub.Unsubscribe()
+				return nil
+			}
+		}
+	})
+
+	// Log SuperchainWETH events
+	opSim.bgTasks.Go(func() error {
+		superchainWETH, err := bindings.NewSuperchainWETH(common.HexToAddress(superchainWETHAddr), opSim.Chain.EthClient())
+		if err != nil {
+			return fmt.Errorf("failed to create SuperchainWETH contract: %w", err)
+		}
+
+		sendEventChan := make(chan *bindings.SuperchainWETHSendERC20)
+		sendSub, err := superchainWETH.WatchSendERC20(&bind.WatchOpts{Context: opSim.bgTasksCtx}, sendEventChan, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to SuperchainWETH#SendERC20: %w", err)
+		}
+
+		relayEventChan := make(chan *bindings.SuperchainWETHRelayERC20)
+		relaySub, err := superchainWETH.WatchRelayERC20(&bind.WatchOpts{Context: opSim.bgTasksCtx}, relayEventChan, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to SuperchainWETH#RelayERC20: %w", err)
+		}
+
+		for {
+			select {
+			case event := <-sendEventChan:
+				opSim.log.Info("SuperchainWETH#SendERC20", "from", event.From, "to", event.To, "amount", event.Amount, "destination", event.Destination)
+			case event := <-relayEventChan:
+				opSim.log.Info("SuperchainWETH#RelayERC20", "from", event.From, "to", event.To, "amount", event.Amount, "source", event.Source)
 			case <-opSim.bgTasksCtx.Done():
 				sendSub.Unsubscribe()
 				relaySub.Unsubscribe()
