@@ -2,9 +2,9 @@
 pragma solidity 0.8.25;
 
 import {ERC20} from "@solady/tokens/ERC20.sol";
-import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock/L2/IL2ToL2CrossDomainMessenger.sol";
-import {ISuperchainERC20Extensions} from "@contracts-bedrock/L2/ISuperchainERC20.sol";
-import {ISemver} from "@contracts-bedrock/universal/ISemver.sol";
+import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
+import {ISuperchainERC20Extensions} from "@contracts-bedrock/L2/interfaces/ISuperchainERC20.sol";
+import {ISemver} from "@contracts-bedrock/universal/interfaces/ISemver.sol";
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
 
 /// @notice Thrown when attempting to relay a message and the function caller (msg.sender) is not
