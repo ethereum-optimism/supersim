@@ -21,8 +21,8 @@ const (
 	NetworkFlagName        = "network"
 	L2StartingPortFlagName = "l2.starting.port"
 
-	InteropEnabledInForkModeFlagName = "interop.enabled"
-	InteropAutoRelayFlagName         = "interop.autorelay"
+	InteropEnabledFlagName   = "interop.enabled"
+	InteropAutoRelayFlagName = "interop.autorelay"
 )
 
 func BaseCLIFlags(envPrefix string) []cli.Flag {
@@ -71,10 +71,10 @@ func ForkCLIFlags(envPrefix string) []cli.Flag {
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "NETWORK"),
 		},
 		&cli.BoolFlag{
-			Name:    InteropEnabledInForkModeFlagName,
-			Value:   false,
-			Usage:   "Enable interop in fork mode",
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "FORK_WITH_INTEROP"),
+			Name:    InteropEnabledFlagName,
+			Value:   true, // enabled by default
+			Usage:   "enable interop predeploy and functionality",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_ENABLED"),
 		},
 	}
 }
@@ -83,12 +83,14 @@ type ForkCLIConfig struct {
 	L1ForkHeight uint64
 	Network      string
 	Chains       []string
-	UseInterop   bool
+
+	InteropEnabled bool
 }
 
 type CLIConfig struct {
-	L1Port           uint64
-	L2StartingPort   uint64
+	L1Port         uint64
+	L2StartingPort uint64
+
 	InteropAutoRelay bool
 
 	ForkConfig *ForkCLIConfig
@@ -96,8 +98,9 @@ type CLIConfig struct {
 
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 	cfg := &CLIConfig{
-		L1Port:           ctx.Uint64(L1PortFlagName),
-		L2StartingPort:   ctx.Uint64(L2StartingPortFlagName),
+		L1Port:         ctx.Uint64(L1PortFlagName),
+		L2StartingPort: ctx.Uint64(L2StartingPortFlagName),
+
 		InteropAutoRelay: ctx.Bool(InteropAutoRelayFlagName),
 	}
 
@@ -106,7 +109,8 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 			L1ForkHeight: ctx.Uint64(L1ForkHeightFlagName),
 			Network:      ctx.String(NetworkFlagName),
 			Chains:       ctx.StringSlice(ChainsFlagName),
-			UseInterop:   ctx.Bool(InteropEnabledInForkModeFlagName),
+
+			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
 		}
 	}
 
@@ -117,10 +121,15 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 func (c *CLIConfig) Check() error {
 	if c.ForkConfig != nil {
 		forkCfg := c.ForkConfig
+
 		superchain, ok := registry.Superchains[forkCfg.Network]
 		if !ok {
 			return fmt.Errorf("unrecognized superchain network `%s`, available networks: [%s]",
 				forkCfg.Network, strings.Join(superchainNetworks(), ", "))
+		}
+
+		if len(forkCfg.Chains) == 0 {
+			return fmt.Errorf("no chains specified! available chains: [%s]", strings.Join(superchainMemberChains(superchain), ","))
 		}
 
 		// ensure every chain is apart of the network

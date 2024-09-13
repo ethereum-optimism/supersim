@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
-	"time"
 
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
@@ -50,11 +49,6 @@ type OpSimulator struct {
 	bgTasksCancel context.CancelFunc
 	peers         map[uint64]config.Chain
 
-	// One time tasks at startup
-	startupTasks       tasks.Group
-	startupTasksCtx    context.Context
-	startupTasksCancel context.CancelFunc
-
 	port         uint64
 	httpServer   *ophttp.HTTPServer
 	crossL2Inbox *bindings.CrossL2Inbox
@@ -67,7 +61,6 @@ type OpSimulator struct {
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
 func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
-	startupTasksCtx, startupTasksCancel := context.WithCancel(context.Background())
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, l2Chain.EthClient())
 	if err != nil {
@@ -87,15 +80,6 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain,
 		bgTasks: tasks.Group{
 			HandleCrit: func(err error) {
 				log.Error("opsim bg task failed", "err", err)
-				closeApp(err)
-			},
-		},
-
-		startupTasksCtx:    startupTasksCtx,
-		startupTasksCancel: startupTasksCancel,
-		startupTasks: tasks.Group{
-			HandleCrit: func(err error) {
-				log.Error("opsim startup task failed", err)
 				closeApp(err)
 			},
 		},
@@ -124,17 +108,12 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		}
 	}
 
-	opSim.startStartupTasks(ctx)
-	if err := opSim.startupTasks.Wait(); err != nil {
-		return fmt.Errorf("failed to start opsimulator: %w", err)
-	}
-
 	ethClient, err := ethclient.Dial(opSim.Endpoint())
 	if err != nil {
 		return fmt.Errorf("failed to create eth client: %w", err)
 	}
-	opSim.ethClient = ethClient
 
+	opSim.ethClient = ethClient
 	opSim.startBackgroundTasks()
 	return nil
 }
@@ -153,24 +132,6 @@ func (opSim *OpSimulator) Stop(ctx context.Context) error {
 
 func (opSim *OpSimulator) EthClient() *ethclient.Client {
 	return opSim.ethClient
-}
-
-func (opSim *OpSimulator) startStartupTasks(ctx context.Context) {
-	opSim.startupTasks.Go(func() error {
-		if opSim.Config().ForkConfig != nil && opSim.Config().ForkConfig.UseInterop {
-			if err := configureInteropForChain(ctx, opSim.Chain); err != nil {
-				return fmt.Errorf("failed to configure interop: %w", err)
-			}
-		}
-
-		for _, chainID := range opSim.Config().L2Config.DependencySet {
-			if err := opSim.addDependency(chainID); err != nil {
-				return fmt.Errorf("failed to configure dependency set: %w", err)
-			}
-		}
-
-		return nil
-	})
 }
 
 func (opSim *OpSimulator) startBackgroundTasks() {
@@ -335,29 +296,6 @@ func forwardRPCRequest(ctx context.Context, rpcClient *rpc.Client, req *jsonRpcM
 	return &jsonRpcMessage{Version: vsn, Result: result, ID: req.ID}, nil
 }
 
-// Update dependency set on the L2#L1BlockInterop using a deposit tx
-func (opSim *OpSimulator) addDependency(chainID uint64) error {
-	dep, err := NewAddDependencyDepositTx(big.NewInt(int64(chainID)))
-	if err != nil {
-		return fmt.Errorf("failed to create setConfig deposit tx: %w", err)
-	}
-
-	tx, clnt := types.NewTx(dep), opSim.Chain.EthClient()
-	if err := clnt.SendTransaction(opSim.startupTasksCtx, tx); err != nil {
-		return fmt.Errorf("failed to send setConfig deposit tx: %w", err)
-	}
-
-	txReceipt, err := waitMinedWithTicker(opSim.startupTasksCtx, clnt, tx, time.Millisecond*20)
-	if err != nil {
-		return fmt.Errorf("failed to get tx receipt for deposit tx: %w", err)
-	}
-	if txReceipt.Status == 0 {
-		return fmt.Errorf("setConfig deposit tx failed")
-	}
-
-	return nil
-}
-
 func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.Transaction) error {
 	logs, err := opSim.SimulatedLogs(ctx, tx)
 	if err != nil {
@@ -455,31 +393,4 @@ func corsHandler(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-// From bind.WaitMined with additional ticker param
-func waitMinedWithTicker(ctx context.Context, b bind.DeployBackend, tx *types.Transaction, tickerDuration time.Duration) (*types.Receipt, error) {
-	queryTicker := time.NewTicker(tickerDuration)
-	defer queryTicker.Stop()
-
-	logger := log.New("hash", tx.Hash())
-	for {
-		receipt, err := b.TransactionReceipt(ctx, tx.Hash())
-		if err == nil {
-			return receipt, nil
-		}
-
-		if errors.Is(err, ethereum.NotFound) {
-			logger.Trace("Transaction not yet mined")
-		} else {
-			logger.Trace("Receipt retrieval failed", "err", err)
-		}
-
-		// Wait for the next round.
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-queryTicker.C:
-		}
-	}
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/hdaccount"
-	"github.com/ethereum-optimism/supersim/opsimulator"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -113,9 +112,9 @@ func createForkedInteropTestSuite(t *testing.T) *InteropTestSuite {
 	destChain := "base"
 	cliConfig := &config.CLIConfig{
 		ForkConfig: &config.ForkCLIConfig{
-			Chains:     []string{srcChain, destChain},
-			UseInterop: true,
-			Network:    "mainnet",
+			Chains:         []string{srcChain, destChain},
+			Network:        "mainnet",
+			InteropEnabled: true,
 		},
 	}
 	superchain := registry.Superchains[cliConfig.ForkConfig.Network]
@@ -152,11 +151,11 @@ func createForkedInteropTestSuite(t *testing.T) *InteropTestSuite {
 func createInteropTestSuite(t *testing.T, cliConfig config.CLIConfig) *InteropTestSuite {
 	testSuite := createTestSuite(t, &cliConfig)
 
-	sourceURL := testSuite.Supersim.Orchestrator.Endpoint(testSuite.Supersim.Cfg.L2Configs[0].ChainID)
+	sourceURL := testSuite.Supersim.Orchestrator.Endpoint(testSuite.Supersim.NetworkConfig.L2Configs[0].ChainID)
 	sourceEthClient, _ := ethclient.Dial(sourceURL)
 	defer sourceEthClient.Close()
 
-	destURL := testSuite.Supersim.Orchestrator.Endpoint(testSuite.Supersim.Cfg.L2Configs[1].ChainID)
+	destURL := testSuite.Supersim.Orchestrator.Endpoint(testSuite.Supersim.NetworkConfig.L2Configs[1].ChainID)
 	destEthClient, _ := ethclient.Dial(destURL)
 	defer destEthClient.Close()
 
@@ -170,8 +169,8 @@ func createInteropTestSuite(t *testing.T, cliConfig config.CLIConfig) *InteropTe
 		HdAccountStore:  testSuite.HdAccountStore,
 		SourceEthClient: sourceEthClient,
 		DestEthClient:   destEthClient,
-		SourceChainID:   new(big.Int).SetUint64(testSuite.Supersim.Cfg.L2Configs[0].ChainID),
-		DestChainID:     new(big.Int).SetUint64(testSuite.Supersim.Cfg.L2Configs[1].ChainID),
+		SourceChainID:   new(big.Int).SetUint64(testSuite.Supersim.NetworkConfig.L2Configs[0].ChainID),
+		DestChainID:     new(big.Int).SetUint64(testSuite.Supersim.NetworkConfig.L2Configs[1].ChainID),
 	}
 }
 
@@ -317,7 +316,7 @@ func TestDependencySet(t *testing.T) {
 		require.NoError(t, err)
 		defer l2Client.Close()
 
-		l1BlockInterop, err := bindings.NewL1BlockInterop(opsimulator.L1BlockAddress, l2Client)
+		l1BlockInterop, err := bindings.NewL1BlockInterop(predeploys.L1BlockAddr, l2Client)
 		require.NoError(t, err)
 
 		// TODO: fix when we add a wait for ready on the opsim

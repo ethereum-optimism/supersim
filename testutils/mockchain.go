@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum-optimism/supersim/config"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -61,11 +62,11 @@ func (c *MockChain) SimulatedLogs(ctx context.Context, tx *types.Transaction) ([
 	return nil, nil
 }
 
-func (c *MockChain) SetCode(ctx context.Context, result interface{}, address string, code string) error {
+func (c *MockChain) SetCode(ctx context.Context, result interface{}, address common.Address, code string) error {
 	return nil
 }
 
-func (c *MockChain) SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error {
+func (c *MockChain) SetStorageAt(ctx context.Context, result interface{}, address common.Address, storageSlot string, storageValue string) error {
 	return nil
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum-optimism/supersim/hdaccount"
 
 	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -25,7 +26,6 @@ var (
 type ForkConfig struct {
 	RPCUrl      string
 	BlockNumber uint64
-	UseInterop  bool
 }
 
 type SecretsConfig struct {
@@ -63,6 +63,11 @@ type NetworkConfig struct {
 
 	L2StartingPort uint64
 	L2Configs      []ChainConfig
+
+	// Signaled higher up as a way to generally
+	// check if Interop is enabled
+	InteropEnabled   bool
+	InteropAutoRelay bool
 }
 
 type Chain interface {
@@ -74,8 +79,8 @@ type Chain interface {
 
 	// Additional methods
 	SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]types.Log, error)
-	SetCode(ctx context.Context, result interface{}, address string, code string) error
-	SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error
+	SetCode(ctx context.Context, result interface{}, address common.Address, code string) error
+	SetStorageAt(ctx context.Context, result interface{}, address common.Address, storageSlot string, storageValue string) error
 	SetIntervalMining(ctx context.Context, result interface{}, interval int64) error
 
 	// Lifecycle
@@ -85,6 +90,9 @@ type Chain interface {
 
 func GetDefaultNetworkConfig(startingTimestamp uint64) NetworkConfig {
 	return NetworkConfig{
+		// Enabled by default as it is included in genesis
+		InteropEnabled: true,
+
 		L1Config: ChainConfig{
 			Name:              "Local",
 			ChainID:           genesis.GeneratedGenesisDeployment.L1.ChainID,
