@@ -240,12 +240,12 @@ func (a *Anvil) EthClient() *ethclient.Client {
 	return a.ethClient
 }
 
-func (a *Anvil) SetCode(ctx context.Context, result interface{}, address string, code string) error {
-	return a.rpcClient.CallContext(ctx, result, "anvil_setCode", address, code)
+func (a *Anvil) SetCode(ctx context.Context, result interface{}, address common.Address, code string) error {
+	return a.rpcClient.CallContext(ctx, result, "anvil_setCode", address.Hex(), code)
 }
 
-func (a *Anvil) SetStorageAt(ctx context.Context, result interface{}, address string, storageSlot string, storageValue string) error {
-	return a.rpcClient.CallContext(ctx, result, "anvil_setStorageAt", address, storageSlot, storageValue)
+func (a *Anvil) SetStorageAt(ctx context.Context, result interface{}, address common.Address, storageSlot string, storageValue string) error {
+	return a.rpcClient.CallContext(ctx, result, "anvil_setStorageAt", address.Hex(), storageSlot, storageValue)
 }
 
 func (a *Anvil) SetIntervalMining(ctx context.Context, result interface{}, interval int64) error {

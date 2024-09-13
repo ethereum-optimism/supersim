@@ -49,11 +49,23 @@ supersim
 Vanilla mode will start 3 chains, with the OP Stack contracts already deployed.
 
 ```
-L1:
-  Name: L1    Chain ID: 900    RPC: http://127.0.0.1:8545    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-900
-L2:
-  Name: OPChainA    Chain ID: 901    RPC: http://127.0.0.1:9545    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-901
-  Name: OPChainB    Chain ID: 902    RPC: http://127.0.0.1:9546    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-902
+Chain Configuration
+-----------------------
+L1: Name: Local  ChainID: 900  RPC: http://127.0.0.1:8545  LogPath: /var/folders/y6/bkjdghqx1sn_3ypk1n0zy3040000gn/T/anvil-chain-900-3719464405
+
+L2s: Predeploy Contracts Spec ( https://specs.optimism.io/protocol/predeploys.html )
+
+  * Name: OPChainA  ChainID: 901  RPC: http://127.0.0.1:9545  LogPath: /var/folders/y6/bkjdghqx1sn_3ypk1n0zy3040000gn/T/anvil-chain-901-1956365912
+    L1 Contracts:
+     - OptimismPortal:         0xF5fe61a258CeBb54CCe428F76cdeD04Cbc12F53d
+     - L1CrossDomainMessenger: 0xe5bda89cd85cE0DfB80E053281cA070D65B738e6
+     - L1StandardBridge:       0xa01ae68902e205B420FD164435F299E07b0C778b
+
+  * Name: OPChainB  ChainID: 902  RPC: http://127.0.0.1:9546  LogPath: /var/folders/y6/bkjdghqx1sn_3ypk1n0zy3040000gn/T/anvil-chain-902-1214175152
+    L1 Contracts:
+     - OptimismPortal:         0xdfC9DEAbEEbDaa7620C71e2E76AEda32919DE5f2
+     - L1CrossDomainMessenger: 0xCB9768921831677Ae15cE4B64A10B94F49cD88E2
+     - L1StandardBridge:       0x2D8543c236a4d626f54B51Fa8bc229a257C5143E
 ```
 
 ### 4. Start testing multichain features 🚀
@@ -141,23 +153,29 @@ supersim fork --chains=op,base,zora
 The fork height is determined by L1 block height (default `latest`), which determines the maximum timestamp for the forked L2 state of each chain.
 
 ```
-Available Accounts
+Chain Configuration
 -----------------------
-(0): 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
---- truncated for brevity ---
+L1: Name: mainnet  ChainID: 1  RPC: http://127.0.0.1:8545  LogPath: /var/folders/y6/bkjdghqx1sn_3ypk1n0zy3040000gn/T/anvil-chain-1-832151416
 
-Private Keys
------------------------
-(0): 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
---- truncated for brevity ---
+L2s: Predeploy Contracts Spec ( https://specs.optimism.io/protocol/predeploys.html )
 
-Orchestrator Config:
-L1:
-  Name: mainnet    Chain ID: 1    RPC: http://127.0.0.1:8545    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-1-1521250718
-L2:
-  Name: op    Chain ID: 10    RPC: http://127.0.0.1:9545    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-10
-  Name: base    Chain ID: 8453    RPC: http://127.0.0.1:9546    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-8453
-  Name: zora    Chain ID: 7777777    RPC: http://127.0.0.1:9547    LogPath: /var/folders/0w/ethers-phoenix/T/anvil-chain-7777777
+  * Name: op  ChainID: 10  RPC: http://127.0.0.1:9545  LogPath: /var/folders/y6/bkjdghqx1sn_3ypk1n0zy3040000gn/T/anvil-chain-10-2710239022
+    L1 Contracts:
+     - OptimismPortal:         0xbEb5Fc579115071764c7423A4f12eDde41f106Ed
+     - L1CrossDomainMessenger: 0x25ace71c97B33Cc4729CF772ae268934F7ab5fA1
+     - L1StandardBridge:       0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1
+
+  * Name: base  ChainID: 8453  RPC: http://127.0.0.1:9546  LogPath: /var/folders/y6/bkjdghqx1sn_3ypk1n0zy3040000gn/T/anvil-chain-8453-1054019892
+    L1 Contracts:
+     - OptimismPortal:         0x49048044D57e1C92A77f79988d21Fa8fAF74E97e
+     - L1CrossDomainMessenger: 0x866E82a600A1414e583f7F13623F1aC5d58b0Afa
+     - L1StandardBridge:       0x3154Cf16ccdb4C6d922629664174b904d80F2C35
+
+  * Name: zora  ChainID: 7777777  RPC: http://127.0.0.1:9547  LogPath: /var/folders/y6/bkjdghqx1sn_3ypk1n0zy3040000gn/T/anvil-chain-7777777-1949580962
+    L1 Contracts:
+     - OptimismPortal:         0x1a0ad011913A150f69f6A19DF447A0CfD9551054
+     - L1CrossDomainMessenger: 0xdC40a14d9abd6F410226f1E6de71aE03441ca506
+     - L1StandardBridge:       0x3e2Ea9B92B7E48A52296fD261dc26fd995284631
 ```
 
 ### Note

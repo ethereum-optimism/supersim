@@ -48,15 +48,10 @@ func (i *L2ToL2MessageIndexer) Start(ctx context.Context, clients map[uint64]*et
 	i.clients = clients
 
 	for chainID, client := range i.clients {
-		client := client
-
 		i.tasks.Go(func() error {
-
 			logCh := make(chan types.Log)
-
-			sub, err := client.SubscribeFilterLogs(i.tasksCtx, ethereum.FilterQuery{
-				Addresses: []common.Address{predeploys.L2toL2CrossDomainMessengerAddr},
-			}, logCh)
+			fq := ethereum.FilterQuery{Addresses: []common.Address{predeploys.L2toL2CrossDomainMessengerAddr}}
+			sub, err := client.SubscribeFilterLogs(i.tasksCtx, fq, logCh)
 			if err != nil {
 				return fmt.Errorf("failed to subscribe to L2ToL2CrossDomainMessenger events: %w", err)
 			}
