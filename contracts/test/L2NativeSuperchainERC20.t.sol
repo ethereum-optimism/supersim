@@ -13,8 +13,8 @@ import {
     InvalidCrossDomainSender,
     ZeroAddress
 } from "src/L2NativeSuperchainERC20.sol";
-import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock/L2/IL2ToL2CrossDomainMessenger.sol";
-import {ISuperchainERC20, ISuperchainERC20Extensions} from "@contracts-bedrock/L2/ISuperchainERC20.sol";
+import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
+import {ISuperchainERC20, ISuperchainERC20Extensions} from "@contracts-bedrock/L2/interfaces/ISuperchainERC20.sol";
 
 contract L2NativeSuperchainERC20Test is Test {
     address internal constant ZERO_ADDRESS = address(0);

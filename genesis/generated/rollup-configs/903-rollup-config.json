@@ -1,11 +1,11 @@
 {
   "genesis": {
     "l1": {
-      "hash": "0xe8755b361a4f4da3b30c8cb0f0dea78427bbba781ec9750b899de087434250d3",
+      "hash": "0xf072243d698473bef71b5ab5999a8422234fa33697845c1fe5548616a7f5aa15",
       "number": 1
     },
     "l2": {
-      "hash": "0x24521977e97a7320d71c593052ff92d168339426029b0936cd4f061570b6f5c7",
+      "hash": "0x5d14bdc0d2567f8b6770564d774effc67aaa9cc7719d821114271557ca378b32",
       "number": 0
     },
     "l2_time": 293,
@@ -25,11 +25,11 @@
   "regolith_time": 0,
   "canyon_time": 0,
   "delta_time": 0,
-  "ecotone_time": 357,
+  "ecotone_time": 0,
+  "fjord_time": 0,
   "batch_inbox_address": "0xff00000000000000000000000000000000000901",
   "deposit_contract_address": "0x05a4bd61f00487abec28d4c91a217b94eae5fe2a",
   "l1_system_config_address": "0xf06829165a51d0dc85dae4c4ac4207fee616fa34",
-  "protocol_versions_address": "0x0000000000000000000000000000000000000000",
-  "da_challenge_contract_address": "0x0000000000000000000000000000000000000000"
+  "protocol_versions_address": "0x0000000000000000000000000000000000000000"
 }
 

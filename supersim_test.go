@@ -37,6 +37,7 @@ const (
 	l2toL2CrossDomainMessengerAddress = "0x4200000000000000000000000000000000000023"
 	l1BlockAddress                    = "0x4200000000000000000000000000000000000015"
 	defaultTestAccountBalance         = "0x21e19e0c9bab2400000"
+	superchainWETHAddr                = "0x4200000000000000000000000000000000000024"
 )
 
 var defaultTestAccounts = [...]string{
@@ -774,4 +775,48 @@ func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 	newVal, err := simpleStorage.Get(&bind.CallOpts{}, key)
 	require.NoError(t, err)
 	require.Equal(t, val, common.Hash(newVal), "SimpleStorage value is incorrect")
+}
+
+func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
+	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+
+	sourceSuperchainWETH, err := bindings.NewSuperchainWETH(common.HexToAddress(superchainWETHAddr), testSuite.SourceEthClient)
+	require.NoError(t, err)
+
+	destSuperchainWETH, err := bindings.NewSuperchainWETH(common.HexToAddress(superchainWETHAddr), testSuite.DestEthClient)
+	require.NoError(t, err)
+	valueToTransfer := big.NewInt(10_000_000)
+
+	sourceTransactor.Value = valueToTransfer
+	depositTx, err := sourceSuperchainWETH.Deposit(sourceTransactor)
+	require.NoError(t, err)
+	depositTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, depositTx)
+	require.NoError(t, err)
+	require.True(t, depositTxReceipt.Status == 1, "weth deposit transaction failed")
+	sourceTransactor.Value = nil
+
+	destStartingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+	require.NoError(t, err)
+
+	_, err = sourceSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+	require.NoError(t, err)
+
+	tx, err := sourceSuperchainWETH.SendERC20(sourceTransactor, sourceTransactor.From, valueToTransfer, testSuite.DestChainID)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	time.Sleep(time.Second * 4)
+
+	destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+	require.NoError(t, err)
+	diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
+	require.Equal(t, valueToTransfer, diff)
 }
