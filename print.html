@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Getting Started</li><li class="chapter-item expanded "><a href="getting-started/installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="getting-started/first-steps.html"><strong aria-hidden="true">2.</strong> First steps</a></li><li class="chapter-item expanded affix "><li class="part-title">CLI Reference</li><li class="chapter-item expanded "><a href="reference/supersim.html"><strong aria-hidden="true">3.</strong> supersim</a></li><li class="chapter-item expanded "><a href="reference/supersim-fork.html"><strong aria-hidden="true">4.</strong> supersim fork</a></li><li class="chapter-item expanded affix "><li class="part-title">Chain Environment</li><li class="chapter-item expanded "><a href="chain-environment/contracts/index.html"><strong aria-hidden="true">5.</strong> Included contracts</a></li><li class="chapter-item expanded "><a href="chain-environment/network-details/index.html"><strong aria-hidden="true">6.</strong> Network details & contract addresses</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chain-environment/network-details/op-chain-a.html"><strong aria-hidden="true">6.1.</strong> OPChainA</a></li><li class="chapter-item expanded "><a href="chain-environment/network-details/op-chain-b.html"><strong aria-hidden="true">6.2.</strong> OPChainB</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/deposit-transactions.html"><strong aria-hidden="true">7.</strong> Sending deposit transactions</a></li><li class="chapter-item expanded "><a href="guides/interop/index.html"><strong aria-hidden="true">8.</strong> Interoperability</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="guides/interop/manually-relaying-interop-messages-cast.html"><strong aria-hidden="true">8.1.</strong> Manually relaying interop messages with cast</a></li><li class="chapter-item expanded "><a href="guides/interop/relay-using-viem.html"><strong aria-hidden="true">8.2.</strong> Using viem to relay interop messages (TypeScript)</a></li><li class="chapter-item expanded "><a href="guides/interop/calling-destination-contract.html"><strong aria-hidden="true">8.3.</strong> Calling a contract on destination chain</a></li><li class="chapter-item expanded "><a href="guides/interop/writing-contract-using-l2cdm.html"><strong aria-hidden="true">8.4.</strong> Writing a contract that uses L2ToL2CrossDomainMessenger</a></li><li class="chapter-item expanded "><a href="guides/interop/bridging-superchainweth.html"><strong aria-hidden="true">8.5.</strong> Bridging SuperchainWETH</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="examples/cross-chain-tictactoe.html"><strong aria-hidden="true">9.</strong> Cross-chain tic-tac-toe</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Getting Started</li><li class="chapter-item expanded "><a href="getting-started/installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="getting-started/first-steps.html"><strong aria-hidden="true">2.</strong> First steps</a></li><li class="chapter-item expanded affix "><li class="part-title">CLI Reference</li><li class="chapter-item expanded "><a href="reference/supersim.html"><strong aria-hidden="true">3.</strong> supersim</a></li><li class="chapter-item expanded "><a href="reference/supersim-fork.html"><strong aria-hidden="true">4.</strong> supersim fork</a></li><li class="chapter-item expanded affix "><li class="part-title">Chain Environment</li><li class="chapter-item expanded "><a href="chain-environment/contracts/index.html"><strong aria-hidden="true">5.</strong> Included contracts</a></li><li class="chapter-item expanded "><a href="chain-environment/network-details/index.html"><strong aria-hidden="true">6.</strong> Network details & contract addresses</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chain-environment/network-details/op-chain-a.html"><strong aria-hidden="true">6.1.</strong> OPChainA</a></li><li class="chapter-item expanded "><a href="chain-environment/network-details/op-chain-b.html"><strong aria-hidden="true">6.2.</strong> OPChainB</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="guides/deposit-transactions.html"><strong aria-hidden="true">7.</strong> Sending deposit transactions</a></li><li class="chapter-item expanded "><a href="guides/interop/index.html"><strong aria-hidden="true">8.</strong> Interoperability</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="guides/interop/manually-relaying-interop-messages-cast.html"><strong aria-hidden="true">8.1.</strong> Manually relaying interop messages with cast</a></li><li class="chapter-item expanded "><a href="guides/interop/relay-using-viem.html"><strong aria-hidden="true">8.2.</strong> Using viem to relay interop messages (TypeScript)</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.3.</strong> Calling a contract on destination chain</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.4.</strong> Writing a contract that uses L2ToL2CrossDomainMessenger</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.5.</strong> Bridging SuperchainWETH</div></li></ol></li><li class="chapter-item expanded "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="examples/cross-chain-tictactoe.html"><strong aria-hidden="true">9.</strong> Cross-chain tic-tac-toe</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -893,9 +893,10 @@ contract CrossL2Inbox {
 <li><a href="guides/interop/relay-using-viem.html#5-relay-the-message-on-the-destination-chain">5. Relay the message on the destination chain</a></li>
 </ul>
 </li>
+<li><a href="guides/interop/relay-using-viem.html#full-code-snippet">Full code snippet</a></li>
 </ul>
 <h2 id="steps-1"><a class="header" href="#steps-1">Steps</a></h2>
-<p>The full code snippet can be found <a href="guides/interop/./relay-using-viem-full-code.html">here</a></p>
+<p>The full code snippet can be found <a href="guides/interop/relay-using-viem.html#full-code-snippet">here</a></p>
 <h3 id="1-start-supersim-1"><a class="header" href="#1-start-supersim-1">1. Start <code>supersim</code></a></h3>
 <pre><code class="language-sh">supersim
 </code></pre>
@@ -1043,11 +1044,146 @@ const balance = await opChainBClient.readContract({
 
 console.log(`Balance on OPChainB: ${balance}`);
 </code></pre>
-<p>The full code snippet can be found <a href="guides/interop/./relay-using-viem-full-code.html">here</a></p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="calling-contracts-on-destination-chain"><a class="header" href="#calling-contracts-on-destination-chain">Calling contracts on destination chain</a></h1>
-<p>This guide explains how to use the L2ToL2CrossDomainMessenger to call a contract on chain B from chain A.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="writing-a-contract-that-uses-l2tol2crossdomainmessenger"><a class="header" href="#writing-a-contract-that-uses-l2tol2crossdomainmessenger">Writing a contract that uses L2ToL2CrossDomainMessenger</a></h1>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="bridging-superchainweth"><a class="header" href="#bridging-superchainweth">Bridging SuperchainWETH</a></h1>
+<h2 id="full-code-snippet"><a class="header" href="#full-code-snippet">Full code snippet</a></h2>
+<details>
+  <summary>Click to view</summary>
+<pre><code class="language-ts">// Using viem to transfer L2NativeSuperchainERC20
+
+import {
+	http,
+	encodeFunctionData,
+	createWalletClient,
+	parseAbi,
+	defineChain,
+	publicActions,
+} from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import {
+	publicActionsL2,
+	walletActionsL2,
+	extractMessageIdentifierFromLogs,
+} from "@eth-optimism/viem";
+import { anvil } from "viem/chains";
+
+// Define constants - L2NativeSuperchainERC20 contract address is the same on every chain
+const L2_NATIVE_SUPERCHAINERC20_ADDRESS =
+	"0x61a6eF395d217eD7C79e1B84880167a417796172";
+
+const L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS =
+	"0x4200000000000000000000000000000000000023";
+
+// account for 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+const account = privateKeyToAccount(
+	"0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+);
+
+// Define chains
+const opChainA = defineChain({
+	...anvil,
+	id: 901,
+	name: "OPChainA",
+	rpcUrls: {
+		default: {
+			http: ["http://127.0.0.1:9545"],
+		},
+	},
+});
+
+const opChainB = defineChain({
+	...anvil,
+	id: 902,
+	name: "OPChainB",
+	rpcUrls: {
+		default: {
+			http: ["http://127.0.0.1:9546"],
+		},
+	},
+});
+
+// Configure op clients
+const opChainAClient = createWalletClient({
+	transport: http(),
+	chain: opChainA,
+	account,
+})
+	.extend(walletActionsL2())
+	.extend(publicActionsL2())
+	.extend(publicActions);
+
+const opChainBClient = createWalletClient({
+	transport: http(),
+	chain: opChainB,
+	account,
+})
+	.extend(walletActionsL2())
+	.extend(publicActionsL2())
+	.extend(publicActions);
+
+// #######
+// OP Chain A
+// #######
+// 1. Mint 1000 `L2NativeSuperchainERC20` token
+
+const mintTxHash = await opChainAClient.writeContract({
+	address: L2_NATIVE_SUPERCHAINERC20_ADDRESS,
+	abi: parseAbi(["function mint(address to, uint256 amount)"]),
+	functionName: "mint",
+	args: [account.address, 1000n],
+});
+
+await opChainAClient.waitForTransactionReceipt({ hash: mintTxHash });
+
+// 2. Initiate sendERC20 tx
+console.log("Initiating sendERC20 on OPChainA...");
+const sendERC20TxHash = await opChainAClient.writeContract({
+	address: L2_NATIVE_SUPERCHAINERC20_ADDRESS,
+	abi: parseAbi([
+		"function sendERC20(address _to, uint256 _amount, uint256 _chainId)",
+	]),
+	functionName: "sendERC20",
+	args: [account.address, 1000n, BigInt(opChainB.id)],
+});
+
+const sendERC20TxReceipt = await opChainAClient.waitForTransactionReceipt({
+	hash: sendERC20TxHash,
+});
+
+// 3. Grab the message identifier from the logs
+const { id: messageIdentifier, payload: l2ToL2CrossDomainMessengerCalldata } =
+	await extractMessageIdentifierFromLogs(opChainAClient, {
+		receipt: sendERC20TxReceipt,
+	});
+
+// ##########
+// OP Chain B
+// ##########
+// 4. Execute the relayERC20 function on OPChainB
+console.log("Building execute relayERC20 on OPChainB...");
+const executeArgs = await opChainBClient.buildExecuteL2ToL2Message({
+	id: messageIdentifier,
+	target: L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS,
+	message: l2ToL2CrossDomainMessengerCalldata,
+});
+
+console.log("Executing L2 to L2 message on OPChainB...");
+
+const executeTxHash = await opChainBClient.executeL2ToL2Message(executeArgs);
+
+await opChainBClient.waitForTransactionReceipt({
+	hash: executeTxHash,
+});
+
+// 5. Check balance on OPChainB
+const balance = await opChainBClient.readContract({
+	address: L2_NATIVE_SUPERCHAINERC20_ADDRESS,
+	abi: parseAbi(["function balanceOf(address) view returns (uint256)"]),
+	functionName: "balanceOf",
+	args: [account.address],
+});
+
+console.log(`Balance on OPChainB: ${balance}`);
+
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cross-chain-tic-tac-toe"><a class="header" href="#cross-chain-tic-tac-toe">Cross-chain tic-tac-toe</a></h1>
 
                     </main>
