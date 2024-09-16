@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/hdaccount"
+	"github.com/joho/godotenv"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -37,7 +38,6 @@ const (
 	l2toL2CrossDomainMessengerAddress = "0x4200000000000000000000000000000000000023"
 	l1BlockAddress                    = "0x4200000000000000000000000000000000000015"
 	defaultTestAccountBalance         = "0x21e19e0c9bab2400000"
-	superchainWETHAddr                = "0x4200000000000000000000000000000000000024"
 )
 
 var defaultTestAccounts = [...]string{
@@ -79,6 +79,11 @@ type InteropTestSuite struct {
 }
 
 func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
+	// Load the .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Warn("Error loading .env file", "err", err)
+	}
 	testlog := testlog.Logger(t, log.LevelInfo)
 	hdAccountStore, err := hdaccount.NewHdAccountStore(defaultTestMnemonic, defaultTestMnemonicDerivationPath)
 	if err != nil {
@@ -87,7 +92,7 @@ func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
 	}
 
 	ctx, closeApp := context.WithCancelCause(context.Background())
-	supersim, _ := NewSupersim(testlog, "", closeApp, cliConfig)
+	supersim, _ := NewSupersim(testlog, "SUPERSIM", closeApp, cliConfig)
 	t.Cleanup(func() {
 		closeApp(nil)
 		if err := supersim.Stop(context.Background()); err != nil {
@@ -108,7 +113,11 @@ func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
 	}
 }
 
-func createForkedInteropTestSuite(t *testing.T) *InteropTestSuite {
+type ForkInteropTestSuiteOptions struct {
+	interopAutoRelay bool
+}
+
+func createForkedInteropTestSuite(t *testing.T, testOptions ForkInteropTestSuiteOptions) *InteropTestSuite {
 	srcChain := "op"
 	destChain := "base"
 	cliConfig := &config.CLIConfig{
@@ -117,6 +126,7 @@ func createForkedInteropTestSuite(t *testing.T) *InteropTestSuite {
 			Network:        "mainnet",
 			InteropEnabled: true,
 		},
+		InteropAutoRelay: testOptions.interopAutoRelay,
 	}
 	superchain := registry.Superchains[cliConfig.ForkConfig.Network]
 	srcChainCfg := config.OPChainByName(superchain, srcChain)
@@ -667,7 +677,7 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 }
 
 func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
-	testSuite := createForkedInteropTestSuite(t)
+	testSuite := createForkedInteropTestSuite(t, ForkInteropTestSuiteOptions{interopAutoRelay: false})
 
 	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
 	require.NoError(t, err)
@@ -785,10 +795,55 @@ func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
 	require.NoError(t, err)
 
-	sourceSuperchainWETH, err := bindings.NewSuperchainWETH(common.HexToAddress(superchainWETHAddr), testSuite.SourceEthClient)
+	sourceSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
 
-	destSuperchainWETH, err := bindings.NewSuperchainWETH(common.HexToAddress(superchainWETHAddr), testSuite.DestEthClient)
+	destSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.DestEthClient)
+	require.NoError(t, err)
+	valueToTransfer := big.NewInt(10_000_000)
+
+	sourceTransactor.Value = valueToTransfer
+	depositTx, err := sourceSuperchainWETH.Deposit(sourceTransactor)
+	require.NoError(t, err)
+	depositTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, depositTx)
+	require.NoError(t, err)
+	require.True(t, depositTxReceipt.Status == 1, "weth deposit transaction failed")
+	sourceTransactor.Value = nil
+
+	destStartingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+	require.NoError(t, err)
+
+	_, err = sourceSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+	require.NoError(t, err)
+
+	tx, err := sourceSuperchainWETH.SendERC20(sourceTransactor, sourceTransactor.From, valueToTransfer, testSuite.DestChainID)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	time.Sleep(time.Second * 4)
+
+	destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+	require.NoError(t, err)
+	diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
+	require.Equal(t, valueToTransfer, diff)
+}
+
+func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
+	testSuite := createForkedInteropTestSuite(t, ForkInteropTestSuiteOptions{interopAutoRelay: true})
+
+	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+
+	sourceSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.SourceEthClient)
+	require.NoError(t, err)
+
+	destSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
 	valueToTransfer := big.NewInt(10_000_000)
 

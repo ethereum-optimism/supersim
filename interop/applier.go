@@ -28,6 +28,8 @@ var interopPredeploys = []common.Address{
 	predeploys.CrossL2InboxAddr,
 	predeploys.L2toL2CrossDomainMessengerAddr,
 	predeploys.L1BlockAddr,
+	predeploys.SuperchainWETHAddr,
+	predeploys.ETHLiquidityAddr,
 }
 
 type predeploy struct {
@@ -114,6 +116,14 @@ func applyAllocToAddress(ctx context.Context, chain config.Chain, alloc *genesis
 			}
 		}
 	}
+
+	balance := new(big.Int).SetBytes(common.FromHex(alloc.Balance))
+	if balance.Cmp(big.NewInt(0)) > 0 {
+		if err := chain.SetBalance(ctx, nil, address, balance); err != nil {
+			return fmt.Errorf("failed to set balance for %s: %w", address, err)
+		}
+	}
+
 	return nil
 }
 

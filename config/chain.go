@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"strings"
 
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
@@ -81,6 +82,7 @@ type Chain interface {
 	SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]types.Log, error)
 	SetCode(ctx context.Context, result interface{}, address common.Address, code string) error
 	SetStorageAt(ctx context.Context, result interface{}, address common.Address, storageSlot string, storageValue string) error
+	SetBalance(ctx context.Context, result interface{}, address common.Address, value *big.Int) error
 	SetIntervalMining(ctx context.Context, result interface{}, interval int64) error
 
 	// Lifecycle

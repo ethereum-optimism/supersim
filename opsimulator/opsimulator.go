@@ -34,7 +34,6 @@ import (
 const (
 	host                        = "127.0.0.1"
 	l2NativeSuperchainERC20Addr = "0x61a6eF395d217eD7C79e1B84880167a417796172"
-	superchainWETHAddr          = "0x4200000000000000000000000000000000000024"
 )
 
 type OpSimulator struct {
@@ -202,7 +201,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 
 	// Log SuperchainWETH events
 	opSim.bgTasks.Go(func() error {
-		superchainWETH, err := bindings.NewSuperchainWETH(common.HexToAddress(superchainWETHAddr), opSim.Chain.EthClient())
+		superchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, opSim.Chain.EthClient())
 		if err != nil {
 			return fmt.Errorf("failed to create SuperchainWETH contract: %w", err)
 		}
