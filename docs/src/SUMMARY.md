@@ -25,9 +25,9 @@
 - [Interoperability](./guides/interop/README.md)
   - [Manually relaying interop messages with cast](./guides/interop/manually-relaying-interop-messages-cast.md)
   - [Using viem to relay interop messages (TypeScript)](./guides/interop/relay-using-viem.md)
-  - [Calling a contract on destination chain](./guides/interop/calling-destination-contract.md)
-  - [Writing a contract that uses `L2ToL2CrossDomainMessenger`](./guides/interop/writing-contract-using-l2cdm.md)
-  - [Bridging SuperchainWETH](./guides/interop/bridging-superchainweth.md)
+  - [Calling a contract on destination chain]()
+  - [Writing a contract that uses `L2ToL2CrossDomainMessenger`]()
+  - [Bridging SuperchainWETH]()
 
 # Examples
 
