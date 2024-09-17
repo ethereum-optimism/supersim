@@ -7,3 +7,9 @@ title = "Supersim"
 
 [output.html]
 git-repository-url = "https://github.com/ethereum-optimism/supersim"
+additional-js = ["src/static/mermaid.min.js", "src/static/mermaid-init.js", "src/static/solidity.min.js"]
+
+[preprocessor]
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"

@@ -6,7 +6,8 @@ import {
     CrossChainPingPong,
     PingPongBall,
     CallerNotL2ToL2CrossDomainMessenger,
-    InvalidCrossDomainSender
+    InvalidCrossDomainSender,
+    BallAlreadyServed
 } from "../src/CrossChainPingPong.sol";
 import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
@@ -38,15 +39,16 @@ contract CrossChainPingPongTest is Test {
     }
 
     // Test serving the ball
-    function testServeBall() public {
+    function testServeBallTo() public {
+        uint256 fromChainId = 901;
         uint256 toChainId = 902;
 
-        vm.chainId(901);
+        vm.chainId(fromChainId);
 
         // Expect the BallSent event
         PingPongBall memory _expectedBall = PingPongBall(1, block.chainid, bob);
         vm.expectEmit(true, true, true, true, address(crossChainPingPong));
-        emit CrossChainPingPong.BallSent(toChainId, _expectedBall);
+        emit CrossChainPingPong.BallSent(fromChainId, toChainId, _expectedBall);
 
         // Mock cross-chain message send call
         bytes memory _message = abi.encodeCall(crossChainPingPong.receiveBall, (_expectedBall));
@@ -60,17 +62,19 @@ contract CrossChainPingPongTest is Test {
 
         // Serve the ball
         vm.prank(bob);
-        crossChainPingPong.serveBall(toChainId);
+        crossChainPingPong.serveBallTo(toChainId);
 
         // Ensure serve can only happen once
-        vm.expectRevert("Ball already served");
-        crossChainPingPong.serveBall(toChainId);
+        vm.expectRevert(BallAlreadyServed.selector);
+        crossChainPingPong.serveBallTo(toChainId);
     }
 
     // Test receiving the ball from a valid cross-chain message
     function testReceiveBall() public {
         uint256 fromChainId = 901;
+        uint256 toChainId = 902;
 
+        vm.chainId(toChainId);
         // Set up the mock for cross-domain message sender validation
         PingPongBall memory _ball = PingPongBall(1, fromChainId, address(this));
         _mockAndExpect(
@@ -88,7 +92,7 @@ contract CrossChainPingPongTest is Test {
 
         // Expect the BallReceived event
         vm.expectEmit(true, true, true, true, address(crossChainPingPong));
-        emit CrossChainPingPong.BallReceived(fromChainId, _ball);
+        emit CrossChainPingPong.BallReceived(fromChainId, toChainId, _ball);
 
         // Call receiveBall as if from the messenger
         vm.prank(MESSENGER);
@@ -96,9 +100,12 @@ contract CrossChainPingPongTest is Test {
     }
 
     // Test receiving then sending the ball
-    function testSendBall() public {
+    function testHitBall() public {
         // 1. receive a ball from 901 to 902
         uint256 receiveFromChainId = 901;
+        uint256 receiveToChainId = 902;
+
+        vm.chainId(receiveToChainId);
 
         // Set up the mock for cross-domain message sender validation
         PingPongBall memory _ball = PingPongBall(1, receiveFromChainId, sally);
@@ -117,7 +124,7 @@ contract CrossChainPingPongTest is Test {
 
         // Expect the BallReceived event
         vm.expectEmit(true, true, true, true, address(crossChainPingPong));
-        emit CrossChainPingPong.BallReceived(receiveFromChainId, _ball);
+        emit CrossChainPingPong.BallReceived(receiveFromChainId, receiveToChainId, _ball);
 
         vm.prank(MESSENGER);
         crossChainPingPong.receiveBall(_ball);
@@ -141,11 +148,11 @@ contract CrossChainPingPongTest is Test {
         );
 
         vm.expectEmit(true, true, true, true, address(crossChainPingPong));
-        emit CrossChainPingPong.BallSent(sendToChainId, _newBall);
+        emit CrossChainPingPong.BallSent(sendFromChainId, sendToChainId, _newBall);
 
         // Send the ball
         vm.prank(bob);
-        crossChainPingPong.sendBall(sendToChainId);
+        crossChainPingPong.hitBallTo(sendToChainId);
     }
 
     // Test receiving ball with an invalid cross-chain message sender
