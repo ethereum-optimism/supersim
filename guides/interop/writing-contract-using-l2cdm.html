@@ -1,0 +1,551 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Writing cross-chain contract using L2ToL2CrossDomainMessenger - Supersim</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Getting Started</li><li class="chapter-item expanded "><a href="../../getting-started/installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../../getting-started/first-steps.html"><strong aria-hidden="true">2.</strong> First steps</a></li><li class="chapter-item expanded affix "><li class="part-title">CLI Reference</li><li class="chapter-item expanded "><a href="../../reference/supersim.html"><strong aria-hidden="true">3.</strong> supersim</a></li><li class="chapter-item expanded "><a href="../../reference/supersim-fork.html"><strong aria-hidden="true">4.</strong> supersim fork</a></li><li class="chapter-item expanded affix "><li class="part-title">Chain Environment</li><li class="chapter-item expanded "><a href="../../chain-environment/contracts/index.html"><strong aria-hidden="true">5.</strong> Included contracts</a></li><li class="chapter-item expanded "><a href="../../chain-environment/network-details/index.html"><strong aria-hidden="true">6.</strong> Network details & contract addresses</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../chain-environment/network-details/op-chain-a.html"><strong aria-hidden="true">6.1.</strong> OPChainA</a></li><li class="chapter-item expanded "><a href="../../chain-environment/network-details/op-chain-b.html"><strong aria-hidden="true">6.2.</strong> OPChainB</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../../guides/deposit-transactions.html"><strong aria-hidden="true">7.</strong> Sending deposit transactions</a></li><li class="chapter-item expanded "><a href="../../guides/interop/index.html"><strong aria-hidden="true">8.</strong> Interoperability</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../guides/interop/manually-relaying-interop-messages-cast.html"><strong aria-hidden="true">8.1.</strong> Manually relaying interop messages with cast</a></li><li class="chapter-item expanded "><a href="../../guides/interop/relay-using-viem.html"><strong aria-hidden="true">8.2.</strong> Using viem to relay interop messages (TypeScript)</a></li><li class="chapter-item expanded "><a href="../../guides/interop/writing-contract-using-l2cdm.html" class="active"><strong aria-hidden="true">8.3.</strong> Writing cross-chain contract using L2ToL2CrossDomainMessenger</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.4.</strong> Calling a contract on destination chain</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.5.</strong> Bridging SuperchainWETH</div></li></ol></li><li class="chapter-item expanded "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="../../examples/cross-chain-tictactoe.html"><strong aria-hidden="true">9.</strong> Cross-chain tic-tac-toe</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Supersim</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ethereum-optimism/supersim" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <!-- omit in toc -->
+<h1 id="writing-cross-chain-contract-using-l2tol2crossdomainmessenger"><a class="header" href="#writing-cross-chain-contract-using-l2tol2crossdomainmessenger">Writing cross-chain contract using <code>L2ToL2CrossDomainMessenger</code></a></h1>
+<p>This guide walks through the <code>CrossChainPingPong.sol</code> contract, focusing on high level design and steps on integrating the <code>L2ToL2CrossChainMessenger</code> contract. The source code can be found <a href="../../../../contracts/src/CrossChainPingPong.sol">here</a>.</p>
+<ul>
+<li><a href="#high-level-overview">High level overview</a>
+<ul>
+<li><a href="#diagram">Diagram</a></li>
+<li><a href="#flow">Flow</a>
+<ul>
+<li><a href="#1-contract-deployment">1. Contract Deployment</a></li>
+<li><a href="#2-initiate-game-serve">2. Initiate Game (Serve)</a></li>
+<li><a href="#3-send-cross-chain-message">3. Send Cross-Chain Message</a></li>
+<li><a href="#4-receive-on-destination-chain">4. Receive on Destination Chain</a></li>
+<li><a href="#5-continue-game-hit">5. Continue Game (Hit)</a></li>
+<li><a href="#key-points">Key Points</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#walkthrough">Walkthrough</a>
+<ul>
+<li><a href="#initializing-contract-states">Initializing contract states</a>
+<ul>
+<li><a href="#constructor-setup">Constructor Setup</a></li>
+<li><a href="#synchronizing-the-game-start">Synchronizing the Game Start</a></li>
+<li><a href="#reliance-on-create2-for-cross-chain-consistency">Reliance on CREATE2 for Cross-Chain Consistency</a></li>
+</ul>
+</li>
+<li><a href="#sending-a-cross-chain-message">Sending a cross chain message</a>
+<ul>
+<li><a href="#1-encode-the-function-call">1. Encode the function call</a></li>
+<li><a href="#2-send-the-cross-domain-message">2. Send the cross-domain message</a></li>
+<li><a href="#why-were-sending-a-receiveball-function-call">Why we're sending a <code>receiveBall</code> function call</a></li>
+</ul>
+</li>
+<li><a href="#receiving-a-cross-chain-message">Receiving a cross chain message</a>
+<ul>
+<li><a href="#1-check-msgsender-to-verify-the-caller">1. Check <code>msg.sender</code> to verify the caller</a></li>
+<li><a href="#2-check-the-sender-of-the-message-on-the-source-chain">2. Check the sender of the message on the source chain</a></li>
+<li><a href="#3-make-state-updates-and-emit-events">3. Make state updates and emit events</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#takeaways">Takeaways</a></li>
+</ul>
+<h2 id="high-level-overview"><a class="header" href="#high-level-overview">High level overview</a></h2>
+<p><code>CrossChainPingPong.sol</code> implements a cross-chain ping-pong game using the L2ToL2CrossDomainMessenger.</p>
+<ul>
+<li>Players hit a virtual ** <em>ball</em> ** back and forth between allowed L2 chains. The game starts with a serve</li>
+<li>from a designated start chain, and each hit increases the rally count. The contract tracks the last hitter's address, chain ID, and the current rally count.</li>
+</ul>
+<h3 id="diagram"><a class="header" href="#diagram">Diagram</a></h3>
+<pre class="mermaid">sequenceDiagram
+    participant Chain1 as Chain 1 (First serve)
+    participant Chain2 as Chain 2
+    
+    Note over Chain1: 🚀 Game Starts
+    Note over Chain1: 🏓 Serve Ball
+    Chain1-&gt;&gt;Chain2: 📤 Send PingPongBall {rallyCount: 1, lastHitter: Chain1}
+    Chain1--&gt;&gt;Chain1: Emit BallSent event
+    activate Chain2
+    Note over Chain2: 📥 Receive Ball
+        Chain2--&gt;&gt;Chain2: Emit BallReceived event
+
+    Note over Chain2: 🏓 Hit Ball
+    Chain2-&gt;&gt;Chain1: 📤 Send PingPongBall {rallyCount: 2, lastHitter: Chain2}
+    Chain2--&gt;&gt;Chain2: Emit BallSent event
+    deactivate Chain2
+    activate Chain1
+    Note over Chain1: 📥 Receive Ball
+        Chain1--&gt;&gt;Chain1: Emit BallReceived event
+    Note over Chain1: 🏓 Hit Ball
+    Chain1-&gt;&gt;Chain2: 📤 Send PingPongBall {rallyCount: 3, lastHitter: Chain1}
+    Chain1--&gt;&gt;Chain1: Emit BallSent event
+    deactivate Chain1
+    Note over Chain1,Chain2: Game continues...
+</pre>
+<h3 id="flow"><a class="header" href="#flow">Flow</a></h3>
+<h4 id="1-contract-deployment"><a class="header" href="#1-contract-deployment">1. Contract Deployment</a></h4>
+<ul>
+<li>Deploy identical <code>CrossChainPingPong.sol</code> contracts on multiple L2 chains.</li>
+<li>Contracts are deployed using CREATE2 with the same parameter (<code>_allowedChainIds</code> and starting <code>_serverChainId</code>), resulting in the same address and initial state.</li>
+</ul>
+<h4 id="2-initiate-game-serve"><a class="header" href="#2-initiate-game-serve">2. Initiate Game (Serve)</a></h4>
+<ul>
+<li>Call <code>serveBallTo</code> on the designated server chain, specifying a destination chain.</li>
+<li>This can only be done once to start the game.</li>
+<li>Contract creates initial <code>PingPongBall</code> struct.</li>
+</ul>
+<h4 id="3-send-cross-chain-message"><a class="header" href="#3-send-cross-chain-message">3. Send Cross-Chain Message</a></h4>
+<ul>
+<li>Contract uses <code>L2ToL2CrossDomainMessenger</code> to send the ball data to the specified chain.</li>
+</ul>
+<h4 id="4-receive-on-destination-chain"><a class="header" href="#4-receive-on-destination-chain">4. Receive on Destination Chain</a></h4>
+<ul>
+<li>L2ToL2CrossDomainMessenger on destination chain calls <code>receiveBall</code>.</li>
+<li>Contract verifies the message sender and origin.</li>
+<li>Ball data is stored, and the ball is marked as present on this chain.</li>
+</ul>
+<h4 id="5-continue-game-hit"><a class="header" href="#5-continue-game-hit">5. Continue Game (Hit)</a></h4>
+<ul>
+<li>Any user on the chain currently holding the ball calls <code>hitBallTo</code> to send it to another chain.</li>
+<li>Contract updates the <code>PingPongBall</code> data (increment rally count, update last hitter).</li>
+<li>Process repeats from step 3.</li>
+</ul>
+<h4 id="key-points"><a class="header" href="#key-points">Key Points</a></h4>
+<ul>
+<li>Game starts with <code>serveBallTo</code> on a designated chain (server).</li>
+<li>After serving, <code>hitBallTo</code> is used to continue the game.</li>
+<li>Each contract instance can both send and receive balls.</li>
+<li>The contract tracks whether it currently holds the ball.</li>
+<li>Cross-chain messaging is handled by L2ToL2CrossDomainMessenger.</li>
+</ul>
+<h2 id="walkthrough"><a class="header" href="#walkthrough">Walkthrough</a></h2>
+<p>Here's an explanation of the functions in the contract, with a focus on how it interacts with <code>L2ToL2CrossChainMessenger</code>.</p>
+<h3 id="initializing-contract-states"><a class="header" href="#initializing-contract-states">Initializing contract states</a></h3>
+<h4 id="constructor-setup"><a class="header" href="#constructor-setup">Constructor Setup</a></h4>
+<pre><code class="language-solidity">constructor(uint256[] memory _allowedChainIds, uint256 _serverChainId) {
+    for (uint256 i = 0; i &lt; _allowedChainIds.length; i++) {
+        _isChainIdAllowed[_allowedChainIds[i]] = true;
+    }
+
+    if (!_isChainIdAllowed[_serverChainId]) {
+        revert InvalidDestinationChain(_serverChainId);
+    }
+
+    SERVER_CHAIN_ID = _serverChainId;
+}
+</code></pre>
+<p>This constructor initializes the contract with two crucial pieces of information:</p>
+<ol>
+<li><strong>Allowed Chain IDs</strong>: It populates the <code>_isChainIdAllowed</code> mapping, which determines which chains can participate in the game.</li>
+<li><strong>Server Chain ID</strong>: It sets the <code>SERVER_CHAIN_ID</code>, designating which chain has the authority to start the game.</li>
+</ol>
+<h4 id="synchronizing-the-game-start"><a class="header" href="#synchronizing-the-game-start">Synchronizing the Game Start</a></h4>
+<p>The contract uses a simple mechanism to ensure the game starts correctly across all chains:</p>
+<ol>
+<li>
+<p><strong>Designate the server chain</strong>:</p>
+<pre><code class="language-solidity">if (SERVER_CHAIN_ID != block.chainid) {
+    revert UnauthorizedServer(block.chainid, SERVER_CHAIN_ID);
+}
+</code></pre>
+<p>Only the designated server chain can initiate the game.</p>
+</li>
+<li>
+<p><strong>Only be able to serve once</strong></p>
+<pre><code class="language-solidity">if (_hasServerAlreadyServed) {
+    revert BallAlreadyServed();
+}
+_hasServerAlreadyServed = true;
+</code></pre>
+<p>This ensures the ball is served only once, preventing multiple game initiations.</p>
+</li>
+</ol>
+<p>By using these checks in the <code>serveBallTo</code> function, the contract ensures that:</p>
+<ul>
+<li>The game starts from a single, predetermined chain.</li>
+<li>The initial serve happens only once.</li>
+<li>All other chains wait to receive the ball before they can participate.</li>
+</ul>
+<p>Because this contract is simple, it doesn't require complex time-based coordination or post-deployment setup. The game naturally begins when the server chain calls <code>serveBallTo</code>, and other chains join the game as they receive the ball.</p>
+<h4 id="reliance-on-create2-for-cross-chain-consistency"><a class="header" href="#reliance-on-create2-for-cross-chain-consistency">Reliance on CREATE2 for Cross-Chain Consistency</a></h4>
+<p>While not explicitly mentioned in the code, this contract's design implicitly assumes the use of CREATE2 for deployment. Here's why CREATE2 is crucial for this setup:</p>
+<ol>
+<li>
+<p><strong>Predictable Addresses</strong>:
+CREATE2 enables deployment at the same address on all chains, crucial for cross-chain message verification:</p>
+<pre><code class="language-solidity">if (IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageSender() != address(this)) {
+    revert InvalidCrossDomainSender();
+}
+</code></pre>
+</li>
+<li>
+<p><strong>Self-referential Messaging</strong>:
+The contract sends messages to itself on other chains:</p>
+<pre><code class="language-solidity">IL2ToL2CrossDomainMessenger(MESSENGER).sendMessage(_toChainId, address(this), _message);
+</code></pre>
+<p>This requires <code>address(this)</code> to be consistent across chains.</p>
+</li>
+<li>
+<p><strong>Initialization State Considerations</strong>:
+The constructor parameters (<code>_allowedChainIds</code> and <code>_serverChainId</code>) affect the contract's initialization state. Different values will result in different contract addresses when using CREATE2. To maintain address consistency:</p>
+<ul>
+<li>Use identical <code>_allowedChainIds</code> arrays (same values in the same order)</li>
+<li>Use the same <code>_serverChainId</code>
+across all chain deployments.</li>
+</ul>
+</li>
+</ol>
+<p>Without CREATE2, you would need to:</p>
+<ul>
+<li>Manually track contract addresses for each chain.</li>
+<li>Implement a more complex initialization process to register contract addresses across chains.</li>
+<li>Potentially redesign the security model that relies on address matching.</li>
+</ul>
+<h3 id="sending-a-cross-chain-message"><a class="header" href="#sending-a-cross-chain-message">Sending a cross chain message</a></h3>
+<p>Two functions initiate a message send</p>
+<ul>
+<li>
+<p><code>serveBallTo</code>: This function initiates the game by serving the ball from the designated server chain to another chain.</p>
+</li>
+<li>
+<p><code>hitBallTo</code>: This function is used to hit the ball to another chain after receiving it.</p>
+</li>
+</ul>
+<p>Both functions create a new <code>PingPongBall</code> struct with updated information and then call <code>_sendCrossDomainMessage</code> to transmit this ball data to the specified destination chain.</p>
+<p>Now, let's look at how <code>_sendCrossDomainMessage</code> works:</p>
+<pre><code class="language-solidity">function _sendCrossDomainMessage(PingPongBall memory _ball, uint256 _toChainId) internal {
+    bytes memory _message = abi.encodeCall(this.receiveBall, (_ball));
+    IL2ToL2CrossDomainMessenger(MESSENGER).sendMessage(_toChainId, address(this), _message);
+}
+</code></pre>
+<h4 id="1-encode-the-function-call"><a class="header" href="#1-encode-the-function-call">1. Encode the function call</a></h4>
+<pre><code class="language-solidity">bytes memory _message = abi.encodeCall(this.receiveBall, (_ball));
+</code></pre>
+<ul>
+<li>The encoded message includes the function selector for <code>receiveBall</code> and the ABI-encoded <code>_ball</code> struct.</li>
+<li>By encoding a call to <code>receiveBall</code>, we're instructing the destination chain's messenger to execute this function when it receives the message.</li>
+</ul>
+<h4 id="2-send-the-cross-domain-message"><a class="header" href="#2-send-the-cross-domain-message">2. Send the cross-domain message</a></h4>
+<pre><code class="language-solidity">IL2ToL2CrossDomainMessenger(MESSENGER).sendMessage(_toChainId, address(this), _message);
+</code></pre>
+<ul>
+<li>Calls the <code>sendMessage</code> function on the <code>L2ToL2CrossDomainMessenger</code> to initiate cross-chain communication.</li>
+<li>Parameters:
+<ul>
+<li><code>_toChainId</code>: Specifies the destination chain.</li>
+<li><code>address(this)</code>: Ensures the message appears to come from the corresponding <code>CrossChainPingPong</code> contract on the receiving chain.</li>
+<li><code>_message</code>: The encoded function call created in step 1.</li>
+</ul>
+</li>
+<li>Relies on the <code>L2ToL2CrossDomainMessenger</code> to securely bridge the message to the specified chain.</li>
+</ul>
+<h4 id="why-were-sending-a-receiveball-function-call"><a class="header" href="#why-were-sending-a-receiveball-function-call">Why we're sending a <code>receiveBall</code> function call</a></h4>
+<ul>
+<li>We're not directly calling <code>receiveBall</code> on another chain. Instead, we're sending a message to the <code>L2ToL2CrossDomainMessenger</code> on the destination chain.</li>
+<li>This message instructs the messenger to execute the <code>receiveBall</code> function on our behalf.</li>
+<li>The process works like this:
+<ol>
+<li>Our contract encodes a call to <code>receiveBall</code> with the ball data.</li>
+<li>We send this encoded call to the <code>L2ToL2CrossDomainMessenger</code> on the current chain.</li>
+<li>The messenger system relays this to the corresponding messenger on the destination chain.</li>
+<li>The destination chain's messenger receives the message and executes the encoded <code>receiveBall</code> call on our contract.</li>
+</ol>
+</li>
+</ul>
+<h3 id="receiving-a-cross-chain-message"><a class="header" href="#receiving-a-cross-chain-message">Receiving a cross chain message</a></h3>
+<pre><code class="language-solidity">function receiveBall(PingPongBall memory _ball) external {
+    if (msg.sender != MESSENGER) {
+        revert CallerNotL2ToL2CrossDomainMessenger();
+    }
+
+    if (IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageSender() != address(this)) {
+        revert InvalidCrossDomainSender();
+    }
+
+    _receivedBall = _ball;
+    _isBallPresent = true;
+
+    emit BallReceived(IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageSource(), block.chainid, _ball);
+}
+</code></pre>
+<h4 id="1-check-msgsender-to-verify-the-caller"><a class="header" href="#1-check-msgsender-to-verify-the-caller">1. Check <code>msg.sender</code> to verify the caller</a></h4>
+<pre><code class="language-solidity">  if (msg.sender != MESSENGER) {
+      revert CallerNotL2ToL2CrossDomainMessenger();
+  }
+</code></pre>
+<ul>
+<li>The <code>receiveBall</code> function must only be called by the trusted <code>L2ToL2CrossDomainMessenger</code>. This messenger is responsible for handling cross-chain messages securely, so we need to verify that it is indeed the caller.</li>
+<li>Without this check, any external user could directly call <code>receiveBall</code> and pass arbitrary <code>_ball</code> data, bypassing the intended cross-chain communication flow.</li>
+<li>We rely on <code>L2ToL2CrossDomainMessenger</code> to ensure that:
+<ul>
+<li>The function is only triggered by a valid message sent from another chain.</li>
+<li>The source chain's sender address and chain ID are correctly relayed.</li>
+<li>Messages can’t be replayed or sent twice, preserving game integrity.</li>
+</ul>
+</li>
+</ul>
+<h4 id="2-check-the-sender-of-the-message-on-the-source-chain"><a class="header" href="#2-check-the-sender-of-the-message-on-the-source-chain">2. Check the sender of the message on the source chain</a></h4>
+<pre><code class="language-solidity">  if (IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageSender() != address(this)) {
+      revert InvalidCrossDomainSender();
+  }
+</code></pre>
+<ul>
+<li>The second check ensures that the message originated from the correct <code>CrossChainPingPong</code> contract on the source chain (the chain where someone called <code>hitBallTo</code>).
+<ul>
+<li>Leverages the fact that CrossChainPingPong contracts are deployed identically across chains, using deterministic deployment methods like CREATE2.</li>
+</ul>
+</li>
+<li>Without verifying this, any contract on a different chain could send an arbitrary <code>_ball</code> through the messenger, potentially disrupting the game's state.</li>
+<li>Since the <code>CrossChainPingPong</code> contract is deployed with identical logic across chains, we trust that only the intended contract would trigger this message in the correct game context.</li>
+</ul>
+<h4 id="3-make-state-updates-and-emit-events"><a class="header" href="#3-make-state-updates-and-emit-events">3. Make state updates and emit events</a></h4>
+<pre><code class="language-solidity">  _receivedBall = _ball;
+  _isBallPresent = true;
+
+  emit BallReceived(IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageSource(), block.chainid, _ball);
+</code></pre>
+<p>Updates the contract on this chain to keep the state of the ball and mark that it's present on this chain.</p>
+<h2 id="takeaways"><a class="header" href="#takeaways">Takeaways</a></h2>
+<p>This is just one of many patterns to use the L2ToL2CrossDomainMessenger in your contract to power cross-chain calls. Key points to remember:</p>
+<ol>
+<li>
+<p><strong>Simple Message Passing</strong>: This design sends simple messages between identical contracts on different chains. Each message contains only the essential game state (rally count, last hitter). More complex systems might involve multiple contracts, intermediary relayers.</p>
+</li>
+<li>
+<p><strong>Cross-Chain Sender Verification</strong>: Always verify the sender of cross-chain messages. This includes checking both the immediate caller (the messenger) and the original sender on the source chain.</p>
+</li>
+<li>
+<p><strong>Cross-Chain Contract Coordination</strong>: This design uses CREATE2 for consistent contract addresses across chains, simplifying cross-chain verification. Alternative approaches include:</p>
+<ul>
+<li>Beacon proxy patterns for upgradeable contracts</li>
+<li>Post-deployment setup where contract addresses are specified after deployment</li>
+</ul>
+</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../guides/interop/relay-using-viem.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../../examples/cross-chain-tictactoe.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../guides/interop/relay-using-viem.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../../examples/cross-chain-tictactoe.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../../src/static/mermaid.min.js"></script>
+        <script src="../../src/static/mermaid-init.js"></script>
+        <script src="../../src/static/solidity.min.js"></script>
+
+
+    </div>
+    </body>
+</html>
