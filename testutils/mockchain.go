@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/ethereum-optimism/supersim/config"
 
@@ -63,6 +64,10 @@ func (c *MockChain) SimulatedLogs(ctx context.Context, tx *types.Transaction) ([
 }
 
 func (c *MockChain) SetCode(ctx context.Context, result interface{}, address common.Address, code string) error {
+	return nil
+}
+
+func (c *MockChain) SetBalance(ctx context.Context, result interface{}, address common.Address, value *big.Int) error {
 	return nil
 }
 

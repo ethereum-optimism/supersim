@@ -13,12 +13,13 @@ import (
 	"github.com/ethereum-optimism/supersim/config"
 
 	"github.com/ethereum-optimism/optimism/op-service/cliapp"
+	"github.com/ethereum-optimism/optimism/op-service/ctxinterrupt"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
-	"github.com/ethereum-optimism/optimism/op-service/opio"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 
+	"github.com/joho/godotenv"
 	"github.com/urfave/cli/v2"
 )
 
@@ -34,6 +35,12 @@ const (
 )
 
 func main() {
+	// Load the .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Warn("Error loading .env file", "err", err)
+	}
+
 	oplog.SetupDefaults()
 	logFlags := oplog.CLIFlags(envVarPrefix)
 
@@ -59,7 +66,7 @@ func main() {
 		},
 	}
 
-	ctx := opio.WithInterruptBlocker(context.Background())
+	ctx := ctxinterrupt.WithSignalWaiterMain(context.Background())
 	if err := app.RunContext(ctx, os.Args); err != nil {
 		log.Crit("Application Failed", "err", err)
 	}

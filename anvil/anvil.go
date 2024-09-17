@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"os/exec"
 	"strconv"
@@ -246,6 +247,10 @@ func (a *Anvil) SetCode(ctx context.Context, result interface{}, address common.
 
 func (a *Anvil) SetStorageAt(ctx context.Context, result interface{}, address common.Address, storageSlot string, storageValue string) error {
 	return a.rpcClient.CallContext(ctx, result, "anvil_setStorageAt", address.Hex(), storageSlot, storageValue)
+}
+
+func (a *Anvil) SetBalance(ctx context.Context, result interface{}, address common.Address, value *big.Int) error {
+	return a.rpcClient.CallContext(ctx, result, "anvil_setBalance", address.Hex(), hexutil.EncodeBig(value))
 }
 
 func (a *Anvil) SetIntervalMining(ctx context.Context, result interface{}, interval int64) error {
