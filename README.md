@@ -1,8 +1,16 @@
 # 🛠️ Supersim
 
-Supersim is a lightweight tool to simulate the Superchain locally (with a single L1 and multiple OP-Stack L2s). Run multiple local nodes with one command, and coordinate message passing between them.
+**Supersim is a lightweight tool to simulate the Superchain locally** (with a single L1 and multiple OP-Stack L2s).
+
+### ✨ Features 
+
+- spin up multiple anvil nodes
+- predeployed OP Stack contracts and useful mock contracts (ERC20)
+- fork multiple remote chains (fork the entire Superchain)
+- simulate L1 <> L2 message passing (deposits) and L2 <> L2 message passing (interoperability)
 
 
+For **detailed instructions** and **usage guides**, refer to the [**📚 Supersim docs**](https://supersim.pages.dev).
 
 ## ❓ Why Supersim?
 
@@ -14,14 +22,6 @@ Multichain development offers unique challenges:
 - Running local offchain services like message relayers
 
 Supersim enables fast, local iteration on cross-chain features, with a simple developer interface.
-
-## ✨ Features 
-
-- spin up multiple anvil nodes
-- predeployed OP Stack contracts and useful mock contracts (ERC20)
-- fork multiple remote chains (fork the entire Superchain)
-- simulate L1 <> L2 message passing (deposits)
-- simulate L2 <> L2 message passing (interoperability) and auto-relayer
 
 ## 🚀 Getting Started
 

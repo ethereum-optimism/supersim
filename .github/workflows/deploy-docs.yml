@@ -22,6 +22,9 @@ jobs:
         uses: peaceiris/actions-mdbook@v1
         with:
           mdbook-version: "latest"
+      - name: Install mdbook plugins
+        run: |
+          cargo install mdbook-mermaid
       - name: Build book
         run: mdbook build ./docs
       - name: Deploy
