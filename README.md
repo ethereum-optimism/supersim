@@ -111,7 +111,7 @@ supersim --interop.autorelay
 Run the following command to mint 1000 `L2NativeSuperchainERC20` tokens to the recipient address:
 
 ```sh
-cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
 ```
 
@@ -120,7 +120,7 @@ cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 
 Send the tokens from Chain 901 to Chain 902 using the following command:
 
 ```sh
-cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
 
 **4. Wait for the relayed message to appear on chain 902** 
@@ -129,16 +129,16 @@ In a few seconds, you should see the RelayedMessage on chain 902:
 
 ```sh
 # example
-INFO [08-30|14:30:14.698] L2ToL2CrossChainMessenger#RelayedMessage sourceChainID=901 destinationChainID=902 nonce=0 sender=0x61a6eF395d217eD7C79e1B84880167a417796172 target=0x61a6eF395d217eD7C79e1B84880167a417796172
+INFO [08-30|14:30:14.698] L2ToL2CrossChainMessenger#RelayedMessage sourceChainID=901 destinationChainID=902 nonce=0 sender=0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA target=0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA
 ```
 **5. Check the balance on chain 902** 
 
 Verify that the balance of the L2NativeSuperchainERC20 on chain 902 has increased:
 
 ```sh
-cast balance --erc20 0x61a6eF395d217eD7C79e1B84880167a417796172 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
+cast balance --erc20 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
 ```
-
+For more **detailed instructions** and **usage guides**, refer to the [**📚 Supersim docs**](https://supersim.pages.dev).
 
 ## 🌐 Fork mode
 
@@ -176,6 +176,28 @@ L2s: Predeploy Contracts Spec ( https://specs.optimism.io/protocol/predeploys.ht
      - OptimismPortal:         0x1a0ad011913A150f69f6A19DF447A0CfD9551054
      - L1CrossDomainMessenger: 0xdC40a14d9abd6F410226f1E6de71aE03441ca506
      - L1StandardBridge:       0x3e2Ea9B92B7E48A52296fD261dc26fd995284631
+```
+
+### Development
+
+#### Running locally
+
+```sh
+go run cmd/main.go
+```
+
+#### Building locally
+
+1. build the binary by running:
+
+```sh
+go build cmd/main.go
+```
+
+2. start supersim in vanilla mode by running:
+ 
+```sh
+./main
 ```
 
 ### Note
