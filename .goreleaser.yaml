@@ -29,3 +29,13 @@ archives:
         format: zip
 changelog:
   disable: true
+
+brews:
+  - name: supersim
+    directory: Formula
+    homepage: "https://github.com/ethereum-optimism/supersim"
+    description: "Supersim is a local dev environment for the Superchain"
+    repository:
+      owner: ethereum-optimism
+      name: homebrew-tap
+      token: "{{ .Env.TAP_REPO_GITHUB_TOKEN }}"
