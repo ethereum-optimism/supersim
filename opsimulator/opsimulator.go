@@ -33,7 +33,7 @@ import (
 
 const (
 	host                        = "127.0.0.1"
-	l2NativeSuperchainERC20Addr = "0x61a6eF395d217eD7C79e1B84880167a417796172"
+	l2NativeSuperchainERC20Addr = "0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA"
 )
 
 type OpSimulator struct {

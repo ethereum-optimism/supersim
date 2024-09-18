@@ -50,7 +50,7 @@ import { anvil } from "viem/chains";
 
 // Define constants - L2NativeSuperchainERC20 contract address is the same on every chain
 const L2_NATIVE_SUPERCHAINERC20_ADDRESS =
-	"0x61a6eF395d217eD7C79e1B84880167a417796172";
+	"0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA";
 
 const L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS =
 	"0x4200000000000000000000000000000000000023";
@@ -206,7 +206,7 @@ import { anvil } from "viem/chains";
 
 // Define constants - L2NativeSuperchainERC20 contract address is the same on every chain
 const L2_NATIVE_SUPERCHAINERC20_ADDRESS =
-	"0x61a6eF395d217eD7C79e1B84880167a417796172";
+	"0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA";
 
 const L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS =
 	"0x4200000000000000000000000000000000000023";
