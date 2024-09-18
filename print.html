@@ -242,21 +242,21 @@
 </code></pre>
 <h3 id="2-mint-tokens-to-transfer-on-chain-901"><a class="header" href="#2-mint-tokens-to-transfer-on-chain-901">2. Mint tokens to transfer on chain 901</a></h3>
 <p>Run the following command to mint 1000 <code>L2NativeSuperchainERC20</code> tokens to the recipient address:</p>
-<pre><code class="language-sh">cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+<pre><code class="language-sh">cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
 </code></pre>
 <h3 id="3-initiate-the-send-transaction-on-chain-901"><a class="header" href="#3-initiate-the-send-transaction-on-chain-901">3. Initiate the send transaction on chain 901</a></h3>
 <p>Send the tokens from Chain 901 to Chain 902 using the following command:</p>
-<pre><code class="language-sh">cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+<pre><code class="language-sh">cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
 <h3 id="4-wait-for-the-relayed-message-to-appear-on-chain-902"><a class="header" href="#4-wait-for-the-relayed-message-to-appear-on-chain-902">4. Wait for the relayed message to appear on chain 902</a></h3>
 <p>In a few seconds, you should see the RelayedMessage on chain 902:</p>
 <pre><code class="language-sh"># example
-INFO [08-30|14:30:14.698] L2ToL2CrossChainMessenger#RelayedMessage sourceChainID=901 destinationChainID=902 nonce=0 sender=0x61a6eF395d217eD7C79e1B84880167a417796172 target=0x61a6eF395d217eD7C79e1B84880167a417796172
+INFO [08-30|14:30:14.698] L2ToL2CrossChainMessenger#RelayedMessage sourceChainID=901 destinationChainID=902 nonce=0 sender=0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA target=0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA
 </code></pre>
 <h3 id="5-check-the-balance-on-chain-902"><a class="header" href="#5-check-the-balance-on-chain-902">5. Check the balance on chain 902</a></h3>
 <p>Verify that the balance of the L2NativeSuperchainERC20 on chain 902 has increased:</p>
-<pre><code class="language-sh">cast balance --erc20 0x61a6eF395d217eD7C79e1B84880167a417796172 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
+<pre><code class="language-sh">cast balance --erc20 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
 </code></pre>
 <p>With the steps above, you've now successfully completed both an L1 to L2 ETH bridge and an L2 to L2 interoperable SuperchainERC20 token transfer, all done locally using <code>supersim</code>. This approach simplifies multichain testing, allowing you to focus on development without the need for complex setups or relying on external testnets.</p>
 <div style="break-before: page; page-break-before: always;"></div><!-- omit in toc -->
@@ -502,9 +502,9 @@ OPTIONS:
 <h3 id="l2nativesuperchainerc20"><a class="header" href="#l2nativesuperchainerc20">L2NativeSuperchainERC20</a></h3>
 <p>A simple ERC20 that adheres to the SuperchainERC20 standard. It includes permissionless minting for easy testing.</p>
 <p>Source: <a href="chain-environment/contracts//contracts/src/L2NativeSuperchainERC20.sol">L2NativeSuperchainERC20.sol</a></p>
-<p>Deployed address: <code>0x61a6eF395d217eD7C79e1B84880167a417796172</code></p>
+<p>Deployed address: <code>0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA</code></p>
 <h4 id="minting-new-tokens"><a class="header" href="#minting-new-tokens">Minting new tokens</a></h4>
-<pre><code class="language-bash">cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 _amount)" $RECIPIENT_ADDRESS 1ether  --rpc-url $L2_RPC_URL
+<pre><code class="language-bash">cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "mint(address _to, uint256 _amount)" $RECIPIENT_ADDRESS 1ether  --rpc-url $L2_RPC_URL
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="network-details"><a class="header" href="#network-details">Network details</a></h1>
 <p>By default, two OP Stack systems will be spun up in vanilla mode</p>
@@ -590,7 +590,7 @@ OPTIONS:
   "L2ToL2CrossDomainMessenger": "0x4200000000000000000000000000000000000023",
 
   // Periphery
-  "L2NativeSuperchainERC20": "0x61a6eF395d217eD7C79e1B84880167a417796172"
+  "L2NativeSuperchainERC20": "0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA"
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><!-- omit in toc -->
@@ -670,7 +670,7 @@ OPTIONS:
   "L2ToL2CrossDomainMessenger": "0x4200000000000000000000000000000000000023",
 
   // Periphery
-  "L2NativeSuperchainERC20": "0x61a6eF395d217eD7C79e1B84880167a417796172"
+  "L2NativeSuperchainERC20": "0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA"
 }
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="deposit-transactions"><a class="header" href="#deposit-transactions">Deposit transactions</a></h1>
@@ -706,7 +706,7 @@ OPTIONS:
 <ul>
 <li><a href="https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/L2NativeSuperchainERC20.sol">L2NativeSuperchainERC20</a>
 <ul>
-<li><code>0x61a6eF395d217eD7C79e1B84880167a417796172</code></li>
+<li><code>0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA</code></li>
 </ul>
 </li>
 <li><a href="https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/CrossL2Inbox.sol">CrossL2Inbox</a>
@@ -757,11 +757,11 @@ The sequencer and smart contracts (CrossL2Inbox) use the identifier to perform <
 </code></pre>
 <h3 id="2-mint-tokens-to-transfer-on-chain-901-1"><a class="header" href="#2-mint-tokens-to-transfer-on-chain-901-1">2. Mint tokens to transfer on chain 901</a></h3>
 <p>Run the following command to mint 1000 <code>L2NativeSuperchainERC20</code> tokens to the recipient address:</p>
-<pre><code class="language-sh">cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+<pre><code class="language-sh">cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
 <h3 id="3-initiate-the-send-transaction-on-chain-901-1"><a class="header" href="#3-initiate-the-send-transaction-on-chain-901-1">3. Initiate the send transaction on chain 901</a></h3>
 <p>Send the tokens from Chain 901 to Chain 902 using the following command:</p>
-<pre><code class="language-sh">cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+<pre><code class="language-sh">cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
 <h3 id="4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger"><a class="header" href="#4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger">4. Get the log emitted by the <code>L2ToL2CrossDomainMessenger</code></a></h3>
 <p>The token contract calls the <a href="https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol">L2ToL2CrossDomainMessenger</a>, which emits a message (log) that can be executed on the destination chain.</p>
@@ -871,7 +871,7 @@ contract CrossL2Inbox {
 </code></pre>
 <h3 id="8-check-the-balance-on-chain-902"><a class="header" href="#8-check-the-balance-on-chain-902">8. Check the balance on chain 902</a></h3>
 <p>Verify that the balance of the L2NativeSuperchainERC20 on chain 902 has increased:</p>
-<pre><code class="language-sh">cast balance --erc20 0x61a6eF395d217eD7C79e1B84880167a417796172 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
+<pre><code class="language-sh">cast balance --erc20 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
 </code></pre>
 <h2 id="alternatives"><a class="header" href="#alternatives">Alternatives</a></h2>
 <p>This is obviously very tedious to do by hand 😅. Here are some alternatives</p>
@@ -922,7 +922,7 @@ import { anvil } from "viem/chains";
 
 // Define constants - L2NativeSuperchainERC20 contract address is the same on every chain
 const L2_NATIVE_SUPERCHAINERC20_ADDRESS =
-	"0x61a6eF395d217eD7C79e1B84880167a417796172";
+	"0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA";
 
 const L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS =
 	"0x4200000000000000000000000000000000000023";
@@ -1067,7 +1067,7 @@ import { anvil } from "viem/chains";
 
 // Define constants - L2NativeSuperchainERC20 contract address is the same on every chain
 const L2_NATIVE_SUPERCHAINERC20_ADDRESS =
-	"0x61a6eF395d217eD7C79e1B84880167a417796172";
+	"0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA";
 
 const L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS =
 	"0x4200000000000000000000000000000000000023";

@@ -207,7 +207,7 @@
 <ul>
 <li><a href="https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/L2NativeSuperchainERC20.sol">L2NativeSuperchainERC20</a>
 <ul>
-<li><code>0x61a6eF395d217eD7C79e1B84880167a417796172</code></li>
+<li><code>0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA</code></li>
 </ul>
 </li>
 <li><a href="https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/CrossL2Inbox.sol">CrossL2Inbox</a>
@@ -258,11 +258,11 @@ The sequencer and smart contracts (CrossL2Inbox) use the identifier to perform <
 </code></pre>
 <h3 id="2-mint-tokens-to-transfer-on-chain-901"><a class="header" href="#2-mint-tokens-to-transfer-on-chain-901">2. Mint tokens to transfer on chain 901</a></h3>
 <p>Run the following command to mint 1000 <code>L2NativeSuperchainERC20</code> tokens to the recipient address:</p>
-<pre><code class="language-sh">cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+<pre><code class="language-sh">cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
 <h3 id="3-initiate-the-send-transaction-on-chain-901"><a class="header" href="#3-initiate-the-send-transaction-on-chain-901">3. Initiate the send transaction on chain 901</a></h3>
 <p>Send the tokens from Chain 901 to Chain 902 using the following command:</p>
-<pre><code class="language-sh">cast send 0x61a6eF395d217eD7C79e1B84880167a417796172 "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+<pre><code class="language-sh">cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
 <h3 id="4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger"><a class="header" href="#4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger">4. Get the log emitted by the <code>L2ToL2CrossDomainMessenger</code></a></h3>
 <p>The token contract calls the <a href="https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol">L2ToL2CrossDomainMessenger</a>, which emits a message (log) that can be executed on the destination chain.</p>
@@ -372,7 +372,7 @@ contract CrossL2Inbox {
 </code></pre>
 <h3 id="8-check-the-balance-on-chain-902"><a class="header" href="#8-check-the-balance-on-chain-902">8. Check the balance on chain 902</a></h3>
 <p>Verify that the balance of the L2NativeSuperchainERC20 on chain 902 has increased:</p>
-<pre><code class="language-sh">cast balance --erc20 0x61a6eF395d217eD7C79e1B84880167a417796172 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
+<pre><code class="language-sh">cast balance --erc20 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
 </code></pre>
 <h2 id="alternatives"><a class="header" href="#alternatives">Alternatives</a></h2>
 <p>This is obviously very tedious to do by hand 😅. Here are some alternatives</p>
