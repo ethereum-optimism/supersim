@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 **Environment information**
- - Operating System: [e.g. Linux, macOS, Windows]
+ - Operating System: [e.g. Ubuntu 24.04, macOS Sonoma 14.7, Windows 11]
  - Supersim Version: [e.g. v0.0.1-alpha-1]
 
 **Foundry version.**
