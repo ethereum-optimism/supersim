@@ -12,34 +12,25 @@
 
 For **detailed instructions** and **usage guides**, refer to the [**📚 Supersim docs**](https://supersim.pages.dev).
 
-## ❓ Why Supersim?
-
-While existing tools focus on isolated smart contract testing, Supersim provides a local development environment that mirrors the complex interactions of the Superchain ecosystem. Simulate entire cross-chain application flows, complete with deployed contracts, intricate message passing infrastructure, and OP-Stack specific logic with one command.
-
-Multichain development offers unique challenges:
-- Coordinating startup and running multiple local chains
-- Deploying system contracts to mimic desired functionality
-- Running local offchain services like message relayers
-
-Supersim enables fast, local iteration on cross-chain features, with a simple developer interface.
-
 ## 🚀 Getting Started
 
 ### 1. Install prerequisites: `foundry`
 
 `supersim` requires `anvil` to be installed.
 
-Follow the guide [here](https://book.getfoundry.sh/getting-started/installation) to install the Foundry toolchain, which includes `anvil`.
+Follow [this guide](https://book.getfoundry.sh/getting-started/installation) to install Foundry.
 
 ### 2. Install `supersim`
 
+#### Homebrew (OS X, Linux)
+
+```sh
+brew tap ethereum-optimism/tap
+brew install supersim
+```
 #### Precompiled Binaries
 
 Download the executable for your platform from the [GitHub releases page](https://github.com/ethereum-optimism/supersim/releases).
-
-#### Homebrew (OS X, Linux)
-
-*Coming soon*
 
 ### 3. Start `supersim` in vanilla mode
 
@@ -216,8 +207,16 @@ By default, interop contracts are not deployed on forked networks. To include th
 supersim fork --chains=op,base,zora --interop.enabled
 ```
 
-## 💬 Join Discord
-Join our discord [here](https://discord.gg/Scdnrw8d) and reach out to us in the [interop-devex](https://discord.com/channels/1244729134312198194/1255653436079210496) channel.
+## ❓ Why Supersim?
+
+While existing tools focus on isolated smart contract testing, Supersim provides a local development environment that mirrors the complex interactions of the Superchain ecosystem. Simulate entire cross-chain application flows, complete with deployed contracts, intricate message passing infrastructure, and OP-Stack specific logic with one command.
+
+Multichain development offers unique challenges:
+- Coordinating startup and running multiple local chains
+- Deploying system contracts to mimic desired functionality
+- Running local offchain services like message relayers
+
+Supersim enables fast, local iteration on cross-chain features, with a simple developer interface.
 
 ## 🤝 Contributing
 
