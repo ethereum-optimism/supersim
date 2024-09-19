@@ -227,8 +227,8 @@ OPTIONS:
 
           --chains value                                                         ($SUPERSIM_CHAINS)
                 chains to fork in the superchain, mainnet options: [base, lyra, metal, mode, op,
-                orderly, race, zora]. In order to replace the public rpc endpoint for a chain,
-                specify the ($SUPERSIM_RPC_URL_&lt;CHAIN&gt;) env variable. i.e
+                orderly, race, tbn, zora]. In order to replace the public rpc endpoint for a
+                chain, specify the ($SUPERSIM_RPC_URL_&lt;CHAIN&gt;) env variable. i.e
                 SUPERSIM_RPC_URL_OP=http://optimism-mainnet.infura.io/v3/&lt;API-KEY&gt;
 
           --network value                     (default: "mainnet")               ($SUPERSIM_NETWORK)
@@ -237,8 +237,8 @@ OPTIONS:
                 ($SUPERSIM_RPC_URL_&lt;NETWORK&gt;) env variable. i.e
                 SUPERSIM_RPC_URL_MAINNET=http://mainnet.infura.io/v3/&lt;API-KEY&gt;
 
-          --interop.enabled                   (default: false)                   ($SUPERSIM_FORK_WITH_INTEROP)
-                Enable interop in fork mode
+          --interop.enabled                   (default: true)                    ($SUPERSIM_INTEROP_ENABLED)
+                enable interop predeploy and functionality
 
           --l1.port value                     (default: 8545)                    ($SUPERSIM_L1_PORT)
                 Listening port for the L1 instance. `0` binds to any available port
@@ -247,13 +247,12 @@ OPTIONS:
                 Starting port to increment from for L2 chains. `0` binds each chain to any
                 available port
 
-          --interop.autorelay                 (default: false)                   ($SUPERSIM_AUTORELAY)
+          --interop.autorelay                 (default: false)                   ($SUPERSIM_INTEROP_AUTORELAY)
                 Automatically relay messages sent to the L2ToL2CrossDomainMessenger using
                 account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
 
-          --aa.bundler                        (default: false)                   ($SUPERSIM_AA_BUNDLER)
-                Run a ERC-4337 Bundler which sends transactions using account
-                0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f
+          --logs.directory value                                                 ($SUPERSIM_LOGS_DIRECTORY)
+                Directory to store logs
 
           --log.level value                   (default: INFO)                    ($SUPERSIM_LOG_LEVEL)
                 The lowest log level that will be output
