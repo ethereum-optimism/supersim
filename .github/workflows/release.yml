@@ -4,12 +4,14 @@ on:
   push:
     tags:
       - "*"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   goreleaser:
+    if: github.repository == 'ethereum-optimism/supersim'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,3 +30,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAP_REPO_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_REPO_OPTIBOT_PAT }}
