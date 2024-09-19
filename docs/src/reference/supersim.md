@@ -78,7 +78,7 @@ COMMANDS:
 
 GLOBAL OPTIONS:
 
-    --interop.autorelay                 (default: false)                   ($SUPERSIM_AUTORELAY)
+    --interop.autorelay                 (default: false)                   ($SUPERSIM_INTEROP_AUTORELAY)
           Automatically relay messages sent to the L2ToL2CrossDomainMessenger using
           account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
 
@@ -101,6 +101,9 @@ GLOBAL OPTIONS:
 
     --log.pid                           (default: false)                   ($SUPERSIM_LOG_PID)
           Show pid in the log
+
+    --logs.directory value                                                 ($SUPERSIM_LOGS_DIRECTORY)
+          Directory to store logs
 
    MISC
 
