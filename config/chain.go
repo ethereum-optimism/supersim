@@ -57,6 +57,9 @@ type ChainConfig struct {
 
 	// Optional
 	StartingTimestamp uint64
+
+	// Optional
+	LogsDirectory string
 }
 
 type NetworkConfig struct {
@@ -90,7 +93,7 @@ type Chain interface {
 	Stop(ctx context.Context) error
 }
 
-func GetDefaultNetworkConfig(startingTimestamp uint64) NetworkConfig {
+func GetDefaultNetworkConfig(startingTimestamp uint64, logsDirectory string) NetworkConfig {
 	return NetworkConfig{
 		// Enabled by default as it is included in genesis
 		InteropEnabled: true,
@@ -101,6 +104,7 @@ func GetDefaultNetworkConfig(startingTimestamp uint64) NetworkConfig {
 			SecretsConfig:     DefaultSecretsConfig,
 			GenesisJSON:       genesis.GeneratedGenesisDeployment.L1.GenesisJSON,
 			StartingTimestamp: startingTimestamp,
+			LogsDirectory:     logsDirectory,
 		},
 		L2Configs: []ChainConfig{
 			{
@@ -114,6 +118,7 @@ func GetDefaultNetworkConfig(startingTimestamp uint64) NetworkConfig {
 					DependencySet: []uint64{genesis.GeneratedGenesisDeployment.L2s[1].ChainID},
 				},
 				StartingTimestamp: startingTimestamp,
+				LogsDirectory:     logsDirectory,
 			},
 			{
 				Name:          "OPChainB",
@@ -126,6 +131,7 @@ func GetDefaultNetworkConfig(startingTimestamp uint64) NetworkConfig {
 					DependencySet: []uint64{genesis.GeneratedGenesisDeployment.L2s[0].ChainID},
 				},
 				StartingTimestamp: startingTimestamp,
+				LogsDirectory:     logsDirectory,
 			},
 		},
 	}

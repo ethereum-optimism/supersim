@@ -21,6 +21,8 @@ const (
 	NetworkFlagName        = "network"
 	L2StartingPortFlagName = "l2.starting.port"
 
+	LogsDirectoryFlagName = "logs.directory"
+
 	InteropEnabledFlagName   = "interop.enabled"
 	InteropAutoRelayFlagName = "interop.autorelay"
 )
@@ -43,7 +45,13 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Name:    InteropAutoRelayFlagName,
 			Value:   false,
 			Usage:   "Automatically relay messages sent to the L2ToL2CrossDomainMessenger using account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "AUTORELAY"),
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_AUTORELAY"),
+		},
+		&cli.StringFlag{
+			Name:    LogsDirectoryFlagName,
+			Usage:   "Directory to store logs",
+			Value:   "",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "LOGS_DIRECTORY"),
 		},
 	}
 }
@@ -93,6 +101,8 @@ type CLIConfig struct {
 
 	InteropAutoRelay bool
 
+	LogsDirectory string
+
 	ForkConfig *ForkCLIConfig
 }
 
@@ -102,6 +112,8 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		L2StartingPort: ctx.Uint64(L2StartingPortFlagName),
 
 		InteropAutoRelay: ctx.Bool(InteropAutoRelayFlagName),
+
+		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 	}
 
 	if ctx.Command.Name == ForkCommandName {

@@ -24,7 +24,7 @@ type Supersim struct {
 }
 
 func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseFunc, cliConfig *config.CLIConfig) (*Supersim, error) {
-	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()))
+	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()), cliConfig.LogsDirectory)
 
 	// If Forking, override the network config with the generated fork config
 	if cliConfig.ForkConfig != nil {
