@@ -25,8 +25,7 @@ Follow [this guide](https://book.getfoundry.sh/getting-started/installation) to 
 #### Homebrew (OS X, Linux)
 
 ```sh
-brew tap ethereum-optimism/tap
-brew install supersim
+brew install ethereum-optimism/tap/supersim
 ```
 #### Precompiled Binaries
 
