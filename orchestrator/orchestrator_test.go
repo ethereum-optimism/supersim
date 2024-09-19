@@ -21,7 +21,7 @@ type TestSuite struct {
 }
 
 func createTestSuite(t *testing.T) *TestSuite {
-	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()))
+	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()), "")
 	testlog := testlog.Logger(t, log.LevelInfo)
 
 	ctx, closeApp := context.WithCancelCause(context.Background())

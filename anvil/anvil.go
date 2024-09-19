@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -93,6 +94,8 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 	if len(a.cfg.GenesisJSON) > 0 && a.cfg.ForkConfig == nil {
 		tempFile, err := os.CreateTemp("", "genesis-*.json")
+		defer a.removeFile(tempFile)
+
 		if err != nil {
 			return fmt.Errorf("error creating temporary genesis file: %w", err)
 		}
@@ -120,10 +123,32 @@ func (a *Anvil) Start(ctx context.Context) error {
 	// and see what port anvil eventually binds to when started
 	anvilPortCh := make(chan uint64)
 
-	// Handle stdout/stderr
-	logFile, err := os.CreateTemp("", fmt.Sprintf("anvil-chain-%d-", a.cfg.ChainID))
-	if err != nil {
-		return fmt.Errorf("failed to create temp log file: %w", err)
+	var logFile *os.File
+
+	// Empty LogsDirectory defaults to temp file
+	if a.cfg.LogsDirectory == "" {
+		tempLogFile, err := os.CreateTemp("", fmt.Sprintf("anvil-chain-%d-", a.cfg.ChainID))
+		if err != nil {
+			return fmt.Errorf("failed to create temp log file: %w", err)
+		}
+
+		logFile = tempLogFile
+		// Clean up the temp log file
+		defer a.removeFile(logFile)
+	} else {
+		// Expand the path to the log file
+		absFilePath, err := filepath.Abs(fmt.Sprintf("%s/anvil-%d.log", a.cfg.LogsDirectory, a.cfg.ChainID))
+		if err != nil {
+			return fmt.Errorf("failed to expand path: %w", err)
+		}
+
+		// Handle logs in the specified directory
+		specifiedLogFile, err := os.Create(absFilePath)
+		if err != nil {
+			return fmt.Errorf("failed to create log file: %w", err)
+		}
+		logFile = specifiedLogFile
+		// Don't delete the log file if directory is specified
 	}
 
 	a.logFilePath = logFile.Name()
@@ -300,4 +325,10 @@ func (a *Anvil) SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]typ
 	}
 
 	return logs, err
+}
+
+func (a *Anvil) removeFile(file *os.File) {
+	if err := os.Remove(file.Name()); err != nil {
+		a.log.Warn("failed to remove temp genesis file", "file.path", file.Name(), "err", err)
+	}
 }
