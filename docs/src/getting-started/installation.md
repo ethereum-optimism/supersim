@@ -14,7 +14,10 @@ Download the executable for your platform from the [GitHub releases page](https:
 
 ### Homebrew (OS X, Linux)
 
-*Coming soon*
+```sh
+brew tap ethereum-optimism/tap
+brew install supersim
+```
 
 ## 3. Start `supersim` in vanilla mode
 
