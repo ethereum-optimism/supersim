@@ -88,3 +88,34 @@ func TestL2ToL2Transfer(t *testing.T) {
 	})
 	assert.NoError(t, waitErr)
 }
+
+func TestSuperchainETHTransfer(t *testing.T) {
+	_ = createTestSuite(t, &config.CLIConfig{
+		L1Port:           8545,
+		L2StartingPort:   9545,
+		InteropAutoRelay: true,
+	})
+
+	// Check initial balance on chain 902
+	initialBalanceCmd := `cast balance 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 --rpc-url http://127.0.0.1:9546`
+	initialBalance, err := runCmd(initialBalanceCmd)
+	assert.NoError(t, err)
+	assert.Equal(t, "0", initialBalance, "Initial balance check failed")
+
+	// Initiate the send transaction on chain 901
+	sendCmd := `cast send 0x420beeF000000000000000000000000000000002 "sendETH(address,uint256,bytes)" 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 902 0x --value 10ether --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`
+	_, err = runCmd(sendCmd)
+	assert.NoError(t, err)
+
+	// Check the final balance on chain 902
+	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+		finalBalanceCmd := `cast balance 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 --rpc-url http://127.0.0.1:9546`
+		finalBalance, err := runCmd(finalBalanceCmd)
+		if err != nil {
+			return false, err
+		}
+
+		return finalBalance == "10000000000000000000", nil
+	})
+	assert.NoError(t, waitErr)
+}
