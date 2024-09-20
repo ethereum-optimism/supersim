@@ -28,3 +28,5 @@ go.work.sum
 
 /main
 dist/
+
+cache
