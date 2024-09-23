@@ -44,7 +44,7 @@ supersim --interop.autorelay
 Run the following command to mint 1000 `L2NativeSuperchainERC20` tokens to the recipient address:
 
 ```sh
-cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+cast send 0x420beeF000000000000000000000000000000001 "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
 ```
 
@@ -53,7 +53,7 @@ cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "mint(address _to, uint256 
 Send the tokens from Chain 901 to Chain 902 using the following command:
 
 ```sh
-cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+cast send 0x420beeF000000000000000000000000000000001 "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
 
 ### 4. Wait for the relayed message to appear on chain 902
@@ -62,7 +62,7 @@ In a few seconds, you should see the RelayedMessage on chain 902:
 
 ```sh
 # example
-INFO [08-30|14:30:14.698] L2ToL2CrossChainMessenger#RelayedMessage sourceChainID=901 destinationChainID=902 nonce=0 sender=0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA target=0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA
+INFO [08-30|14:30:14.698] L2ToL2CrossChainMessenger#RelayedMessage sourceChainID=901 destinationChainID=902 nonce=0 sender=0x420beeF000000000000000000000000000000001 target=0x420beeF000000000000000000000000000000001
 ```
 
 ### 5. Check the balance on chain 902
@@ -70,7 +70,7 @@ INFO [08-30|14:30:14.698] L2ToL2CrossChainMessenger#RelayedMessage sourceChainID
 Verify that the balance of the L2NativeSuperchainERC20 on chain 902 has increased:
 
 ```sh
-cast balance --erc20 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
+cast balance --erc20 0x420beeF000000000000000000000000000000001 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
 ```
 
 With the steps above, you've now successfully completed both an L1 to L2 ETH bridge and an L2 to L2 interoperable SuperchainERC20 token transfer, all done locally using `supersim`. This approach simplifies multichain testing, allowing you to focus on development without the need for complex setups or relying on external testnets.

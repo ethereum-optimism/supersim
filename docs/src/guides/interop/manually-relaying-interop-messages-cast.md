@@ -26,7 +26,7 @@ We'll perform the SuperchainERC20 interop transfer in [First steps](../../gettin
 
 ### Contracts used
 - [L2NativeSuperchainERC20](https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/L2NativeSuperchainERC20.sol)
-  - `0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA`
+  - `0x420beeF000000000000000000000000000000001`
 - [CrossL2Inbox](https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/CrossL2Inbox.sol)
   - `0x4200000000000000000000000000000000000022`
 - [L2ToL2CrossDomainMessenger](https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol)
@@ -77,7 +77,7 @@ supersim
 Run the following command to mint 1000 `L2NativeSuperchainERC20` tokens to the recipient address:
 
 ```sh
-cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+cast send 0x420beeF000000000000000000000000000000001 "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
 
 ### 3. Initiate the send transaction on chain 901
@@ -85,7 +85,7 @@ cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "mint(address _to, uint256 
 Send the tokens from Chain 901 to Chain 902 using the following command:
 
 ```sh
-cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+cast send 0x420beeF000000000000000000000000000000001 "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
 
 ### 4. Get the log emitted by the `L2ToL2CrossDomainMessenger`
@@ -215,7 +215,7 @@ cast send 0x4200000000000000000000000000000000000022 \
 Verify that the balance of the L2NativeSuperchainERC20 on chain 902 has increased:
 
 ```sh
-cast balance --erc20 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
+cast balance --erc20 0x420beeF000000000000000000000000000000001 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
 ```
 
 ## Alternatives

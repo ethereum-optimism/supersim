@@ -2,7 +2,10 @@
 pragma solidity ^0.8.13;
 
 contract TicTacToe {
-    enum PlayerTurn { PlayerOne, PlayerTwo }
+    enum PlayerTurn {
+        PlayerOne,
+        PlayerTwo
+    }
 
     enum GameState {
         WaitingForPlayer,
@@ -30,7 +33,7 @@ contract TicTacToe {
 
     uint256 numOfGames;
     mapping(uint256 => Game) public games;
-    
+
     // Magic Square: https://mathworld.wolfram.com/MagicSquare.html
     uint8[3][3] private MAGIC_SQUARE = [[8, 3, 4], [1, 5, 9], [6, 7, 2]];
     uint8 private constant MAGIC_SUM_PLAYER_ONE = 15;
@@ -58,7 +61,7 @@ contract TicTacToe {
         return numOfGames;
     }
 
-    function joinGame(address player2, uint256 gameId) public validGame(gameId) returns (bool) {    
+    function joinGame(address player2, uint256 gameId) public validGame(gameId) returns (bool) {
         Game storage game = games[gameId];
 
         require(game.state == GameState.WaitingForPlayer, "Game already has enough players");
@@ -74,7 +77,7 @@ contract TicTacToe {
     function makeMove(address player, uint256 gameId, uint8 x, uint8 y) public validGame(gameId) returns (bool) {
         Game storage game = games[gameId];
         require(game.state == GameState.Playing, "Game hasn't started or has already been completed");
-    
+
         bool isPlayerOneTurn = game.currentTurn == PlayerTurn.PlayerOne;
         require(isPlayerOneTurn ? player == game.player1 : player == game.player2, "Not a valid player in the game");
         require(x >= 0 && x <= 2 || y >= 0 && y <= 2, "Move out of bounds");
@@ -101,7 +104,7 @@ contract TicTacToe {
         return games[gameId];
     }
 
-    function checkForWin(address player, uint256 gameId) public validGame(gameId) view returns (bool) {
+    function checkForWin(address player, uint256 gameId) public view validGame(gameId) returns (bool) {
         Game storage game = games[gameId];
         require(player == game.player1 || player == game.player2, "Not a valid player in the game");
 
@@ -109,8 +112,10 @@ contract TicTacToe {
 
         // row & col check
         for (uint8 i = 0; i < 3; i++) {
-            uint8 rowSum = (game.board[i][0] * MAGIC_SQUARE[i][0]) + (game.board[i][1] * MAGIC_SQUARE[i][1]) + (game.board[i][2] * MAGIC_SQUARE[i][2]);
-            uint8 colSum = (game.board[0][i] * MAGIC_SQUARE[0][i]) + (game.board[1][i] * MAGIC_SQUARE[1][i]) + (game.board[2][i] * MAGIC_SQUARE[2][i]);
+            uint8 rowSum = (game.board[i][0] * MAGIC_SQUARE[i][0]) + (game.board[i][1] * MAGIC_SQUARE[i][1])
+                + (game.board[i][2] * MAGIC_SQUARE[i][2]);
+            uint8 colSum = (game.board[0][i] * MAGIC_SQUARE[0][i]) + (game.board[1][i] * MAGIC_SQUARE[1][i])
+                + (game.board[2][i] * MAGIC_SQUARE[2][i]);
 
             if (rowSum == magicSum || colSum == magicSum) {
                 return true;
@@ -118,8 +123,10 @@ contract TicTacToe {
         }
 
         // diag check
-        uint8 leftToRightSum = (game.board[0][0] * MAGIC_SQUARE[0][0]) + (game.board[1][1] * MAGIC_SQUARE[1][1]) + (game.board[2][2] * MAGIC_SQUARE[2][2]);
-        uint8 rightToLeftSum = (game.board[0][2] * MAGIC_SQUARE[0][2]) + (game.board[1][1] * MAGIC_SQUARE[1][1]) + (game.board[2][0] * MAGIC_SQUARE[2][0]);
+        uint8 leftToRightSum = (game.board[0][0] * MAGIC_SQUARE[0][0]) + (game.board[1][1] * MAGIC_SQUARE[1][1])
+            + (game.board[2][2] * MAGIC_SQUARE[2][2]);
+        uint8 rightToLeftSum = (game.board[0][2] * MAGIC_SQUARE[0][2]) + (game.board[1][1] * MAGIC_SQUARE[1][1])
+            + (game.board[2][0] * MAGIC_SQUARE[2][0]);
         if (leftToRightSum == magicSum || rightToLeftSum == magicSum) {
             return true;
         }

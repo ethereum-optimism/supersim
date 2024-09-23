@@ -103,7 +103,7 @@ func (s *Supersim) ConfigAsString() string {
 		fmt.Fprintln(&b, "-----------------------")
 		fmt.Fprintln(&b, "For more information see the explainer! ( https://docs.optimism.io/stack/protocol/interop/explainer )")
 		fmt.Fprintln(&b, "\nAdded Predeploy Contracts:")
-		fmt.Fprintf(&b, " - L2ToL2CrossDomainMessenger: %s\n", predeploys.L2CrossDomainMessenger)
+		fmt.Fprintf(&b, " - L2ToL2CrossDomainMessenger: %s\n", predeploys.L2toL2CrossDomainMessenger)
 		fmt.Fprintf(&b, " - CrossL2Inbox:               %s\n", predeploys.CrossL2Inbox)
 	}
 

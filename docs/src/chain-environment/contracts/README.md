@@ -35,10 +35,10 @@ A simple ERC20 that adheres to the SuperchainERC20 standard. It includes permiss
 
 Source: [L2NativeSuperchainERC20.sol](/contracts/src/L2NativeSuperchainERC20.sol)
 
-Deployed address: `0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA`
+Deployed address: `0x420beeF000000000000000000000000000000001`
 
 #### Minting new tokens
 
 ```bash
-cast send 0x0bEa8920a4FfB1888Ec3Ac1BC0D23f414B0a28cA "mint(address _to, uint256 _amount)" $RECIPIENT_ADDRESS 1ether  --rpc-url $L2_RPC_URL
+cast send 0x420beeF000000000000000000000000000000001 "mint(address _to, uint256 _amount)" $RECIPIENT_ADDRESS 1ether  --rpc-url $L2_RPC_URL
 ```

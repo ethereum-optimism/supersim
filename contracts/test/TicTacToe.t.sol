@@ -14,7 +14,7 @@ contract TicTacToeTest is Test {
         TicTacToe.Game memory game = ticTacToe.getGame(gameId);
         assertEq(gameId, game.id);
         assertEq(game.player1, player1);
-        assertEq(uint(game.state), uint(TicTacToe.GameState.WaitingForPlayer));
+        assertEq(uint256(game.state), uint256(TicTacToe.GameState.WaitingForPlayer));
     }
 
     function test_JoinGameSuccessful() public {
@@ -56,7 +56,7 @@ contract TicTacToeTest is Test {
         ticTacToe.makeMove(player2, gameId, 1, 1);
         ticTacToe.makeMove(player1, gameId, 0, 2);
         TicTacToe.Game memory game = ticTacToe.getGame(gameId);
-        assertEq(uint(game.state), uint(TicTacToe.GameState.PlayerOneWins));
+        assertEq(uint256(game.state), uint256(TicTacToe.GameState.PlayerOneWins));
 
         // Game 2: col win by player 2
         gameId = ticTacToe.createGame(player1);
@@ -68,8 +68,8 @@ contract TicTacToeTest is Test {
         ticTacToe.makeMove(player1, gameId, 1, 0);
         ticTacToe.makeMove(player2, gameId, 2, 1);
         game = ticTacToe.getGame(gameId);
-        assertEq(uint(game.state), uint(TicTacToe.GameState.PlayerTwoWins));
-    
+        assertEq(uint256(game.state), uint256(TicTacToe.GameState.PlayerTwoWins));
+
         // Game 3: dial win by player 1
         gameId = ticTacToe.createGame(player1);
         ticTacToe.joinGame(player2, gameId);
@@ -79,7 +79,7 @@ contract TicTacToeTest is Test {
         ticTacToe.makeMove(player2, gameId, 1, 2);
         ticTacToe.makeMove(player1, gameId, 2, 2);
         game = ticTacToe.getGame(gameId);
-        assertEq(uint(game.state), uint(TicTacToe.GameState.PlayerOneWins));
+        assertEq(uint256(game.state), uint256(TicTacToe.GameState.PlayerOneWins));
     }
 
     function test_PlayGameUntilDraw() public {
@@ -96,6 +96,6 @@ contract TicTacToeTest is Test {
         ticTacToe.makeMove(player2, gameId, 2, 1);
         ticTacToe.makeMove(player1, gameId, 2, 2);
         TicTacToe.Game memory game = ticTacToe.getGame(gameId);
-        assertEq(uint(game.state), uint(TicTacToe.GameState.Draw));
+        assertEq(uint256(game.state), uint256(TicTacToe.GameState.Draw));
     }
 }
