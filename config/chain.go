@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/genesis"
-	"github.com/ethereum-optimism/supersim/hdaccount"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -139,7 +139,8 @@ func GetDefaultNetworkConfig(startingTimestamp uint64, logsDirectory string) Net
 
 // Note: The default secrets config is used everywhere
 func DefaultSecretsConfigAsString() string {
-	hdAccountStore, err := hdaccount.NewHdAccountStore(DefaultSecretsConfig.Mnemonic, DefaultSecretsConfig.DerivationPath)
+
+	keys, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
 	if err != nil {
 		panic(err)
 	}
@@ -150,15 +151,15 @@ func DefaultSecretsConfigAsString() string {
 	fmt.Fprintf(&b, "-----------------------\n")
 
 	for i := range DefaultSecretsConfig.Accounts {
-		addressHex, _ := hdAccountStore.AddressHexAt(uint32(i))
-		fmt.Fprintf(&b, "(%d): %s\n", i, addressHex)
+		address, _ := keys.Address(devkeys.UserKey(i))
+		fmt.Fprintf(&b, "(%d): %s\n", i, address.Hex())
 	}
 
 	fmt.Fprintf(&b, "\nPrivate Keys\n")
 	fmt.Fprintf(&b, "-----------------------\n")
 
 	for i := range DefaultSecretsConfig.Accounts {
-		privateKeyHex, _ := hdAccountStore.PrivateKeyHexAt(uint32(i))
+		privateKeyHex, _ := keys.Secret(devkeys.UserKey(i))
 		fmt.Fprintf(&b, "(%d): %s\n", i, privateKeyHex)
 	}
 
