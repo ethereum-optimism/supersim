@@ -12,7 +12,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -159,8 +161,8 @@ func DefaultSecretsConfigAsString() string {
 	fmt.Fprintf(&b, "-----------------------\n")
 
 	for i := range DefaultSecretsConfig.Accounts {
-		privateKeyHex, _ := keys.Secret(devkeys.UserKey(i))
-		fmt.Fprintf(&b, "(%d): %s\n", i, privateKeyHex)
+		privateKey, _ := keys.Secret(devkeys.UserKey(i))
+		fmt.Fprintf(&b, "(%d): %s\n", i, hexutil.Encode(crypto.FromECDSA(privateKey)))
 	}
 
 	return b.String()
