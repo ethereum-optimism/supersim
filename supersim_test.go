@@ -8,16 +8,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	opbindings "github.com/ethereum-optimism/optimism/op-e2e/bindings"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
-	"github.com/ethereum-optimism/supersim/hdaccount"
 	"github.com/joho/godotenv"
 
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -53,21 +52,19 @@ var defaultTestAccounts = [...]string{
 	"0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
 }
 
-var defaultTestMnemonic = "test test test test test test test test test test test junk"
-var defaultTestMnemonicDerivationPath = accounts.DefaultRootDerivationPath
-
 type TestSuite struct {
 	t *testing.T
 
-	HdAccountStore *hdaccount.HdAccountStore
+	DevKeys *devkeys.MnemonicDevKeys
 
 	Cfg      *config.CLIConfig
 	Supersim *Supersim
 }
 
 type InteropTestSuite struct {
-	t              *testing.T
-	HdAccountStore *hdaccount.HdAccountStore
+	t *testing.T
+
+	DevKeys *devkeys.MnemonicDevKeys
 
 	Cfg      *config.CLIConfig
 	Supersim *Supersim
@@ -85,9 +82,9 @@ func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
 		log.Warn("Error loading .env file", "err", err)
 	}
 	testlog := testlog.Logger(t, log.LevelInfo)
-	hdAccountStore, err := hdaccount.NewHdAccountStore(defaultTestMnemonic, defaultTestMnemonicDerivationPath)
+	dk, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
 	if err != nil {
-		t.Fatalf("unable to create hd account store: %s", err)
+		t.Fatalf("unable to create dev key store: %s", err)
 		return nil
 	}
 
@@ -106,10 +103,10 @@ func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
 	}
 
 	return &TestSuite{
-		t:              t,
-		Cfg:            cliConfig,
-		Supersim:       supersim,
-		HdAccountStore: hdAccountStore,
+		t:        t,
+		Cfg:      cliConfig,
+		Supersim: supersim,
+		DevKeys:  dk,
 	}
 }
 
@@ -151,7 +148,7 @@ func createForkedInteropTestSuite(t *testing.T, testOptions ForkInteropTestSuite
 		t:               t,
 		Cfg:             testSuite.Cfg,
 		Supersim:        testSuite.Supersim,
-		HdAccountStore:  testSuite.HdAccountStore,
+		DevKeys:         testSuite.DevKeys,
 		SourceEthClient: sourceEthClient,
 		DestEthClient:   destEthClient,
 		SourceChainID:   sourceChainID,
@@ -177,7 +174,7 @@ func createInteropTestSuite(t *testing.T, cliConfig config.CLIConfig) *InteropTe
 		t:               t,
 		Cfg:             testSuite.Cfg,
 		Supersim:        testSuite.Supersim,
-		HdAccountStore:  testSuite.HdAccountStore,
+		DevKeys:         testSuite.DevKeys,
 		SourceEthClient: sourceEthClient,
 		DestEthClient:   destEthClient,
 		SourceChainID:   new(big.Int).SetUint64(testSuite.Supersim.NetworkConfig.L2Configs[0].ChainID),
@@ -284,9 +281,8 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 			defer wg.Done()
 
 			l2EthClient, _ := ethclient.Dial(chain.Endpoint())
-			privateKey, _ := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(i))
-			senderAddressHex, _ := testSuite.HdAccountStore.AddressHexAt(uint32(i))
-			senderAddress := common.HexToAddress(senderAddressHex)
+			privateKey, _ := testSuite.DevKeys.Secret(devkeys.UserKey(i))
+			senderAddress, _ := testSuite.DevKeys.Address(devkeys.UserKey(i))
 
 			oneEth := big.NewInt(1e18)
 			prevBalance, _ := l2EthClient.BalanceAt(context.Background(), senderAddress, nil)
@@ -365,9 +361,8 @@ func TestDeployContractsL1WithDevAccounts(t *testing.T) {
 	for i := range accountCount {
 		go func() {
 			defer wg.Done()
-			privateKey, _ := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(i))
-			senderAddressHex, _ := testSuite.HdAccountStore.AddressHexAt(uint32(i))
-			senderAddress := common.HexToAddress(senderAddressHex)
+			privateKey, _ := testSuite.DevKeys.Secret(devkeys.UserKey(i))
+			senderAddress, _ := testSuite.DevKeys.Address(devkeys.UserKey(i))
 
 			for range 5 {
 				transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(testSuite.Supersim.Orchestrator.L1Chain().Config().ChainID)))
@@ -412,7 +407,7 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	gasLimit := uint64(30000000)
 	gasPrice := big.NewInt(10000000)
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
@@ -472,7 +467,7 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 
 func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	testSuite := createInteropTestSuite(t, config.CLIConfig{})
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
@@ -526,7 +521,7 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 
 func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 	testSuite := createInteropTestSuite(t, config.CLIConfig{})
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
@@ -577,7 +572,7 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 
 func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	testSuite := createInteropTestSuite(t, config.CLIConfig{})
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
@@ -628,7 +623,7 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 
 func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 	testSuite := createInteropTestSuite(t, config.CLIConfig{})
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
@@ -679,7 +674,7 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 	testSuite := createForkedInteropTestSuite(t, ForkInteropTestSuiteOptions{interopAutoRelay: false})
 
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
@@ -733,7 +728,7 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 
 func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 
 	destinationTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
@@ -789,7 +784,7 @@ func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 
 func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 
 	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
@@ -834,7 +829,7 @@ func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	testSuite := createForkedInteropTestSuite(t, ForkInteropTestSuiteOptions{interopAutoRelay: true})
 
-	privateKey, err := testSuite.HdAccountStore.DerivePrivateKeyAt(uint32(0))
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 
 	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)

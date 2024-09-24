@@ -6,17 +6,20 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/tasks"
 	"github.com/ethereum-optimism/supersim/bindings"
-	"github.com/ethereum-optimism/supersim/config"
-	"github.com/ethereum-optimism/supersim/hdaccount"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 type L2ToL2MessageRelayer struct {
+	logger log.Logger
+
 	l2ToL2MessageIndexer *L2ToL2MessageIndexer
 
 	clients map[uint64]*ethclient.Client
@@ -26,10 +29,11 @@ type L2ToL2MessageRelayer struct {
 	tasksCancel context.CancelFunc
 }
 
-func NewL2ToL2MessageRelayer() *L2ToL2MessageRelayer {
+func NewL2ToL2MessageRelayer(logger log.Logger) *L2ToL2MessageRelayer {
 	tasksCtx, tasksCancel := context.WithCancel(context.Background())
 
 	return &L2ToL2MessageRelayer{
+		logger: logger,
 		tasks: tasks.Group{
 			HandleCrit: func(err error) {
 				fmt.Printf("unhandled indexer error: %v\n", err)
@@ -45,12 +49,16 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 	r.l2ToL2MessageIndexer = indexer
 	r.clients = clients
 
-	hdAccountStore, err := hdaccount.NewHdAccountStore(config.DefaultSecretsConfig.Mnemonic, config.DefaultSecretsConfig.DerivationPath)
+	keys, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
 	if err != nil {
-		return fmt.Errorf("failed to create hd account store: %w", err)
+		return fmt.Errorf("failed to create dev keys: %w", err)
 	}
 
-	privateKey, err := hdAccountStore.DerivePrivateKeyAt(9)
+	privateKey, err := keys.Secret(devkeys.UserKey(9))
+	// we force the curve to Geth's instance, because Geth does an equality check in the nocgo version:
+	// https://github.com/ethereum/go-ethereum/blob/723b1e36ad6a9e998f06f74cc8b11d51635c6402/crypto/signature_nocgo.go#L82
+	privateKey.PublicKey.Curve = crypto.S256()
+
 	if err != nil {
 		return fmt.Errorf("failed to derive private key: %w", err)
 	}
@@ -62,16 +70,19 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 			unsubscribe, err := r.l2ToL2MessageIndexer.SubscribeSentMessageToDestination(destinationChainID, sentMessageCh)
 
 			if err != nil {
+				r.logger.Debug("failed to create	transactor", "err", err)
 				return fmt.Errorf("failed to subscribe to sent message events: %w", err)
 			}
 
 			transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(destinationChainID)))
 			if err != nil {
+				r.logger.Debug("failed to create	transactor", "err", err)
 				return fmt.Errorf("failed to create transactor: %w", err)
 			}
 
 			crossL2Inbox, err := bindings.NewCrossL2InboxTransactor(predeploys.CrossL2InboxAddr, client)
 			if err != nil {
+				r.logger.Debug("failed to create	transactor", "err", err)
 				return fmt.Errorf("failed to create	transactor: %w", err)
 			}
 
@@ -87,12 +98,14 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 					calldata, err := msg.EventData()
 
 					if err != nil {
+						r.logger.Debug("failed to get event data", "err", err)
 						return fmt.Errorf("failed to get event data: %w", err)
 					}
 
 					// For some reason gas estimation does not work properly for some messages so estimating and padding gas (https://github.com/ethereum-optimism/supersim/issues/143)
 					txData, err := bindings.CrossL2InboxParsedABI.Pack("executeMessage", *identifier, predeploys.L2toL2CrossDomainMessengerAddr, calldata)
 					if err != nil {
+						r.logger.Debug("failed to create execute message calldata", "err", err)
 						return fmt.Errorf("failed to create execute message calldata: %w", err)
 					}
 					gasEstimate, err := client.EstimateGas(r.tasksCtx, ethereum.CallMsg{
@@ -101,6 +114,7 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 						Data: txData,
 					})
 					if err != nil {
+						r.logger.Debug("failed to estimate gas for execute message tx", "err", err)
 						return fmt.Errorf("failed to estimate gas for execute message tx: %w", err)
 					}
 					// Pad gas by 33%.
@@ -111,6 +125,7 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 					transactor.GasLimit = paddedGas
 
 					if _, err := crossL2Inbox.ExecuteMessage(transactor, *identifier, predeploys.L2toL2CrossDomainMessengerAddr, calldata); err != nil {
+						r.logger.Debug("failed to execute message", "err", err)
 						return fmt.Errorf("failed to execute message: %w", err)
 					}
 					transactor.GasLimit = originalTransactorGasLimit
