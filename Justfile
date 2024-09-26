@@ -28,7 +28,7 @@ checkout-optimism-monorepo:
     cd lib/optimism && \
     git init && \
     git remote add origin https://github.com/ethereum-optimism/optimism.git && \
-    git fetch --depth=1 origin f70248a0ace5375d578e99697df7a5a1bd2d20ee && \
+    git fetch --depth=1 origin 3210a8c6bb7f98639213fb49718919d84aa8774a && \
     git reset --hard FETCH_HEAD && \
     git submodule update --init --recursive && \
     make cannon-prestate
