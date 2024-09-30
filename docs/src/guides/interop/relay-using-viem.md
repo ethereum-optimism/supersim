@@ -153,16 +153,12 @@ const { id: messageIdentifier, payload: l2ToL2CrossDomainMessengerCalldata } =
 // ##########
 
 // 4. Execute the relayERC20 function on OPChainB
-console.log("Building execute relayERC20 on OPChainB...");
-const executeArgs = await opChainBClient.buildExecuteL2ToL2Message({
+console.log("Executing L2 to L2 message on OPChainB...");
+const executeTxHash = await opChainBClient.executeL2ToL2Message({
 	id: messageIdentifier,
 	target: L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS,
 	message: l2ToL2CrossDomainMessengerCalldata,
 });
-
-console.log("Executing L2 to L2 message on OPChainB...");
-
-const executeTxHash = await opChainBClient.executeL2ToL2Message(executeArgs);
 
 await opChainBClient.waitForTransactionReceipt({
 	hash: executeTxHash,
@@ -297,16 +293,12 @@ const { id: messageIdentifier, payload: l2ToL2CrossDomainMessengerCalldata } =
 // OP Chain B
 // ##########
 // 4. Execute the relayERC20 function on OPChainB
-console.log("Building execute relayERC20 on OPChainB...");
-const executeArgs = await opChainBClient.buildExecuteL2ToL2Message({
+console.log("Executing L2 to L2 message on OPChainB...");
+const executeTxHash = await opChainBClient.executeL2ToL2Message({
 	id: messageIdentifier,
 	target: L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS,
 	message: l2ToL2CrossDomainMessengerCalldata,
 });
-
-console.log("Executing L2 to L2 message on OPChainB...");
-
-const executeTxHash = await opChainBClient.executeL2ToL2Message(executeArgs);
 
 await opChainBClient.waitForTransactionReceipt({
 	hash: executeTxHash,
