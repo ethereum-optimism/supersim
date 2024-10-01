@@ -35,13 +35,19 @@ var sentMessage = &L2ToL2Message{
 	Message:     []byte("hello world"),
 }
 
-var eventData, _ = sentMessage.EventData()
 var msgHash, _ = sentMessage.Hash()
 
+var sentMessageEvent = bindings.L2ToL2CrossDomainMessengerParsedABI.Events["SentMessage"]
+var sentMessageData, _ = bindings.L2ToL2CrossDomainMessengerParsedABI.Events["SentMessage"].Inputs.NonIndexed().Pack(sentMessage.Sender, sentMessage.Message)
 var sentMessageLog = types.Log{
-	Address:     predeploys.L2toL2CrossDomainMessengerAddr,
-	Topics:      []common.Hash{},
-	Data:        eventData,
+	Address: predeploys.L2toL2CrossDomainMessengerAddr,
+	Topics: []common.Hash{
+		sentMessageEvent.ID,
+		common.BytesToHash(common.LeftPadBytes(new(big.Int).SetUint64(sentMessage.Destination).Bytes(), 32)),
+		common.BytesToHash(common.LeftPadBytes(sentMessage.Target.Bytes(), 32)),
+		common.BytesToHash(common.LeftPadBytes(sentMessage.Nonce.Bytes(), 32)),
+	},
+	Data:        sentMessageData,
 	BlockNumber: blockNumber,
 	Index:       0,
 	TxHash:      common.HexToHash("0x5d4b3ef7a2c54bfe9d8cf68c3e3d24a2d9e8e10e6a8f4c1d9b67c1d6d9f3a48b"),
@@ -49,8 +55,13 @@ var sentMessageLog = types.Log{
 
 var relayedMessageEvent = bindings.L2ToL2CrossDomainMessengerParsedABI.Events["RelayedMessage"]
 var relayedMessageLog = types.Log{
-	Address:     predeploys.L2toL2CrossDomainMessengerAddr,
-	Topics:      []common.Hash{relayedMessageEvent.ID, msgHash},
+	Address: predeploys.L2toL2CrossDomainMessengerAddr,
+	Topics: []common.Hash{
+		relayedMessageEvent.ID,
+		common.BytesToHash(common.LeftPadBytes(new(big.Int).SetUint64(sourceChainID).Bytes(), 32)),
+		common.BytesToHash(common.LeftPadBytes(sentMessage.Nonce.Bytes(), 32)),
+		msgHash,
+	},
 	Data:        []byte{},
 	BlockNumber: blockNumber,
 	Index:       0,
@@ -59,8 +70,13 @@ var relayedMessageLog = types.Log{
 
 var failedRelayedMessageEvent = bindings.L2ToL2CrossDomainMessengerParsedABI.Events["FailedRelayedMessage"]
 var failedRelayedMessageLog = types.Log{
-	Address:     predeploys.L2toL2CrossDomainMessengerAddr,
-	Topics:      []common.Hash{failedRelayedMessageEvent.ID, msgHash},
+	Address: predeploys.L2toL2CrossDomainMessengerAddr,
+	Topics: []common.Hash{
+		failedRelayedMessageEvent.ID,
+		common.BytesToHash(common.LeftPadBytes(new(big.Int).SetUint64(sourceChainID).Bytes(), 32)),
+		common.BytesToHash(common.LeftPadBytes(sentMessage.Nonce.Bytes(), 32)),
+		msgHash,
+	},
 	Data:        []byte{},
 	BlockNumber: blockNumber,
 	Index:       0,

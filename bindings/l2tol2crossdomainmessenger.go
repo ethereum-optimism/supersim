@@ -31,7 +31,7 @@ var (
 
 // L2ToL2CrossDomainMessengerMetaData contains all meta data concerning the L2ToL2CrossDomainMessenger contract.
 var L2ToL2CrossDomainMessengerMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[],\"name\":\"crossDomainMessageSender\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"sender_\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"crossDomainMessageSource\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"source_\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"messageNonce\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"messageVersion\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"\",\"type\":\"uint16\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_destination\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_source\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_nonce\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"}],\"name\":\"relayMessage\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_destination\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"}],\"name\":\"sendMessage\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"msgHash_\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"successfulMessages\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"messageHash\",\"type\":\"bytes32\"}],\"name\":\"FailedRelayedMessage\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"messageHash\",\"type\":\"bytes32\"}],\"name\":\"RelayedMessage\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"CrossL2InboxOriginNotL2ToL2CrossDomainMessenger\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MessageAlreadyRelayed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MessageDestinationNotRelayChain\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MessageDestinationSameChain\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MessageTargetCrossL2Inbox\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MessageTargetL2ToL2CrossDomainMessenger\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotEntered\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReentrantCall\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"RelayMessageCallerNotCrossL2Inbox\",\"type\":\"error\"}]",
+	ABI: "[{\"inputs\":[],\"name\":\"crossDomainMessageSender\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"sender_\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"crossDomainMessageSource\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"source_\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"messageNonce\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"messageVersion\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"\",\"type\":\"uint16\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"origin\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"logIndex\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"chainId\",\"type\":\"uint256\"}],\"internalType\":\"structICrossL2Inbox.Identifier\",\"name\":\"_id\",\"type\":\"tuple\"},{\"internalType\":\"bytes\",\"name\":\"_sentMessage\",\"type\":\"bytes\"}],\"name\":\"relayMessage\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_destination\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"}],\"name\":\"sendMessage\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"successfulMessages\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"source\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"messageNonce\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"messageHash\",\"type\":\"bytes32\"}],\"name\":\"FailedRelayedMessage\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"source\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"messageNonce\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"messageHash\",\"type\":\"bytes32\"}],\"name\":\"RelayedMessage\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"destination\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"target\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"messageNonce\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"message\",\"type\":\"bytes\"}],\"name\":\"SentMessage\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"EventPayloadNotSentMessage\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"IdOriginNotL2ToL2CrossDomainMessenger\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MessageAlreadyRelayed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MessageDestinationNotRelayChain\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MessageDestinationSameChain\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MessageTargetCrossL2Inbox\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"MessageTargetL2ToL2CrossDomainMessenger\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotEntered\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReentrantCall\",\"type\":\"error\"}]",
 }
 
 // L2ToL2CrossDomainMessengerABI is the input ABI used to generate the binding from.
@@ -366,44 +366,44 @@ func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerCallerSession) Vers
 	return _L2ToL2CrossDomainMessenger.Contract.Version(&_L2ToL2CrossDomainMessenger.CallOpts)
 }
 
-// RelayMessage is a paid mutator transaction binding the contract method 0x1ecd26f2.
+// RelayMessage is a paid mutator transaction binding the contract method 0x8d1d298f.
 //
-// Solidity: function relayMessage(uint256 _destination, uint256 _source, uint256 _nonce, address _sender, address _target, bytes _message) payable returns()
-func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerTransactor) RelayMessage(opts *bind.TransactOpts, _destination *big.Int, _source *big.Int, _nonce *big.Int, _sender common.Address, _target common.Address, _message []byte) (*types.Transaction, error) {
-	return _L2ToL2CrossDomainMessenger.contract.Transact(opts, "relayMessage", _destination, _source, _nonce, _sender, _target, _message)
+// Solidity: function relayMessage((address,uint256,uint256,uint256,uint256) _id, bytes _sentMessage) payable returns()
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerTransactor) RelayMessage(opts *bind.TransactOpts, _id ICrossL2InboxIdentifier, _sentMessage []byte) (*types.Transaction, error) {
+	return _L2ToL2CrossDomainMessenger.contract.Transact(opts, "relayMessage", _id, _sentMessage)
 }
 
-// RelayMessage is a paid mutator transaction binding the contract method 0x1ecd26f2.
+// RelayMessage is a paid mutator transaction binding the contract method 0x8d1d298f.
 //
-// Solidity: function relayMessage(uint256 _destination, uint256 _source, uint256 _nonce, address _sender, address _target, bytes _message) payable returns()
-func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerSession) RelayMessage(_destination *big.Int, _source *big.Int, _nonce *big.Int, _sender common.Address, _target common.Address, _message []byte) (*types.Transaction, error) {
-	return _L2ToL2CrossDomainMessenger.Contract.RelayMessage(&_L2ToL2CrossDomainMessenger.TransactOpts, _destination, _source, _nonce, _sender, _target, _message)
+// Solidity: function relayMessage((address,uint256,uint256,uint256,uint256) _id, bytes _sentMessage) payable returns()
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerSession) RelayMessage(_id ICrossL2InboxIdentifier, _sentMessage []byte) (*types.Transaction, error) {
+	return _L2ToL2CrossDomainMessenger.Contract.RelayMessage(&_L2ToL2CrossDomainMessenger.TransactOpts, _id, _sentMessage)
 }
 
-// RelayMessage is a paid mutator transaction binding the contract method 0x1ecd26f2.
+// RelayMessage is a paid mutator transaction binding the contract method 0x8d1d298f.
 //
-// Solidity: function relayMessage(uint256 _destination, uint256 _source, uint256 _nonce, address _sender, address _target, bytes _message) payable returns()
-func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerTransactorSession) RelayMessage(_destination *big.Int, _source *big.Int, _nonce *big.Int, _sender common.Address, _target common.Address, _message []byte) (*types.Transaction, error) {
-	return _L2ToL2CrossDomainMessenger.Contract.RelayMessage(&_L2ToL2CrossDomainMessenger.TransactOpts, _destination, _source, _nonce, _sender, _target, _message)
+// Solidity: function relayMessage((address,uint256,uint256,uint256,uint256) _id, bytes _sentMessage) payable returns()
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerTransactorSession) RelayMessage(_id ICrossL2InboxIdentifier, _sentMessage []byte) (*types.Transaction, error) {
+	return _L2ToL2CrossDomainMessenger.Contract.RelayMessage(&_L2ToL2CrossDomainMessenger.TransactOpts, _id, _sentMessage)
 }
 
 // SendMessage is a paid mutator transaction binding the contract method 0x7056f41f.
 //
-// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32 msgHash_)
+// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32)
 func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerTransactor) SendMessage(opts *bind.TransactOpts, _destination *big.Int, _target common.Address, _message []byte) (*types.Transaction, error) {
 	return _L2ToL2CrossDomainMessenger.contract.Transact(opts, "sendMessage", _destination, _target, _message)
 }
 
 // SendMessage is a paid mutator transaction binding the contract method 0x7056f41f.
 //
-// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32 msgHash_)
+// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32)
 func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerSession) SendMessage(_destination *big.Int, _target common.Address, _message []byte) (*types.Transaction, error) {
 	return _L2ToL2CrossDomainMessenger.Contract.SendMessage(&_L2ToL2CrossDomainMessenger.TransactOpts, _destination, _target, _message)
 }
 
 // SendMessage is a paid mutator transaction binding the contract method 0x7056f41f.
 //
-// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32 msgHash_)
+// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32)
 func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerTransactorSession) SendMessage(_destination *big.Int, _target common.Address, _message []byte) (*types.Transaction, error) {
 	return _L2ToL2CrossDomainMessenger.Contract.SendMessage(&_L2ToL2CrossDomainMessenger.TransactOpts, _destination, _target, _message)
 }
@@ -477,38 +477,56 @@ func (it *L2ToL2CrossDomainMessengerFailedRelayedMessageIterator) Close() error 
 
 // L2ToL2CrossDomainMessengerFailedRelayedMessage represents a FailedRelayedMessage event raised by the L2ToL2CrossDomainMessenger contract.
 type L2ToL2CrossDomainMessengerFailedRelayedMessage struct {
-	MessageHash [32]byte
-	Raw         types.Log // Blockchain specific contextual infos
+	Source       *big.Int
+	MessageNonce *big.Int
+	MessageHash  [32]byte
+	Raw          types.Log // Blockchain specific contextual infos
 }
 
-// FilterFailedRelayedMessage is a free log retrieval operation binding the contract event 0x99d0e048484baa1b1540b1367cb128acd7ab2946d1ed91ec10e3c85e4bf51b8f.
+// FilterFailedRelayedMessage is a free log retrieval operation binding the contract event 0x86f6ff8108e52c91c968419a809d473123c6168dc059921b2497ed5f683571d6.
 //
-// Solidity: event FailedRelayedMessage(bytes32 indexed messageHash)
-func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) FilterFailedRelayedMessage(opts *bind.FilterOpts, messageHash [][32]byte) (*L2ToL2CrossDomainMessengerFailedRelayedMessageIterator, error) {
+// Solidity: event FailedRelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) FilterFailedRelayedMessage(opts *bind.FilterOpts, source []*big.Int, messageNonce []*big.Int, messageHash [][32]byte) (*L2ToL2CrossDomainMessengerFailedRelayedMessageIterator, error) {
 
+	var sourceRule []interface{}
+	for _, sourceItem := range source {
+		sourceRule = append(sourceRule, sourceItem)
+	}
+	var messageNonceRule []interface{}
+	for _, messageNonceItem := range messageNonce {
+		messageNonceRule = append(messageNonceRule, messageNonceItem)
+	}
 	var messageHashRule []interface{}
 	for _, messageHashItem := range messageHash {
 		messageHashRule = append(messageHashRule, messageHashItem)
 	}
 
-	logs, sub, err := _L2ToL2CrossDomainMessenger.contract.FilterLogs(opts, "FailedRelayedMessage", messageHashRule)
+	logs, sub, err := _L2ToL2CrossDomainMessenger.contract.FilterLogs(opts, "FailedRelayedMessage", sourceRule, messageNonceRule, messageHashRule)
 	if err != nil {
 		return nil, err
 	}
 	return &L2ToL2CrossDomainMessengerFailedRelayedMessageIterator{contract: _L2ToL2CrossDomainMessenger.contract, event: "FailedRelayedMessage", logs: logs, sub: sub}, nil
 }
 
-// WatchFailedRelayedMessage is a free log subscription operation binding the contract event 0x99d0e048484baa1b1540b1367cb128acd7ab2946d1ed91ec10e3c85e4bf51b8f.
+// WatchFailedRelayedMessage is a free log subscription operation binding the contract event 0x86f6ff8108e52c91c968419a809d473123c6168dc059921b2497ed5f683571d6.
 //
-// Solidity: event FailedRelayedMessage(bytes32 indexed messageHash)
-func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) WatchFailedRelayedMessage(opts *bind.WatchOpts, sink chan<- *L2ToL2CrossDomainMessengerFailedRelayedMessage, messageHash [][32]byte) (event.Subscription, error) {
+// Solidity: event FailedRelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) WatchFailedRelayedMessage(opts *bind.WatchOpts, sink chan<- *L2ToL2CrossDomainMessengerFailedRelayedMessage, source []*big.Int, messageNonce []*big.Int, messageHash [][32]byte) (event.Subscription, error) {
 
+	var sourceRule []interface{}
+	for _, sourceItem := range source {
+		sourceRule = append(sourceRule, sourceItem)
+	}
+	var messageNonceRule []interface{}
+	for _, messageNonceItem := range messageNonce {
+		messageNonceRule = append(messageNonceRule, messageNonceItem)
+	}
 	var messageHashRule []interface{}
 	for _, messageHashItem := range messageHash {
 		messageHashRule = append(messageHashRule, messageHashItem)
 	}
 
-	logs, sub, err := _L2ToL2CrossDomainMessenger.contract.WatchLogs(opts, "FailedRelayedMessage", messageHashRule)
+	logs, sub, err := _L2ToL2CrossDomainMessenger.contract.WatchLogs(opts, "FailedRelayedMessage", sourceRule, messageNonceRule, messageHashRule)
 	if err != nil {
 		return nil, err
 	}
@@ -540,9 +558,9 @@ func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) WatchFail
 	}), nil
 }
 
-// ParseFailedRelayedMessage is a log parse operation binding the contract event 0x99d0e048484baa1b1540b1367cb128acd7ab2946d1ed91ec10e3c85e4bf51b8f.
+// ParseFailedRelayedMessage is a log parse operation binding the contract event 0x86f6ff8108e52c91c968419a809d473123c6168dc059921b2497ed5f683571d6.
 //
-// Solidity: event FailedRelayedMessage(bytes32 indexed messageHash)
+// Solidity: event FailedRelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash)
 func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) ParseFailedRelayedMessage(log types.Log) (*L2ToL2CrossDomainMessengerFailedRelayedMessage, error) {
 	event := new(L2ToL2CrossDomainMessengerFailedRelayedMessage)
 	if err := _L2ToL2CrossDomainMessenger.contract.UnpackLog(event, "FailedRelayedMessage", log); err != nil {
@@ -621,38 +639,56 @@ func (it *L2ToL2CrossDomainMessengerRelayedMessageIterator) Close() error {
 
 // L2ToL2CrossDomainMessengerRelayedMessage represents a RelayedMessage event raised by the L2ToL2CrossDomainMessenger contract.
 type L2ToL2CrossDomainMessengerRelayedMessage struct {
-	MessageHash [32]byte
-	Raw         types.Log // Blockchain specific contextual infos
+	Source       *big.Int
+	MessageNonce *big.Int
+	MessageHash  [32]byte
+	Raw          types.Log // Blockchain specific contextual infos
 }
 
-// FilterRelayedMessage is a free log retrieval operation binding the contract event 0x4641df4a962071e12719d8c8c8e5ac7fc4d97b927346a3d7a335b1f7517e133c.
+// FilterRelayedMessage is a free log retrieval operation binding the contract event 0x5948076590932b9d173029c7df03fe386e755a61c86c7fe2671011a2faa2a379.
 //
-// Solidity: event RelayedMessage(bytes32 indexed messageHash)
-func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) FilterRelayedMessage(opts *bind.FilterOpts, messageHash [][32]byte) (*L2ToL2CrossDomainMessengerRelayedMessageIterator, error) {
+// Solidity: event RelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) FilterRelayedMessage(opts *bind.FilterOpts, source []*big.Int, messageNonce []*big.Int, messageHash [][32]byte) (*L2ToL2CrossDomainMessengerRelayedMessageIterator, error) {
 
+	var sourceRule []interface{}
+	for _, sourceItem := range source {
+		sourceRule = append(sourceRule, sourceItem)
+	}
+	var messageNonceRule []interface{}
+	for _, messageNonceItem := range messageNonce {
+		messageNonceRule = append(messageNonceRule, messageNonceItem)
+	}
 	var messageHashRule []interface{}
 	for _, messageHashItem := range messageHash {
 		messageHashRule = append(messageHashRule, messageHashItem)
 	}
 
-	logs, sub, err := _L2ToL2CrossDomainMessenger.contract.FilterLogs(opts, "RelayedMessage", messageHashRule)
+	logs, sub, err := _L2ToL2CrossDomainMessenger.contract.FilterLogs(opts, "RelayedMessage", sourceRule, messageNonceRule, messageHashRule)
 	if err != nil {
 		return nil, err
 	}
 	return &L2ToL2CrossDomainMessengerRelayedMessageIterator{contract: _L2ToL2CrossDomainMessenger.contract, event: "RelayedMessage", logs: logs, sub: sub}, nil
 }
 
-// WatchRelayedMessage is a free log subscription operation binding the contract event 0x4641df4a962071e12719d8c8c8e5ac7fc4d97b927346a3d7a335b1f7517e133c.
+// WatchRelayedMessage is a free log subscription operation binding the contract event 0x5948076590932b9d173029c7df03fe386e755a61c86c7fe2671011a2faa2a379.
 //
-// Solidity: event RelayedMessage(bytes32 indexed messageHash)
-func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) WatchRelayedMessage(opts *bind.WatchOpts, sink chan<- *L2ToL2CrossDomainMessengerRelayedMessage, messageHash [][32]byte) (event.Subscription, error) {
+// Solidity: event RelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) WatchRelayedMessage(opts *bind.WatchOpts, sink chan<- *L2ToL2CrossDomainMessengerRelayedMessage, source []*big.Int, messageNonce []*big.Int, messageHash [][32]byte) (event.Subscription, error) {
 
+	var sourceRule []interface{}
+	for _, sourceItem := range source {
+		sourceRule = append(sourceRule, sourceItem)
+	}
+	var messageNonceRule []interface{}
+	for _, messageNonceItem := range messageNonce {
+		messageNonceRule = append(messageNonceRule, messageNonceItem)
+	}
 	var messageHashRule []interface{}
 	for _, messageHashItem := range messageHash {
 		messageHashRule = append(messageHashRule, messageHashItem)
 	}
 
-	logs, sub, err := _L2ToL2CrossDomainMessenger.contract.WatchLogs(opts, "RelayedMessage", messageHashRule)
+	logs, sub, err := _L2ToL2CrossDomainMessenger.contract.WatchLogs(opts, "RelayedMessage", sourceRule, messageNonceRule, messageHashRule)
 	if err != nil {
 		return nil, err
 	}
@@ -684,12 +720,176 @@ func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) WatchRela
 	}), nil
 }
 
-// ParseRelayedMessage is a log parse operation binding the contract event 0x4641df4a962071e12719d8c8c8e5ac7fc4d97b927346a3d7a335b1f7517e133c.
+// ParseRelayedMessage is a log parse operation binding the contract event 0x5948076590932b9d173029c7df03fe386e755a61c86c7fe2671011a2faa2a379.
 //
-// Solidity: event RelayedMessage(bytes32 indexed messageHash)
+// Solidity: event RelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash)
 func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) ParseRelayedMessage(log types.Log) (*L2ToL2CrossDomainMessengerRelayedMessage, error) {
 	event := new(L2ToL2CrossDomainMessengerRelayedMessage)
 	if err := _L2ToL2CrossDomainMessenger.contract.UnpackLog(event, "RelayedMessage", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// L2ToL2CrossDomainMessengerSentMessageIterator is returned from FilterSentMessage and is used to iterate over the raw logs and unpacked data for SentMessage events raised by the L2ToL2CrossDomainMessenger contract.
+type L2ToL2CrossDomainMessengerSentMessageIterator struct {
+	Event *L2ToL2CrossDomainMessengerSentMessage // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *L2ToL2CrossDomainMessengerSentMessageIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(L2ToL2CrossDomainMessengerSentMessage)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(L2ToL2CrossDomainMessengerSentMessage)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *L2ToL2CrossDomainMessengerSentMessageIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *L2ToL2CrossDomainMessengerSentMessageIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// L2ToL2CrossDomainMessengerSentMessage represents a SentMessage event raised by the L2ToL2CrossDomainMessenger contract.
+type L2ToL2CrossDomainMessengerSentMessage struct {
+	Destination  *big.Int
+	Target       common.Address
+	MessageNonce *big.Int
+	Sender       common.Address
+	Message      []byte
+	Raw          types.Log // Blockchain specific contextual infos
+}
+
+// FilterSentMessage is a free log retrieval operation binding the contract event 0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320.
+//
+// Solidity: event SentMessage(uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) FilterSentMessage(opts *bind.FilterOpts, destination []*big.Int, target []common.Address, messageNonce []*big.Int) (*L2ToL2CrossDomainMessengerSentMessageIterator, error) {
+
+	var destinationRule []interface{}
+	for _, destinationItem := range destination {
+		destinationRule = append(destinationRule, destinationItem)
+	}
+	var targetRule []interface{}
+	for _, targetItem := range target {
+		targetRule = append(targetRule, targetItem)
+	}
+	var messageNonceRule []interface{}
+	for _, messageNonceItem := range messageNonce {
+		messageNonceRule = append(messageNonceRule, messageNonceItem)
+	}
+
+	logs, sub, err := _L2ToL2CrossDomainMessenger.contract.FilterLogs(opts, "SentMessage", destinationRule, targetRule, messageNonceRule)
+	if err != nil {
+		return nil, err
+	}
+	return &L2ToL2CrossDomainMessengerSentMessageIterator{contract: _L2ToL2CrossDomainMessenger.contract, event: "SentMessage", logs: logs, sub: sub}, nil
+}
+
+// WatchSentMessage is a free log subscription operation binding the contract event 0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320.
+//
+// Solidity: event SentMessage(uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) WatchSentMessage(opts *bind.WatchOpts, sink chan<- *L2ToL2CrossDomainMessengerSentMessage, destination []*big.Int, target []common.Address, messageNonce []*big.Int) (event.Subscription, error) {
+
+	var destinationRule []interface{}
+	for _, destinationItem := range destination {
+		destinationRule = append(destinationRule, destinationItem)
+	}
+	var targetRule []interface{}
+	for _, targetItem := range target {
+		targetRule = append(targetRule, targetItem)
+	}
+	var messageNonceRule []interface{}
+	for _, messageNonceItem := range messageNonce {
+		messageNonceRule = append(messageNonceRule, messageNonceItem)
+	}
+
+	logs, sub, err := _L2ToL2CrossDomainMessenger.contract.WatchLogs(opts, "SentMessage", destinationRule, targetRule, messageNonceRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(L2ToL2CrossDomainMessengerSentMessage)
+				if err := _L2ToL2CrossDomainMessenger.contract.UnpackLog(event, "SentMessage", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseSentMessage is a log parse operation binding the contract event 0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320.
+//
+// Solidity: event SentMessage(uint256 indexed destination, address indexed target, uint256 indexed messageNonce, address sender, bytes message)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) ParseSentMessage(log types.Log) (*L2ToL2CrossDomainMessengerSentMessage, error) {
+	event := new(L2ToL2CrossDomainMessengerSentMessage)
+	if err := _L2ToL2CrossDomainMessenger.contract.UnpackLog(event, "SentMessage", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

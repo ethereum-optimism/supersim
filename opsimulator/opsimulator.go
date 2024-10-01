@@ -20,6 +20,7 @@ import (
 
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum-optimism/supersim/interop"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -337,7 +338,7 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 
 	var executingMessages []*bindings.CrossL2InboxExecutingMessage
 	for _, log := range logs {
-		if !isExecutingMessageLog(&log) {
+		if !interop.IsExecutingMessageLog(&log) {
 			continue
 		}
 
@@ -389,7 +390,7 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 				return fmt.Errorf("unexpected number of initiating messages found: %d", len(initiatingMessageLogs))
 			}
 
-			initiatingMsgPayloadHash := crypto.Keccak256Hash(executingMessagePayloadBytes(&initiatingMessageLogs[0]))
+			initiatingMsgPayloadHash := crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(&initiatingMessageLogs[0]))
 			if common.BytesToHash(executingMessage.MsgHash[:]).Cmp(initiatingMsgPayloadHash) != 0 {
 				return fmt.Errorf("executing and initiating message fields are not equal")
 			}
