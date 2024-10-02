@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface SquareProps {
-  value: string | null;
-  onClick: () => void;
+  key: number;
 }
 
-const Square: React.FC<SquareProps> = ({ value, onClick }) => {
-  const displayValue = value === 'X' ? 'X' : value === 'O' ? 'O' : '';
+const Square: React.FC<SquareProps> = () => {
+  const [value, setValue] = useState<string>("X")
+  const handleClick = async () => {
+    const newVal = value == "X" ? "O" : "X"
+    setValue(newVal)
+  }
+
   return (
-    <button className="square" onClick={onClick}>
-      {displayValue}
+    <button className="square" onClick={handleClick}>
+      {value}
     </button>
   );
 };
