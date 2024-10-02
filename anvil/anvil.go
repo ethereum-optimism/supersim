@@ -83,6 +83,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--derivation-path", a.cfg.SecretsConfig.DerivationPath.String(),
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainID),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
+		"--max-persisted-states", "5",
 	}
 
 	if a.cfg.L2Config != nil {
