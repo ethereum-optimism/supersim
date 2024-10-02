@@ -57,6 +57,7 @@ type L2ToL2MessageSentEvent struct {
 type L2ToL2MessageStoreEntry struct {
 	message    *L2ToL2Message
 	identifier *bindings.ICrossL2InboxIdentifier
+	log        *types.Log
 	lifecycle  *L2ToL2MessageLifecycle
 }
 
@@ -66,6 +67,10 @@ func (e *L2ToL2MessageStoreEntry) Message() *L2ToL2Message {
 
 func (e *L2ToL2MessageStoreEntry) Identifier() *bindings.ICrossL2InboxIdentifier {
 	return e.identifier
+}
+
+func (e *L2ToL2MessageStoreEntry) MessagePayload() []byte {
+	return ExecutingMessagePayloadBytes(e.log)
 }
 
 func (e *L2ToL2MessageStoreEntry) Lifecycle() *L2ToL2MessageLifecycle {
@@ -143,7 +148,7 @@ func (s *L2ToL2MessageStoreManager) Get(msgHash common.Hash) (*L2ToL2MessageStor
 }
 
 func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log, identifier *bindings.ICrossL2InboxIdentifier) (*L2ToL2MessageStoreEntry, error) {
-	msg, err := NewL2ToL2MessageFromSentMessageEventData(log.Data)
+	msg, err := NewL2ToL2MessageFromSentMessageEventData(log, identifier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create L2ToL2Message: %w", err)
 	}
@@ -161,6 +166,7 @@ func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log, identifier *
 		message:    msg,
 		identifier: identifier,
 		lifecycle:  lifecycle,
+		log:        log,
 	}
 
 	if err := m.store.Set(msgHash, entry); err != nil {
@@ -171,7 +177,7 @@ func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log, identifier *
 }
 
 func (m *L2ToL2MessageStoreManager) HandleRelayedEvent(log *types.Log) (*L2ToL2MessageStoreEntry, error) {
-	msgHash := log.Topics[1]
+	msgHash := log.Topics[3]
 
 	updatedEntry, err := m.store.UpdateLifecycle(msgHash, func(lifecycle *L2ToL2MessageLifecycle) (*L2ToL2MessageLifecycle, error) {
 		if lifecycle.RelayedTxHash != (common.Hash{}) {
@@ -192,7 +198,7 @@ func (m *L2ToL2MessageStoreManager) HandleFailedRelayedEvent(log *types.Log) (*L
 		return nil, fmt.Errorf("unexpected event type")
 	}
 
-	msgHash := log.Topics[1]
+	msgHash := log.Topics[3]
 
 	updatedEntry, err := m.store.UpdateLifecycle(msgHash, func(lifecycle *L2ToL2MessageLifecycle) (*L2ToL2MessageLifecycle, error) {
 		if lifecycle.RelayedTxHash != (common.Hash{}) {

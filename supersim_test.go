@@ -15,6 +15,7 @@ import (
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum-optimism/supersim/interop"
 	"github.com/joho/godotenv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -469,7 +470,6 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
 	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
@@ -495,7 +495,7 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	err = testSuite.SourceEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
 	require.NoError(t, err)
 
-	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
+	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
 	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
@@ -511,7 +511,7 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	require.NoError(t, err)
 
 	// Should succeed
-	tx, err = crossL2Inbox.ExecuteMessage(transactor, identifier, fromAddress, initiatingMessageLog.Data)
+	tx, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
 	require.NoError(t, err)
 
 	receipt, err := bind.WaitMined(context.Background(), testSuite.DestEthClient, tx)
@@ -676,7 +676,6 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
 	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
@@ -702,7 +701,7 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 	err = testSuite.SourceEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
 	require.NoError(t, err)
 
-	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
+	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
 	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
@@ -718,7 +717,7 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 	require.NoError(t, err)
 
 	// Should succeed
-	tx, err = crossL2Inbox.ExecuteMessage(transactor, identifier, fromAddress, initiatingMessageLog.Data)
+	tx, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
 	require.NoError(t, err)
 
 	receipt, err := bind.WaitMined(context.Background(), testSuite.DestEthClient, tx)
