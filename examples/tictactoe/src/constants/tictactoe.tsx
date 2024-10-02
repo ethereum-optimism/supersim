@@ -1,4 +1,5 @@
-const ticTacToeAbi = [
+export const address = '0x17EEd0e2Eb679927c35333F3Cc258fa2d81609e9'
+export const abi = [
     {
     "type": "function",
     "name": "acceptGame",
@@ -479,5 +480,3 @@ const ticTacToeAbi = [
     "inputs": []
     }
 ]
-
-export default ticTacToeAbi;

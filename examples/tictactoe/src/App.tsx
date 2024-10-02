@@ -1,49 +1,64 @@
-import React, { useState } from 'react';
-import { WagmiProvider, useAccount } from 'wagmi';
+import { WagmiProvider, http, createConfig, useAccount } from 'wagmi';
+import { injected } from 'wagmi/connectors'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import Board from './components/Board';
+import Game from './components/Game';
+import NewGame from './components/NewGame';
+import GameLists from './components/GameLists';
 import ConnectWallet from './components/ConnectWallet';
-import { wagmiConfig } from './wagmi';
+import { supersimChainA, supersimChainB } from './constants/chains'
+import { useGames } from './hooks/useGames';
 
 import './App.css'
+import React from 'react';
 
-const Game: React.FC = () => {
-  const [board, setBoard] = useState<string[]>(Array(9).fill("X"));
-  const handleClick = async (i: number) => {
-    const val = board[i]
-    const newVal = val == "X" ? "O" : "X"
-    setBoard(board.map((val, index) => index == i ? newVal : val))
-  }
+const queryClient = new QueryClient();
 
-  const { isConnected } = useAccount()
-  if (!isConnected) {
-    return <div>Connect your wallet to play</div>
-  }
+export const wagmiConfig = createConfig({
+  chains: [supersimChainA, supersimChainB],
+  connectors: [injected()],
+  transports: {
+    [supersimChainA.id]: http(),
+    [supersimChainB.id]: http(),
+  },
+})
 
-  return(
-    <div className="game">
-      <Board squares={board} onClick={handleClick}/>
+const App: React.FC = () => {
+  const { isConnected, chainId } = useAccount()
+  const { syncing } =  useGames();
+  const isSuperchain = chainId === supersimChainA.id || chainId === supersimChainB.id
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1>TicTacToe</h1>
+        <ConnectWallet />
+      </header>
+      {isConnected && isSuperchain ? (
+        syncing ? 
+        <p>Syncing Game state...</p> :
+        <>
+          <NewGame />
+          <GameLists />
+          <Game />
+        </>
+      ) : isConnected && !isSuperchain ? (
+          <p>Switch to any network in the superchain to play!</p>
+        ) : (
+          <p>Connect your wallet to play</p>
+        )
+      }
     </div>
   )
 }
 
-const queryClient = new QueryClient();
-
-function App() {
+const Root: React.FC = () => {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider  client={queryClient} >
-        <div className="app">
-          <header className="app-header">
-            <h1>TicTacToe</h1>
-            <ConnectWallet />
-          </header>
-          <Game />
-        </div>
+        <App />
       </QueryClientProvider>
     </WagmiProvider>
   );
 }
 
-export default App
+export default Root
