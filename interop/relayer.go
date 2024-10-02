@@ -90,6 +90,9 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 					close(sentMessageCh)
 					return nil
 				case sentMessage := <-sentMessageCh:
+					fmt.Println("sentMessage.MessagePayload()", sentMessage.MessagePayload())
+					hash, _ := sentMessage.message.Hash()
+					fmt.Println("msgHash", hash)
 					if _, err := l2tol2CDM.RelayMessage(transactor, *sentMessage.Identifier(), sentMessage.MessagePayload()); err != nil {
 						r.logger.Debug("failed to execute message", "err", err)
 						return fmt.Errorf("failed to execute message: %w", err)
