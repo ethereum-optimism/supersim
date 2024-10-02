@@ -23,7 +23,7 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 
 	// L1
 	l1RpcUrl := superchain.Config.L1.PublicRPC
-	if url, ok := os.LookupEnv(fmt.Sprintf("%s_RPC_URL_%s", envPrefix, strings.ToUpper(forkConfig.Network))); ok {
+	if url, ok := os.LookupEnv(fmt.Sprintf("%s_RPC_URL_%s", envPrefix, strings.ToUpper(forkConfig.Network))); ok && url != "" {
 		log.Info("detected rpc override", "name", forkConfig.Network)
 		l1RpcUrl = url
 	}
@@ -68,7 +68,7 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 		}
 
 		l2RpcUrl := chainCfg.PublicRPC
-		if url, ok := os.LookupEnv(fmt.Sprintf("%s_RPC_URL_%s", envPrefix, strings.ToUpper(chainCfg.Chain))); ok {
+		if url, ok := os.LookupEnv(fmt.Sprintf("%s_RPC_URL_%s", envPrefix, strings.ToUpper(chainCfg.Chain))); ok && url != "" {
 			log.Info("detected rpc override", "name", chainCfg.Chain)
 			l2RpcUrl = url
 		}
