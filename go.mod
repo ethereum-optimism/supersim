@@ -5,7 +5,7 @@ go 1.22.3
 require (
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/ethereum-optimism/optimism v1.9.2-0.20240916204539-7d92c98c75a2
-	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20240910145426-b3905c89e8ac
+	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20241002103526-9083af857790
 	github.com/ethereum/go-ethereum v1.14.8
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.9.0
