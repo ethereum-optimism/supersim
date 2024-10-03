@@ -2,15 +2,18 @@ import React from 'react'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 
 const ConnectWallet: React.FC = () => {
-  const { isConnected, address } = useAccount()
+  const { isConnected, address, chainId } = useAccount()
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
 
   if (isConnected) {
     return (
-        <div className="connected-wallet">
-        <span>Connected: {address.slice(0, 6)}...{address.slice(-4)}</span>
-        <button onClick={() => disconnect()}>Disconnect</button>
+        <div className="connected-wallet" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ textAlign: 'left' }}>
+                <div>Chain ID: {chainId}</div>
+                <div>Address: {address.slice(0, 6)}...{address.slice(-4)}</div>
+            </div>
+            <button onClick={() => disconnect()} style={{ marginLeft: '20px' }}>Disconnect</button>
         </div>
     )
   }
