@@ -1,116 +1,265 @@
 import { useState, useEffect, } from "react";
-import { useConfig, useWatchContractEvent, useAccount } from "wagmi";
+import { useConfig, useWatchContractEvent, useContractRead } from "wagmi";
 import { getPublicClient } from "wagmi/actions"
+import { Block, concat, toHex } from "viem"
+import { MessageIdentifier } from "@eth-optimism/viem";
 
 import { Game, GameKey, createGameKey } from "../types/Game";
 import { abi, address } from "../constants/tictactoe";
 
+type TrackingGame = Game & {
+    lastMove: MessageIdentifier | undefined
+    lastMoveData: string | undefined
+}
+
+const newGameEvent = {
+    name: 'NewGame',
+    type: 'event',
+    inputs: [
+        { name: 'chainId', type: 'uint256' },
+        { name: 'gameId', type: 'uint256' },
+        { name: 'player', type: 'address' }
+    ],
+}
+
+const acceptedGameEvent = {
+    name: 'AcceptedGame',
+    type: 'event',
+    inputs: [
+        { name: 'chainId', type: 'uint256' },
+        { name: 'gameId', type: 'uint256' },
+        { name: 'opponent', type: 'address' },
+        { name: 'player', type: 'address' }
+    ],
+}
+
+const movePlayedEvent = {
+    name: 'MovePlayed',
+    type: 'event',
+    inputs: [
+        { name: 'chainId', type: 'uint256' },
+        { name: 'gameId', type: 'uint256' },
+        { name: 'player', type: 'address' },
+        { name: '_x', type: 'uint8' },
+        { name: '_y', type: 'uint8' },
+    ],
+}
+
 export const useGames = () => {
-    const [games, setGames] = useState<Record<GameKey, Game>>({});
+    const [games, setGames] = useState<Record<GameKey, TrackingGame>>({});
     const [syncing, setSyncing] = useState(true);
     const config = useConfig()
 
-
-    // New Games
-    //   - Insert into State (opponent === undefined)
-    // AcceptedGames
-    //   - Insert into Stsate (update creawtor, insert opponent)
-
-    // MovesPlayed. Update Game State
-
-    // GameWon/GameDrawn. Update Game Staste
-    const newGame = (chainId: number, gameId: number, player: string) => {
+    const newGame = (chainId: number, gameId: number, player: string, game: Partial<TrackingGame>) => {
         const gameKey = createGameKey(chainId, gameId, player);
         setGames(prev => ({
             ...prev,
             [gameKey]: {
+                ...game,
                 chainId, gameId, player,
                 gameWon: false, gameDrawn: false,
-                moves: new Array(3).fill(new Array(3).fill(null)),
+                moves: new Array(3).fill(null).map(() =>new Array(3).fill(null)),
             }
         }))
     }
 
-    /*
-    const acceptedGame = (chainId: number, gameId: number, player: string, opponent: string) => {
-        const gameKey: GameKey = createGameKey(chainId, gameId, player);
-        const oppGameKey: GameKey = createGameKey(chainId, gameId, opponent);
-        setGames(prev  => ({
-            ...prev,
-            [oppGameKey]: { ...prev[oppGameKey], opponent: player, },
-            [gameKey]: {
-                chainId,
-                gameId,
-                player,
-                moves: new Array(3).fill(new Array(3).fill(null)),
-                gameWon: false,
-            },
-        }))
-    }
-    */
-
     // Sync Past State
     useEffect(() => {
+        // We do this in order of the game so that state is setup correctly
         const fetchPastEvents = async () => {
-            for (const chain of config.chains) {
-                if (typeof chain.id === 'undefined') {
-                    console.log('chain.id is undefined. skipping...')
-                    return
+            const gamesInit: Record<GameKey, TrackingGame> = {}
+            const addGame = (chainId: number, gameId: number, player: string, game: Partial<TrackingGame>) => {
+                const gameKey = createGameKey(chainId, gameId, player);
+                gamesInit[gameKey] = {
+                        ...gamesInit[gameKey],
+                        ...game,
+                        chainId, gameId, player,
+                        gameWon: false, gameDrawn: false,
+                        moves: new Array(3).fill(null).map(() =>new Array(3).fill(null)),
                 }
-
+            }
+            
+            // Record All NewGames
+            for (const chain of config.chains) {
                 const publicClient = getPublicClient(config, { chainId: chain.id })
-                const logs = await publicClient.getLogs({
-                    address, 
-                    event: {
-                        name: 'NewGame',
-                        type: 'event',
-                        inputs: [
-                            { name: 'chainId', type: 'uint256' },
-                            { name: 'gameId', type: 'uint256' },
-                            { name: 'player', type: 'address' }
-                        ],
-                    },
-                    fromBlock: 'earliest',
-                    toBlock: 'latest',
-                    chainId: chain.id,
-                })
+                const logs = await publicClient.getLogs({ address, event: newGameEvent, fromBlock: 'earliest', toBlock: 'latest', chainId: chain.id })
+                for (const log of logs) {
+                    const block = await publicClient.getBlock({ blockHash: log.blockHash })
+                    const lastMove = { origin: log.address, blockNumber: block.number, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                    const lastMoveData = concat([...log.topics, log.data])
 
-                logs.forEach((log: any) => {
                     const chainId = Number(BigInt(log.args.chainId))
-                    if (chainId !== chain.id) {
-                        throw new Error(`ChainId ${chainId} does not match ${chain.id}`)
-                    }
-
                     const gameId = Number(BigInt(log.args.gameId))
                     const player = log.args.player
-                    newGame(chain.id, gameId, player)
-                })
+                    addGame(chainId, gameId, player, { lastMove, lastMoveData })
+                }
             } 
 
+            // Accepted Games
+            for (const chain of config.chains) {
+                const publicClient = getPublicClient(config, { chainId: chain.id })
+                const logs = await publicClient.getLogs({ address, event: acceptedGameEvent, fromBlock: 'earliest', toBlock: 'latest', chainId: chain.id })
+                for (const log of logs) {
+                    const block = await publicClient.getBlock({ blockHash: log.blockHash })
+                    const lastMove = { origin: log.address, blockNumber: block.number, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                    const lastMoveData = concat([...log.topics, log.data])
+
+                    const chainId = Number(BigInt(log.args.chainId))
+                    const gameId = Number(BigInt(log.args.gameId))
+                    const player = log.args.player
+                    const opponent = log.args.opponent
+                    addGame(chainId, gameId, player, { opponent, lastMove, lastMoveData })
+
+                    // update the opponent in the opponent's game
+                    const opponentGameKey = createGameKey(chainId, gameId, opponent)
+                    const opponentGame = gamesInit[opponentGameKey]
+                    opponentGame.opponent = player
+                    gamesInit[opponentGameKey] = opponentGame
+                    //setGames(prev => ({ ...prev, [opponentGameKey]: { ...opponentGame } }))
+                }
+            }
+
+            // Moves, with games loaded up in state, we can replay all moves out of order
+            for (const chain of config.chains) {
+                const publicClient = getPublicClient(config, { chainId: chain.id })
+                const logs = await publicClient.getLogs({ address, event: movePlayedEvent, fromBlock: 'earliest', toBlock: 'latest', chainId: chain.id })
+                for (const log of logs) {
+                    const chainId = Number(BigInt(log.args.chainId))
+                    const gameId = Number(BigInt(log.args.gameId))
+                    const player = log.args.player
+
+                    const x = Number(BigInt(log.args._x))
+                    const y = Number(BigInt(log.args._y))
+
+                    // Record Move on Players board
+                    const gameKey = createGameKey(chainId, gameId, player)
+                    const game = gamesInit[gameKey]
+                    game.moves[x][y] = 1
+
+                    // Record Move on Opponents board
+                    const opponentGameKey = createGameKey(chainId, gameId, game.opponent)
+                    const opponentGame = gamesInit[opponentGameKey]
+                    opponentGame.moves[x][y] = 2
+
+                    // Record if progressing (id can only be undefined when unaccepted so we're good since this is a move played implying acceptance)
+                    if (game.lastMove && game.lastMove.blockNumber < log.blockNumber) {
+                        const block = await publicClient.getBlock({ blockHash: log.blockHash })
+                        game.lastMove = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                        game.lastMoveData = concat([...log.topics, log.data])
+                    }
+
+                    //setGames(prev => ({ ...prev, [gameKey]: { ...game }, [opponentGameKey]: { ...opponentGame } }))
+                }
+            }
+
+            // With all games populated, we can set the state
+            setGames(gamesInit)
             setSyncing(false)
         }
 
         fetchPastEvents()
     }, [config.chains])
 
-    // Listen for new state
+    // Listen for new state after we finish syncing
     config.chains.forEach((chain: any) => {
+        const publicClient = getPublicClient(config, { chainId: chain.id })
+
+        // New Game
         useWatchContractEvent({
             address, abi,
-            eventName: 'NewGame',
+            eventName: newGameEvent.name,
             chainId: chain.id,
             onLogs(logs: any) {
-                logs.forEach((log: any) => {
+                for (const log of logs) {
                     const chainId = Number(BigInt(log.args.chainId))
                     const gameId = Number(BigInt(log.args.gameId))
                     const player = log.args.player
-                    newGame(chainId, gameId, player)
-                })
+                    publicClient.getBlock({ blockHash: log.blockHash})
+                        .then((block: Block) => {
+                            const lastMove = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                            const lastMoveData = concat([...log.topics, log.data])
+                            newGame(chainId, gameId, player, { lastMove, lastMoveData })
+                        })
+                        .catch((error: any) => {
+                            console.error("Error processing log. Needs to be replayed which isn't supported...", error)
+                        })
+                }
             },
         })
-    })
 
-    // Listen for all AcceptedGames
+        // Accepted Game
+        useWatchContractEvent({
+            address, abi,
+            eventName: acceptedGameEvent.name,
+            chainId: chain.id,
+            onLogs(logs: any) {
+                for (const log of logs) {
+                    const chainId = Number(BigInt(log.args.chainId))
+                    const gameId = Number(BigInt(log.args.gameId))
+                    const player = log.args.player
+                    publicClient.getBlock({ blockHash: log.blockHash})
+                        .then((block: Block) => {
+                            const lastMove = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                            const lastMoveData = concat([...log.topics, log.data])
+                            const opponent = log.args.opponent
+                            newGame(chainId, gameId, player, { opponent: log.args.opponent, lastMove, lastMoveData })
+
+                            // update the player in the opponent's game (New Game must have already been seen based on ordering)
+                            const opponentGameKey = createGameKey(chainId, gameId, opponent)
+                            setGames(prev => ({ ...prev, [opponentGameKey]: { ...prev[opponentGameKey], opponent: player } }))
+                        })
+                        .catch((error: any) => {
+                            console.error("Error processing log. Needs to be replayed which isn't supported...", error)
+                        })
+                }
+            }
+        })
+
+
+        // Move Played
+        useWatchContractEvent({
+            address, abi,
+            eventName: movePlayedEvent.name,
+            chainId: chain.id,
+            onLogs(logs: any) {
+                for (const log of logs) {
+                    const chainId = Number(BigInt(log.args.chainId))
+                    const gameId = Number(BigInt(log.args.gameId))
+                    const player = log.args.player
+
+                    // Record Move on Players board
+                    const gameKey = createGameKey(chainId, gameId, player)
+                    const game = games[gameKey]
+                    game.moves[log.args._x][log.args._y] = 1
+                    game.moves = [...game.moves] // create new reference to trigger react update
+
+                    // Record Move on Opponents board
+                    const opponent = game.opponent
+                    const opponentGameKey = createGameKey(chainId, gameId, opponent)
+                    const opponentGame = games[opponentGameKey]
+                    opponentGame.moves[log.args._x][log.args._y] = 2
+                    opponentGame.moves = [...opponentGame.moves] // create new reference to trigger react update
+
+                    // After syncing, moves should always be forward progressing...
+                    if (game.lastMove && game.lastMove.blockNumber < log.blockNumber) {
+                        publicClient.getBlock({ blockHash: log.blockHash})
+                            .then((block: Block) => {
+                                game.lastMove = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                                game.lastMoveData = concat([...log.topics, log.data])
+                                setGames(prev => ({ ...prev, [gameKey]: {...game}, [opponentGameKey]: { ...opponentGame } }))
+                            })
+                            .catch((error: any) => {
+                                console.error("GAME BROKEN: Error processing log. Needs to be replayed which isn't supported...", error)
+                            })
+                    } else {
+                        // Should never be in this branch
+                        console.error("GAME BROKEN? MovePlayed event that is not forward progressing found after sync...")
+                        setGames(prev => ({ ...prev, [gameKey]: {...game}, [opponentGameKey]: { ...opponentGame } }))
+                    }
+                }
+            }
+        })
+    })
 
     return { games, syncing }
 }

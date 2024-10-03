@@ -2,7 +2,7 @@ import React from 'react'
 import { useNewGame } from '../hooks/useNewGame'
 
 const NewGame: React.FC = () => {
-  const { createNewGame, isPending, isConfirming, isSuccess, hash } = useNewGame()
+  const { createNewGame, isPending, isConfirming } = useNewGame()
 
   const handleClick = async () => {
     await createNewGame()
@@ -20,7 +20,6 @@ const NewGame: React.FC = () => {
       >
         {isPending ? 'Creating Game...' : isConfirming? 'Confirming Tx...' : 'New Game'}
       </button>
-        {isSuccess && <p>New Game was broadcasted! Tx Hash: {hash}</p>}
     </div>
   )
 }

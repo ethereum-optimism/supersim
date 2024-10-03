@@ -22,12 +22,61 @@ a:hover {
   color: #535bf2;
 }
 
-body {
+body, html {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  padding: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+}
+
+#root {
   min-height: 100vh;
+  background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+  color: #333333;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+  color: #4a4a4a;
+}
+
+main {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  padding-top: 80px; /* Adjust this value based on your header height */
+  width: 100%;
+}
+
+.content-wrapper {
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 h1 {
