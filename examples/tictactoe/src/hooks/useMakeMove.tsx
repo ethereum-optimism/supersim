@@ -27,7 +27,7 @@ export const useMakeMove = () => {
         }
 
         try {
-            await writeContract({ address, abi, functionName, args: [opponentGame.lastMove, opponentGame.lastMoveData, x, y] })
+            await writeContract({ address, abi, functionName, args: [opponentGame.lastActionId, opponentGame.lastActionData, x, y] })
         } catch (error) {
             console.error('Error making move: ', error)
             return { error }

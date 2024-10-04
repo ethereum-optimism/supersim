@@ -11,7 +11,7 @@ export const useAcceptGame = () => {
     const { games } = useGames()
 
     if (isError) {
-        console.error('Error accepting game: ',error)
+        console.error('Error accepting game:', error)
     }
 
     const acceptGame = async (chainId: number, gameId: number, opponent: string) => {
@@ -20,7 +20,7 @@ export const useAcceptGame = () => {
         const opponentGame = games[opponentGameKey]
 
         try {
-            await writeContract({ address, abi, functionName: 'acceptGame', args: [opponentGame.lastMove, opponentGame.lastMoveData] })
+            await writeContract({ address, abi, functionName: 'acceptGame', args: [opponentGame.lastActionId, opponentGame.lastActionData] })
         } catch (error) {
             console.error('Error accepting game: ', error)
             return { error }

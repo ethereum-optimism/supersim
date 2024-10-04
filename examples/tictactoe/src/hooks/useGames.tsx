@@ -1,16 +1,10 @@
 import { useState, useEffect, } from "react";
 import { useConfig, useWatchContractEvent, useContractRead } from "wagmi";
 import { getPublicClient } from "wagmi/actions"
-import { Block, concat, toHex } from "viem"
-import { MessageIdentifier } from "@eth-optimism/viem";
+import { Block, concat, } from "viem"
 
-import { Game, GameKey, createGameKey } from "../types/Game";
+import { Game, GameKey, PlayerTurn, createGameKey } from "../types/Game";
 import { abi, address } from "../constants/tictactoe";
-
-type TrackingGame = Game & {
-    lastMove: MessageIdentifier | undefined
-    lastMoveData: string | undefined
-}
 
 const newGameEvent = {
     name: 'NewGame',
@@ -46,11 +40,11 @@ const movePlayedEvent = {
 }
 
 export const useGames = () => {
-    const [games, setGames] = useState<Record<GameKey, TrackingGame>>({});
+    const [games, setGames] = useState<Record<GameKey, Game>>({});
     const [syncing, setSyncing] = useState(true);
     const config = useConfig()
 
-    const newGame = (chainId: number, gameId: number, player: string, game: Partial<TrackingGame>) => {
+    const newGame = (chainId: number, gameId: number, player: string, game: Partial<Game>) => {
         const gameKey = createGameKey(chainId, gameId, player);
         setGames(prev => ({
             ...prev,
@@ -67,8 +61,8 @@ export const useGames = () => {
     useEffect(() => {
         // We do this in order of the game so that state is setup correctly
         const fetchPastEvents = async () => {
-            const gamesInit: Record<GameKey, TrackingGame> = {}
-            const addGame = (chainId: number, gameId: number, player: string, game: Partial<TrackingGame>) => {
+            const gamesInit: Record<GameKey, Game> = {}
+            const addGame = (chainId: number, gameId: number, player: string, game: Partial<Game>) => {
                 const gameKey = createGameKey(chainId, gameId, player);
                 gamesInit[gameKey] = {
                         ...gamesInit[gameKey],
@@ -85,13 +79,13 @@ export const useGames = () => {
                 const logs = await publicClient.getLogs({ address, event: newGameEvent, fromBlock: 'earliest', toBlock: 'latest', chainId: chain.id })
                 for (const log of logs) {
                     const block = await publicClient.getBlock({ blockHash: log.blockHash })
-                    const lastMove = { origin: log.address, blockNumber: block.number, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
-                    const lastMoveData = concat([...log.topics, log.data])
+                    const lastActionId = { origin: log.address, blockNumber: block.number, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                    const lastActionData = concat([...log.topics, log.data])
 
                     const chainId = Number(BigInt(log.args.chainId))
                     const gameId = Number(BigInt(log.args.gameId))
                     const player = log.args.player
-                    addGame(chainId, gameId, player, { lastMove, lastMoveData })
+                    addGame(chainId, gameId, player, { turn: PlayerTurn.Player, lastActionId, lastActionData })
                 }
             } 
 
@@ -101,21 +95,20 @@ export const useGames = () => {
                 const logs = await publicClient.getLogs({ address, event: acceptedGameEvent, fromBlock: 'earliest', toBlock: 'latest', chainId: chain.id })
                 for (const log of logs) {
                     const block = await publicClient.getBlock({ blockHash: log.blockHash })
-                    const lastMove = { origin: log.address, blockNumber: block.number, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
-                    const lastMoveData = concat([...log.topics, log.data])
+                    const lastActionId = { origin: log.address, blockNumber: block.number, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                    const lastActionData = concat([...log.topics, log.data])
 
                     const chainId = Number(BigInt(log.args.chainId))
                     const gameId = Number(BigInt(log.args.gameId))
                     const player = log.args.player
                     const opponent = log.args.opponent
-                    addGame(chainId, gameId, player, { opponent, lastMove, lastMoveData })
+                    addGame(chainId, gameId, player, { opponent, turn: PlayerTurn.Opponent, lastActionId, lastActionData })
 
                     // update the opponent in the opponent's game
                     const opponentGameKey = createGameKey(chainId, gameId, opponent)
                     const opponentGame = gamesInit[opponentGameKey]
                     opponentGame.opponent = player
                     gamesInit[opponentGameKey] = opponentGame
-                    //setGames(prev => ({ ...prev, [opponentGameKey]: { ...opponentGame } }))
                 }
             }
 
@@ -142,13 +135,15 @@ export const useGames = () => {
                     opponentGame.moves[x][y] = 2
 
                     // Record if progressing (id can only be undefined when unaccepted so we're good since this is a move played implying acceptance)
-                    if (game.lastMove && game.lastMove.blockNumber < log.blockNumber) {
+                    if (game.lastActionId && game.lastActionId.blockNumber < log.blockNumber) {
                         const block = await publicClient.getBlock({ blockHash: log.blockHash })
-                        game.lastMove = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
-                        game.lastMoveData = concat([...log.topics, log.data])
-                    }
+                        game.lastActionId = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                        game.lastActionData = concat([...log.topics, log.data])
 
-                    //setGames(prev => ({ ...prev, [gameKey]: { ...game }, [opponentGameKey]: { ...opponentGame } }))
+                        // If forward progressing, update the turn to the opponent
+                        game.turn = PlayerTurn.Opponent
+                        opponentGame.turn = PlayerTurn.Player
+                    }
                 }
             }
 
@@ -176,9 +171,9 @@ export const useGames = () => {
                     const player = log.args.player
                     publicClient.getBlock({ blockHash: log.blockHash})
                         .then((block: Block) => {
-                            const lastMove = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
-                            const lastMoveData = concat([...log.topics, log.data])
-                            newGame(chainId, gameId, player, { lastMove, lastMoveData })
+                            const lastActionId = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                            const lastActionData = concat([...log.topics, log.data])
+                            newGame(chainId, gameId, player, { turn: PlayerTurn.Player, lastActionId, lastActionData })
                         })
                         .catch((error: any) => {
                             console.error("Error processing log. Needs to be replayed which isn't supported...", error)
@@ -199,10 +194,10 @@ export const useGames = () => {
                     const player = log.args.player
                     publicClient.getBlock({ blockHash: log.blockHash})
                         .then((block: Block) => {
-                            const lastMove = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
-                            const lastMoveData = concat([...log.topics, log.data])
+                            const lastActionId = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                            const lastActionData = concat([...log.topics, log.data])
                             const opponent = log.args.opponent
-                            newGame(chainId, gameId, player, { opponent: log.args.opponent, lastMove, lastMoveData })
+                            newGame(chainId, gameId, player, { opponent: log.args.opponent, turn: PlayerTurn.Opponent, lastActionId, lastActionData })
 
                             // update the player in the opponent's game (New Game must have already been seen based on ordering)
                             const opponentGameKey = createGameKey(chainId, gameId, opponent)
@@ -241,11 +236,16 @@ export const useGames = () => {
                     opponentGame.moves = [...opponentGame.moves] // create new reference to trigger react update
 
                     // After syncing, moves should always be forward progressing...
-                    if (game.lastMove && game.lastMove.blockNumber < log.blockNumber) {
+                    if (game.lastActionId && game.lastActionId.blockNumber < log.blockNumber) {
                         publicClient.getBlock({ blockHash: log.blockHash})
                             .then((block: Block) => {
-                                game.lastMove = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
-                                game.lastMoveData = concat([...log.topics, log.data])
+                                game.lastActionId = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
+                                game.lastActionData = concat([...log.topics, log.data])
+
+                                // update turns
+                                game.turn = PlayerTurn.Opponent
+                                opponentGame.turn = PlayerTurn.Player
+
                                 setGames(prev => ({ ...prev, [gameKey]: {...game}, [opponentGameKey]: { ...opponentGame } }))
                             })
                             .catch((error: any) => {

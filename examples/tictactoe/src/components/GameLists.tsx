@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 
-import { createGameKey, Game, GameKey } from "../types/game"
-import { usePlayerGames, PlayerTurn } from '../hooks/usePlayerGames'
+import { createGameKey, Game, GameKey, PlayerTurn } from "../types/game"
+import { usePlayerGames } from '../hooks/usePlayerGames'
 import { useAcceptGame } from '../hooks/useAcceptGame'
 
 import Board from './Board'
@@ -25,7 +25,6 @@ const AvailableGame: React.FC<GameProps> = ({ game }) => {
       >
         {isPending ? 'Accepting Game...' : isConfirming ? 'Confirming Tx...' : 'Accept Game'}
       </button>
-      {isSuccess && <p>Game acceptance was broadcasted! Tx Hash: {hash}</p>}
     </li>
   )
 }
@@ -37,7 +36,7 @@ interface MyGameProps {
 }
 
 const MyGame: React.FC<MyGameProps> = ({ game, isSelected, onSelect }) => {
-  const isAccepted = game.turn !== undefined
+  const isAccepted = game.opponent !== undefined
   const status = !isAccepted ? "Unaccepted" : game.turn === PlayerTurn.Player ? "Your Turn!" : "Waiting for Opponent..."
   return (
     <li
