@@ -1,0 +1,133 @@
+{
+  "hash": "fb6b6bfb",
+  "configHash": "912b2461",
+  "lockfileHash": "9e9cc615",
+  "browserHash": "031f8acb",
+  "optimized": {
+    "react": {
+      "src": "../../node_modules/.pnpm/react@18.3.1/node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "35187ecd",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "6c67f7e9",
+      "needsInterop": true
+    },
+    "wagmi": {
+      "src": "../../node_modules/.pnpm/wagmi@2.12.16_@tanstack+query-core@5.59.0_@tanstack+react-query@5.59.0_react@18.3.1__@types+r_oraoezbsrsvbatbylgeouedlqm/node_modules/wagmi/dist/esm/exports/index.js",
+      "file": "wagmi.js",
+      "fileHash": "cca998fa",
+      "needsInterop": false
+    },
+    "wagmi/connectors": {
+      "src": "../../node_modules/.pnpm/wagmi@2.12.16_@tanstack+query-core@5.59.0_@tanstack+react-query@5.59.0_react@18.3.1__@types+r_oraoezbsrsvbatbylgeouedlqm/node_modules/wagmi/dist/esm/exports/connectors.js",
+      "file": "wagmi_connectors.js",
+      "fileHash": "50292aee",
+      "needsInterop": false
+    },
+    "@tanstack/react-query": {
+      "src": "../../node_modules/.pnpm/@tanstack+react-query@5.59.0_react@18.3.1/node_modules/@tanstack/react-query/build/modern/index.js",
+      "file": "@tanstack_react-query.js",
+      "fileHash": "ef52e74f",
+      "needsInterop": false
+    },
+    "wagmi/actions": {
+      "src": "../../node_modules/.pnpm/wagmi@2.12.16_@tanstack+query-core@5.59.0_@tanstack+react-query@5.59.0_react@18.3.1__@types+r_oraoezbsrsvbatbylgeouedlqm/node_modules/wagmi/dist/esm/exports/actions.js",
+      "file": "wagmi_actions.js",
+      "fileHash": "77f9a708",
+      "needsInterop": false
+    },
+    "viem": {
+      "src": "../../node_modules/.pnpm/viem@2.21.16_bufferutil@4.0.8_typescript@5.6.2_utf-8-validate@5.0.10/node_modules/viem/_esm/index.js",
+      "file": "viem.js",
+      "fileHash": "fc53fbfb",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "dist-F2UDKX2U": {
+      "file": "dist-F2UDKX2U.js"
+    },
+    "index.es-XJSDOFEH": {
+      "file": "index__es-XJSDOFEH.js"
+    },
+    "ccip-V3SFB36Y": {
+      "file": "ccip-V3SFB36Y.js"
+    },
+    "native-A7YO5Y3U": {
+      "file": "native-A7YO5Y3U.js"
+    },
+    "dist-DB7O24SV": {
+      "file": "dist-DB7O24SV.js"
+    },
+    "dist-44GGJGJ6": {
+      "file": "dist-44GGJGJ6.js"
+    },
+    "chunk-QNMR2JUL": {
+      "file": "chunk-QNMR2JUL.js"
+    },
+    "chunk-K76KBOEY": {
+      "file": "chunk-K76KBOEY.js"
+    },
+    "chunk-7S7TJQN3": {
+      "file": "chunk-7S7TJQN3.js"
+    },
+    "metamask-sdk-2DV5PUZI": {
+      "file": "metamask-sdk-2DV5PUZI.js"
+    },
+    "esm-LHUHBEA6": {
+      "file": "esm-LHUHBEA6.js"
+    },
+    "dist-QNCDOL3O": {
+      "file": "dist-QNCDOL3O.js"
+    },
+    "chunk-XCT47EJG": {
+      "file": "chunk-XCT47EJG.js"
+    },
+    "dist-KP2V7T47": {
+      "file": "dist-KP2V7T47.js"
+    },
+    "chunk-W66OPAPQ": {
+      "file": "chunk-W66OPAPQ.js"
+    },
+    "chunk-TLZKTUPW": {
+      "file": "chunk-TLZKTUPW.js"
+    },
+    "chunk-XMMAOU34": {
+      "file": "chunk-XMMAOU34.js"
+    },
+    "chunk-RM5DCHXI": {
+      "file": "chunk-RM5DCHXI.js"
+    },
+    "chunk-54MUPFJ3": {
+      "file": "chunk-54MUPFJ3.js"
+    },
+    "chunk-5AVA5CA6": {
+      "file": "chunk-5AVA5CA6.js"
+    },
+    "chunk-WJ3J6WFY": {
+      "file": "chunk-WJ3J6WFY.js"
+    },
+    "chunk-F6C2J6HC": {
+      "file": "chunk-F6C2J6HC.js"
+    },
+    "chunk-AIVNYPHD": {
+      "file": "chunk-AIVNYPHD.js"
+    },
+    "secp256k1-7F4QJO2R": {
+      "file": "secp256k1-7F4QJO2R.js"
+    },
+    "chunk-3WR6JLRJ": {
+      "file": "chunk-3WR6JLRJ.js"
+    },
+    "chunk-ONXFJJ2F": {
+      "file": "chunk-ONXFJJ2F.js"
+    },
+    "chunk-MSFXBLHD": {
+      "file": "chunk-MSFXBLHD.js"
+    }
+  }
+}
