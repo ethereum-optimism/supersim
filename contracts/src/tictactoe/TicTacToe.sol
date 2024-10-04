@@ -84,7 +84,7 @@ contract TicTacToe {
     event GameWon(uint256 chainId, uint256 gameId, address winner, uint8 _x, uint8 _y);
 
     /// @notice Emitted when all spots on the board were played with no winner with their lastest move
-    event GameDraw(uint256 chainId, uint256 gameId, uint8 _x, uint8 _y);
+    event GameDraw(uint256 chainId, uint256 gameId, address player, uint8 _x, uint8 _y);
 
     /// @notice Creates a new game that any player can accept
     function newGame() external {
@@ -188,7 +188,7 @@ contract TicTacToe {
             emit GameWon(chainId, gameId, game.player, _x, _y);
         }
         else if (game.movesLeft == 0) {
-            emit GameDraw(chainId, gameId, _x, _y);
+            emit GameDraw(chainId, gameId, game.player, _x, _y);
         }
         else {
             emit MovePlayed(chainId, gameId, game.player, _x, _y);
