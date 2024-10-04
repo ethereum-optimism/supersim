@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
-import { Game } from '../types/Game';
-import { PlayerTurn } from '../hooks/usePlayerGames';
+import { Game, PlayerTurn } from '../types/Game';
 import { useMakeMove } from '../hooks/useMakeMove';
 
 interface BoardProps {
@@ -12,8 +11,7 @@ interface BoardProps {
 const Board: React.FC<BoardProps> = ({ game, opponentGame }) => {
   const { makeMove, isConfirming, isPending, isSuccess, hash } = useMakeMove()
 
-  const turn = Number(game.lastMove.timestamp) < Number(opponentGame.lastMove.timestamp) ? PlayerTurn.Player : PlayerTurn.Opponent
-  const isPlayerTurn = turn === PlayerTurn.Player
+  const isPlayerTurn = game.turn == PlayerTurn.Player
   const isPendingTx = isPending || isConfirming
 
   const renderSquare = (x: number, y: number) => {

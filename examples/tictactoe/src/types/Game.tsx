@@ -1,3 +1,10 @@
+import { MessageIdentifier } from "@eth-optimism/viem";
+
+export enum PlayerTurn {
+    Player = 0,
+    Opponent = 1
+}
+
 export interface Game {
     chainId: number;
     gameId: number;
@@ -7,9 +14,14 @@ export interface Game {
     opponent: string | undefined;
 
     moves: number[][];
+    turn: PlayerTurn
 
     gameWon: boolean;
     gameDrawn: boolean;
+
+    // Last event log action
+    lastActionId: MessageIdentifier
+    lastActionData: string
 }
 
 export type GameKey = `${number}-${number}-${string}`;
