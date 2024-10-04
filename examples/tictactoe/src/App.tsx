@@ -23,7 +23,7 @@ export const wagmiConfig = createConfig({
 
 const App: React.FC = () => {
   const { isConnected, chainId } = useAccount()
-  const { syncing } =  useGames();
+  const { syncing } = useGames();
   const isChainInSuperchain = chainId === supersimChainA.id || chainId === supersimChainB.id
   return (
     <div className="app" >
@@ -33,16 +33,16 @@ const App: React.FC = () => {
       </header>
       <main>
         {isConnected && isChainInSuperchain ? (
-          syncing ?  <p>Syncing...</p> :
-          <div>
-            <NewGame />
-            <GameLists />
-          </div>
+          syncing ? <p>Syncing...</p> :
+            <div>
+              <NewGame />
+              <GameLists />
+            </div>
         ) : isConnected && !isChainInSuperchain ? (
-            <p>Switch to any network in the superchain to play!</p>
-          ) : (
-            <p>Connect your wallet to play</p>
-          )
+          <p>Switch to any network in the superchain to play!</p>
+        ) : (
+          <p>Connect your wallet to play</p>
+        )
         }
       </main>
     </div>
@@ -52,7 +52,7 @@ const App: React.FC = () => {
 const Root: React.FC = () => {
   return (
     <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider  client={queryClient} >
+      <QueryClientProvider client={queryClient} >
         <App />
       </QueryClientProvider>
     </WagmiProvider>
