@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { Game, PlayerTurn } from '../types/Game';
 import { useMakeMove } from '../hooks/useMakeMove';

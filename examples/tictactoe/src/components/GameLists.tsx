@@ -23,7 +23,7 @@ const AvailableGame: React.FC<GameProps> = ({ game }) => {
         disabled={isPending || isConfirming}
         style={{ opacity: isPending || isConfirming ? 0.5 : 1, cursor: isPending || isConfirming ? 'not-allowed' : 'pointer' }}
       >
-        {isPending ? 'Accepting Game...' : isConfirming ? 'Confirming Tx...' : 'Accept Game'}
+        {isPending || isConfirming ? 'Confirming...' : 'Accept Game'}
       </button>
     </li>
   )
