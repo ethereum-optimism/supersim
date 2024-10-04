@@ -14,6 +14,8 @@ body, html {
 .app {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
 }
 
@@ -41,25 +43,6 @@ main {
   flex-grow: 1;
   margin-top: 80px;
   padding: 30px;
-  max-width: 1200px;
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.board-square {
-  width: 60px;
-  height: 60px;
-  border: 2px solid #333;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 32px;
-  font-weight: bold;
-  margin: 5px;
-  transition: transform 0.2s ease-in-out;
-}
-
-.board-square:hover {
-  transform: scale(1.1);
+  max-width: 100%;
+  box-sizing: border-box;
 }

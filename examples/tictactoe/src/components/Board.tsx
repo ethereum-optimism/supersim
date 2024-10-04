@@ -8,6 +8,11 @@ interface BoardProps {
   opponentGame: Game
 }
 
+const truncateAddress = (address: string) => {
+  if (!address) return 'Unavailable';
+  return `${address.slice(0, 3)}...${address.slice(-3)}`;
+};
+
 const Board: React.FC<BoardProps> = ({ game, opponentGame }) => {
   const { makeMove, isConfirming, isPending, isSuccess, hash } = useMakeMove()
 
@@ -49,9 +54,15 @@ const Board: React.FC<BoardProps> = ({ game, opponentGame }) => {
 
   return (
     <div style={{ opacity: isPlayerTurn ? 1 : 0.5, transition: 'opacity 0.5s ease-in-out' }}>
-      <p>Game ID: {game.gameId}</p>
-      <p>Opponent: {game.opponent || 'Unavailable'}</p>
-      <p>Status: {isConfirming ? 'Confirming Tx...': isPlayerTurn ? 'Your turn!' : 'Waiting for opponent'}</p>
+      <p
+        style={{
+          textAlign: 'center',
+          fontSize: '1.2em',
+          fontWeight: 'bold',
+          marginBottom: '10px',
+          color: isPlayerTurn ? '#FF5722' : '#2196F3',
+        }}
+      >{isConfirming ? 'Confirming Tx...': isPlayerTurn ? 'Your turn!' : 'Waiting for opponent'}</p>
       <div className="board" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {[0, 1, 2].map(x => (
           <div key={x} className="board-row" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}> 
