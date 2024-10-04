@@ -74,13 +74,8 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Set environment variables from secrets
-        run: |
-          echo "SUPERSIM_RPC_URL_OP=$SUPERSIM_RPC_URL_OP" >> .env
-          echo "SUPERSIM_RPC_URL_BASE=$SUPERSIM_RPC_URL_BASE" >> .env
-        env:
-          SUPERSIM_RPC_URL_OP: ${{ secrets.SUPERSIM_RPC_URL_OP }}
-          SUPERSIM_RPC_URL_BASE: ${{ secrets.SUPERSIM_RPC_URL_BASE }}
-
       - name: Run tests
         run: just test-go
+        env:
+          SUPERSIM_RPC_URL_OP: ${{ vars.SUPERSIM_RPC_URL_OP }}
+          SUPERSIM_RPC_URL_BASE: ${{ vars.SUPERSIM_RPC_URL_BASE }}
