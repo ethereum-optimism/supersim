@@ -44,7 +44,8 @@ interface MyGameProps {
 
 const MyGame: React.FC<MyGameProps> = ({ game, isSelected, onSelect }) => {
   const isAccepted = game.opponent !== undefined
-  const status = !isAccepted ? "Unaccepted" : game.turn === PlayerTurn.Player ? "Your Turn!" : "Waiting for Opponent..."
+  const isYourTurn = game.turn === PlayerTurn.Player
+  const status = !isAccepted ? "Unaccepted" : isYourTurn ? "Your Turn!" : "Opponent's Turn"
   return (
     <div
       onClick={isAccepted ? onSelect : undefined}
@@ -59,7 +60,10 @@ const MyGame: React.FC<MyGameProps> = ({ game, isSelected, onSelect }) => {
         <p style={styles.cardText}>Chain ID: {game.chainId}</p>
         <p style={styles.cardText}>Game ID: {game.gameId}</p>
         <p style={styles.cardText}>Opp: {truncateAddress(game.opponent)}</p>
-        <p style={styles.status}>Status: {status}</p>
+        <p style={{
+          ...styles.status,
+          color: !isAccepted ? '#999999' : isYourTurn ? styles.yourTurnColor : styles.opponentTurnColor,
+        }}>{status}</p>
       </div>
     </div>
   )
@@ -122,7 +126,7 @@ const styles = {
     gap: '20px',
   },
   leftPanel: {
-    width: '300px',
+    width: '350px',
     overflowY: 'auto' as const,
     paddingRight: '20px',
     height: 'calc(100vh - 40px)', // Subtract container padding
@@ -182,9 +186,11 @@ const styles = {
   },
   status: {
     fontWeight: 'bold',
-    color: '#3498db',
     marginTop: '5px',
+    fontSize: '1em',
   },
+  yourTurnColor: '#4CAF50', // Green color for "Your Turn"
+  opponentTurnColor: '#FF9800', // Orange color for "Opponent's Turn"
   selectPrompt: {
     textAlign: 'center' as const,
     fontSize: '1.4em',
