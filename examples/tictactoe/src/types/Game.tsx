@@ -5,19 +5,26 @@ export enum PlayerTurn {
     Opponent = 1
 }
 
+export enum GameStatus {
+    Active = 0,
+    Draw = 1,
+    Won = 2,
+    Lost = 3,
+}
+
 export interface Game {
     chainId: number;
     gameId: number;
 
-    // Opponent is not defined until accepted
     player: string;
+
+    // Opponent is not defined until accepted
     opponent: string | undefined;
 
     moves: number[][];
     turn: PlayerTurn
 
-    gameWon: boolean;
-    gameDrawn: boolean;
+    status: GameStatus;
 
     // Last event log action
     lastActionId: MessageIdentifier

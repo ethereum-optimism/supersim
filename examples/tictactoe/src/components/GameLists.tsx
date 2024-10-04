@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 
-import { createGameKey, Game, GameKey, PlayerTurn } from "../types/game"
+import { createGameKey, Game, GameKey, PlayerTurn, GameStatus } from "../types/game"
 import { usePlayerGames } from '../hooks/usePlayerGames'
 import { useAcceptGame } from '../hooks/useAcceptGame'
 
@@ -45,7 +45,23 @@ interface MyGameProps {
 const MyGame: React.FC<MyGameProps> = ({ game, isSelected, onSelect }) => {
   const isAccepted = game.opponent !== undefined
   const isYourTurn = game.turn === PlayerTurn.Player
-  const status = !isAccepted ? "Unaccepted" : isYourTurn ? "Your Turn!" : "Opponent's Turn"
+  const isGameOver = game.status === GameStatus.Draw || game.status === GameStatus.Won || game.status === GameStatus.Lost
+
+  let status = !isAccepted ? "Unaccepted" : isYourTurn ? "Your Turn!" : "Opponent's Turn"
+  
+  if (isGameOver) {
+    status = game.status === GameStatus.Draw ? "Draw" : 
+             game.status === GameStatus.Won ? "You Won!" : "You Lost"
+  }
+
+  const getStatusColor = () => {
+    if (!isAccepted) return styles.unacceptedColor
+    if (game.status === GameStatus.Won) return styles.wonColor
+    if (game.status === GameStatus.Lost) return styles.lostColor
+    if (game.status === GameStatus.Draw) return styles.drawColor
+    return isYourTurn ? styles.yourTurnColor : styles.opponentTurnColor
+  }
+
   return (
     <div
       onClick={isAccepted ? onSelect : undefined}
@@ -53,6 +69,7 @@ const MyGame: React.FC<MyGameProps> = ({ game, isSelected, onSelect }) => {
         ...styles.gameCard,
         ...(isSelected ? styles.selectedCard : {}),
         ...(isAccepted ? {} : styles.unacceptedCard),
+        ...(isGameOver ? styles.gameOverCard : {}),
         cursor: isAccepted ? 'pointer' : 'default',
       }}
     >
@@ -62,7 +79,7 @@ const MyGame: React.FC<MyGameProps> = ({ game, isSelected, onSelect }) => {
         <p style={styles.cardText}>Opp: {truncateAddress(game.opponent)}</p>
         <p style={{
           ...styles.status,
-          color: !isAccepted ? '#999999' : isYourTurn ? styles.yourTurnColor : styles.opponentTurnColor,
+          color: getStatusColor(),
         }}>{status}</p>
       </div>
     </div>
@@ -189,8 +206,13 @@ const styles = {
     marginTop: '5px',
     fontSize: '1em',
   },
-  yourTurnColor: '#4CAF50', // Green color for "Your Turn"
-  opponentTurnColor: '#FF9800', // Orange color for "Opponent's Turn"
+  yourTurnColor: '#3498db', // Blue color for your turn
+  opponentTurnColor: '#f39c12', // Orange color for opponent's turn
+  gameOverCard: {
+    opacity: 0.8,
+    backgroundColor: '#34495e',
+  },
+  gameOverColor: '#8e44ad', // Purple color for game over status
   selectPrompt: {
     textAlign: 'center' as const,
     fontSize: '1.4em',
@@ -210,6 +232,10 @@ const styles = {
     marginTop: '10px',
     fontSize: '1em',
   },
+  unacceptedColor: '#999999',
+  wonColor: '#2ecc71', // Green color for won games
+  lostColor: '#e74c3c', // Red color for lost games
+  drawColor: '#f39c12', // Orange color for drawn games
 } as const;
 
 export default GameLists
