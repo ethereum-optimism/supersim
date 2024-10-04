@@ -4,7 +4,6 @@ import { injected } from 'wagmi/connectors'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import './App.css'
-import Game from './components/Game';
 import NewGame from './components/NewGame';
 import GameLists from './components/GameLists';
 import ConnectWallet from './components/ConnectWallet';
@@ -32,7 +31,7 @@ const App: React.FC = () => {
         <h1>TicTacToe</h1>
         <ConnectWallet />
       </header>
-      <main >
+      <main>
         {isConnected && isChainInSuperchain ? (
           syncing ?  <p>Syncing...</p> :
           <div>

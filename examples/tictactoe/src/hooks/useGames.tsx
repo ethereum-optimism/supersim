@@ -141,8 +141,11 @@ export const useGames = () => {
                         game.lastActionData = concat([...log.topics, log.data])
 
                         // If forward progressing, update the turn to the opponent
-                        game.turn = PlayerTurn.Opponent
-                        opponentGame.turn = PlayerTurn.Player
+
+                        if (game.lastActionId.timestamp > opponentGame.lastActionId.timestamp) {
+                            game.turn = PlayerTurn.Opponent
+                            opponentGame.turn = PlayerTurn.Player
+                        }
                     }
                 }
             }
@@ -242,9 +245,11 @@ export const useGames = () => {
                                 game.lastActionId = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
                                 game.lastActionData = concat([...log.topics, log.data])
 
-                                // update turns
-                                game.turn = PlayerTurn.Opponent
-                                opponentGame.turn = PlayerTurn.Player
+                                // Sanity update the turns
+                                if (game.lastActionId.timestamp > opponentGame.lastActionId.timestamp) {
+                                    game.turn = PlayerTurn.Opponent
+                                    opponentGame.turn = PlayerTurn.Player
+                                }
 
                                 setGames(prev => ({ ...prev, [gameKey]: {...game}, [opponentGameKey]: { ...opponentGame } }))
                             })
