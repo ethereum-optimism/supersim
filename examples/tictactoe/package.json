@@ -14,8 +14,10 @@
     "@eth-optimism/wagmi": "^0.0.4",
     "@rainbow-me/rainbowkit": "^2.1.7",
     "@tanstack/react-query": "^5.59.0",
+    "@tevm/ts-plugin": "1.0.0-next.118",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "tevm": "1.0.0-next.121",
     "viem": "^2.21.16",
     "wagmi": "^2.12.16"
   },
