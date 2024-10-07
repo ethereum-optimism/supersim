@@ -6,7 +6,15 @@ To see it in practice, let's first try sending some ETH from the L1 to the L2.
 
 ## Deposit ETH from the L1 into the L2 (L1 to L2 message passing)
 
-### 1. Call `bridgeETH` function on the `L1StandardBridgeProxy` contract on the L1 (chain 900)
+**1. Check initial balance on the L2 (chain 901)**
+
+Grab the balance of the sender account on L2:
+
+```sh
+cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545
+```
+
+**2. Call `bridgeETH` function on the `L1StandardBridgeProxy` contract on the L1 (chain 900)**
 
 Initiate a bridge transaction on the L1:
 
@@ -14,15 +22,13 @@ Initiate a bridge transaction on the L1:
 cast send 0xa01ae68902e205B420FD164435F299E07b0C778b "bridgeETH(uint32 _minGasLimit, bytes calldata _extraData)" 50000 0x --value 0.1ether --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
 
-### 2. Check the balance on the L2 (chain 901)
+**3. Check the balance on the L2 (chain 901)**
 
 Verify that the ETH balance of the sender has increased on the L2:
 
 ```sh
 cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545
 ```
-
-Now that you know how to pass messages from the L1 to the L2, let's try a sending an L2 to L2 message!
 
 ## Send an interoperable SuperchainERC20 token from chain 901 to 902 (L2 to L2 message passing)
 

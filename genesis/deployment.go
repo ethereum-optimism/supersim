@@ -23,43 +23,43 @@ type Alloc struct {
 /*******************
 L1 Genesis files
 *******************/
-//go:embed generated/l1-genesis.json
+//go:embed generated/900-l1-genesis.json
 var l1GenesisJSON []byte
 
 /*******************
 L2 Genesis files
 *******************/
-//go:embed generated/l2-genesis/901-l2-genesis.json
+//go:embed generated/901-l2-genesis.json
 var l2Genesis901JSON []byte
 
-//go:embed generated/l2-genesis/902-l2-genesis.json
+//go:embed generated/902-l2-genesis.json
 var l2Genesis902JSON []byte
 
-//go:embed generated/l2-genesis/903-l2-genesis.json
+//go:embed generated/903-l2-genesis.json
 var l2Genesis903JSON []byte
 
-//go:embed generated/l2-genesis/904-l2-genesis.json
+//go:embed generated/904-l2-genesis.json
 var l2Genesis904JSON []byte
 
-//go:embed generated/l2-genesis/905-l2-genesis.json
+//go:embed generated/905-l2-genesis.json
 var l2Genesis905JSON []byte
 
 /*******************
 L2 Addresses files
 *******************/
-//go:embed generated/addresses/901-addresses.json
+//go:embed generated/901-l2-addresses.json
 var addresses901JSON []byte
 
-//go:embed generated/addresses/902-addresses.json
+//go:embed generated/902-l2-addresses.json
 var addresses902JSON []byte
 
-//go:embed generated/addresses/903-addresses.json
+//go:embed generated/903-l2-addresses.json
 var addresses903JSON []byte
 
-//go:embed generated/addresses/904-addresses.json
+//go:embed generated/904-l2-addresses.json
 var addresses904JSON []byte
 
-//go:embed generated/addresses/905-addresses.json
+//go:embed generated/905-l2-addresses.json
 var addresses905JSON []byte
 
 var GeneratedGenesisDeployment = &GenesisDeployment{
