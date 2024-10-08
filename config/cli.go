@@ -88,22 +88,22 @@ func ForkCLIFlags(envPrefix string) []cli.Flag {
 }
 
 type ForkCLIConfig struct {
-	L1ForkHeight uint64
-	Network      string
-	Chains       []string
+	L1ForkHeight uint64   `yaml:"l1_fork_height"`
+	Network      string   `yaml:"network"`
+	Chains       []string `yaml:"chains"`
 
-	InteropEnabled bool
+	InteropEnabled bool `yaml:"interop_enabled"`
 }
 
 type CLIConfig struct {
-	L1Port         uint64
-	L2StartingPort uint64
+	L1Port         uint64 `yaml:"l1_port"`
+	L2StartingPort uint64 `yaml:"l2_starting_port"`
 
-	InteropAutoRelay bool
+	InteropAutoRelay bool `yaml:"interop_auto_relay"`
 
-	LogsDirectory string
+	LogsDirectory string `yaml:"logs_directory"`
 
-	ForkConfig *ForkCLIConfig
+	ForkConfig *ForkCLIConfig `yaml:"fork_config"`
 }
 
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
