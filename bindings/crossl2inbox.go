@@ -26,6 +26,7 @@ var (
 	_ = common.Big1
 	_ = types.BloomLookup
 	_ = event.NewSubscription
+	_ = abi.ConvertType
 )
 
 // ICrossL2InboxIdentifier is an auto generated low-level Go binding around an user-defined struct.
@@ -39,7 +40,7 @@ type ICrossL2InboxIdentifier struct {
 
 // CrossL2InboxMetaData contains all meta data concerning the CrossL2Inbox contract.
 var CrossL2InboxMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"function\",\"name\":\"blockNumber\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"chainId\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"executeMessage\",\"inputs\":[{\"name\":\"_id\",\"type\":\"tuple\",\"internalType\":\"structICrossL2Inbox.Identifier\",\"components\":[{\"name\":\"origin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"logIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"chainId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"_target\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_message\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"logIndex\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"origin\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"timestamp\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"validateMessage\",\"inputs\":[{\"name\":\"_id\",\"type\":\"tuple\",\"internalType\":\"structICrossL2Inbox.Identifier\",\"components\":[{\"name\":\"origin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"logIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"chainId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"_msgHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"version\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"ExecutingMessage\",\"inputs\":[{\"name\":\"msgHash\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"id\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structICrossL2Inbox.Identifier\",\"components\":[{\"name\":\"origin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"logIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"chainId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"InvalidChainId\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InvalidTimestamp\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotEntered\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ReentrantCall\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"TargetCallFailed\",\"inputs\":[]}]",
+	ABI: "[{\"inputs\":[],\"name\":\"blockNumber\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"chainId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"origin\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"logIndex\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"chainId\",\"type\":\"uint256\"}],\"internalType\":\"structICrossL2Inbox.Identifier\",\"name\":\"_id\",\"type\":\"tuple\"},{\"internalType\":\"address\",\"name\":\"_target\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"_message\",\"type\":\"bytes\"}],\"name\":\"executeMessage\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"interopStart\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"interopStart_\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"logIndex\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"origin\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"setInteropStart\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"timestamp\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"origin\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"logIndex\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"chainId\",\"type\":\"uint256\"}],\"internalType\":\"structICrossL2Inbox.Identifier\",\"name\":\"_id\",\"type\":\"tuple\"},{\"internalType\":\"bytes32\",\"name\":\"_msgHash\",\"type\":\"bytes32\"}],\"name\":\"validateMessage\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"msgHash\",\"type\":\"bytes32\"},{\"components\":[{\"internalType\":\"address\",\"name\":\"origin\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"blockNumber\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"logIndex\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"chainId\",\"type\":\"uint256\"}],\"indexed\":false,\"internalType\":\"structICrossL2Inbox.Identifier\",\"name\":\"id\",\"type\":\"tuple\"}],\"name\":\"ExecutingMessage\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"InteropStartAlreadySet\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidChainId\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidTimestamp\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NoExecutingDeposits\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotDepositor\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotEntered\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReentrantCall\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TargetCallFailed\",\"type\":\"error\"}]",
 }
 
 // CrossL2InboxABI is the input ABI used to generate the binding from.
@@ -143,11 +144,11 @@ func NewCrossL2InboxFilterer(address common.Address, filterer bind.ContractFilte
 
 // bindCrossL2Inbox binds a generic wrapper to an already deployed contract.
 func bindCrossL2Inbox(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(CrossL2InboxABI))
+	parsed, err := CrossL2InboxMetaData.GetAbi()
 	if err != nil {
 		return nil, err
 	}
-	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+	return bind.NewBoundContract(address, *parsed, caller, transactor, filterer), nil
 }
 
 // Call invokes the (constant) contract method with params as input values and
@@ -248,6 +249,37 @@ func (_CrossL2Inbox *CrossL2InboxSession) ChainId() (*big.Int, error) {
 // Solidity: function chainId() view returns(uint256)
 func (_CrossL2Inbox *CrossL2InboxCallerSession) ChainId() (*big.Int, error) {
 	return _CrossL2Inbox.Contract.ChainId(&_CrossL2Inbox.CallOpts)
+}
+
+// InteropStart is a free data retrieval call binding the contract method 0xb1745ada.
+//
+// Solidity: function interopStart() view returns(uint256 interopStart_)
+func (_CrossL2Inbox *CrossL2InboxCaller) InteropStart(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _CrossL2Inbox.contract.Call(opts, &out, "interopStart")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// InteropStart is a free data retrieval call binding the contract method 0xb1745ada.
+//
+// Solidity: function interopStart() view returns(uint256 interopStart_)
+func (_CrossL2Inbox *CrossL2InboxSession) InteropStart() (*big.Int, error) {
+	return _CrossL2Inbox.Contract.InteropStart(&_CrossL2Inbox.CallOpts)
+}
+
+// InteropStart is a free data retrieval call binding the contract method 0xb1745ada.
+//
+// Solidity: function interopStart() view returns(uint256 interopStart_)
+func (_CrossL2Inbox *CrossL2InboxCallerSession) InteropStart() (*big.Int, error) {
+	return _CrossL2Inbox.Contract.InteropStart(&_CrossL2Inbox.CallOpts)
 }
 
 // LogIndex is a free data retrieval call binding the contract method 0xda99f729.
@@ -393,6 +425,27 @@ func (_CrossL2Inbox *CrossL2InboxSession) ExecuteMessage(_id ICrossL2InboxIdenti
 // Solidity: function executeMessage((address,uint256,uint256,uint256,uint256) _id, address _target, bytes _message) payable returns()
 func (_CrossL2Inbox *CrossL2InboxTransactorSession) ExecuteMessage(_id ICrossL2InboxIdentifier, _target common.Address, _message []byte) (*types.Transaction, error) {
 	return _CrossL2Inbox.Contract.ExecuteMessage(&_CrossL2Inbox.TransactOpts, _id, _target, _message)
+}
+
+// SetInteropStart is a paid mutator transaction binding the contract method 0xc8ab72ca.
+//
+// Solidity: function setInteropStart() returns()
+func (_CrossL2Inbox *CrossL2InboxTransactor) SetInteropStart(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _CrossL2Inbox.contract.Transact(opts, "setInteropStart")
+}
+
+// SetInteropStart is a paid mutator transaction binding the contract method 0xc8ab72ca.
+//
+// Solidity: function setInteropStart() returns()
+func (_CrossL2Inbox *CrossL2InboxSession) SetInteropStart() (*types.Transaction, error) {
+	return _CrossL2Inbox.Contract.SetInteropStart(&_CrossL2Inbox.TransactOpts)
+}
+
+// SetInteropStart is a paid mutator transaction binding the contract method 0xc8ab72ca.
+//
+// Solidity: function setInteropStart() returns()
+func (_CrossL2Inbox *CrossL2InboxTransactorSession) SetInteropStart() (*types.Transaction, error) {
+	return _CrossL2Inbox.Contract.SetInteropStart(&_CrossL2Inbox.TransactOpts)
 }
 
 // ValidateMessage is a paid mutator transaction binding the contract method 0xab4d6f75.

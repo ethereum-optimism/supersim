@@ -58,7 +58,28 @@ L2s: Predeploy Contracts Spec ( https://specs.optimism.io/protocol/predeploys.ht
      - L1StandardBridge:       0x2D8543c236a4d626f54B51Fa8bc229a257C5143E
 ```
 
+
 ### 4. Start testing multichain features 🚀
+
+Some examples below! 
+
+## 🐋 Running with Docker
+
+To simplify the process, you can now run Supersim using Docker. This approach ensures a consistent development environment without needing to install dependencies on your local machine. Here are the steps:
+
+### 1. Build the Docker image
+   ```bash
+   docker build -t supersim .
+   ```
+
+### 2. Run Supersim in Docker
+   ```bash
+   docker run --rm -it --network host supersim:latest
+   ```
+
+This setup encapsulates Supersim in a container, isolating it from the host system. This ensures a clean, conflict-free environment and provides an added layer of security by reducing the application's permissions on the host.
+
+### 3. Start testing multichain features 🚀
 
 Some examples below! 
 

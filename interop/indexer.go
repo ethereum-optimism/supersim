@@ -114,10 +114,10 @@ func (i *L2ToL2MessageIndexer) Get(msgHash common.Hash) (*L2ToL2MessageStoreEntr
 
 func (i *L2ToL2MessageIndexer) processEventLog(ctx context.Context, backend ethereum.ChainReader, chainID uint64, log *types.Log) error {
 	relayedMessageEventId := bindings.L2ToL2CrossDomainMessengerParsedABI.Events["RelayedMessage"].ID
+	sentMessageEventId := bindings.L2ToL2CrossDomainMessengerParsedABI.Events["SentMessage"].ID
 	failedRelayedMessageEventId := bindings.L2ToL2CrossDomainMessengerParsedABI.Events["FailedRelayedMessage"].ID
 
-	// SentMessage event is an anonymous log without any topics
-	if len(log.Topics) == 0 {
+	if log.Topics[0] == sentMessageEventId {
 		identifier, err := getIdentifier(ctx, backend, chainID, log)
 		if err != nil {
 			return fmt.Errorf("failed to get log identifier: %w", err)

@@ -28,10 +28,15 @@ checkout-optimism-monorepo:
     cd lib/optimism && \
     git init && \
     git remote add origin https://github.com/ethereum-optimism/optimism.git && \
-    git fetch --depth=1 origin 3210a8c6bb7f98639213fb49718919d84aa8774a && \
+    git fetch --depth=1 origin $(cat ../../monorepo-commit-hash) && \
     git reset --hard FETCH_HEAD && \
-    git submodule update --init --recursive && \
-    make cannon-prestate
+    git submodule update --init --recursive --progress --depth=1
 
-generate-genesis: checkout-optimism-monorepo
-    python3 scripts/generate-genesis.py
+calculate-artifact-url: 
+    #!/usr/bin/env bash
+    cd lib/optimism/packages/contracts-bedrock && \
+    checksum=$(bash scripts/ops/calculate-checksum.sh) && \
+    echo "https://storage.googleapis.com/oplabs-contract-artifacts/artifacts-v1-$checksum.tar.gz"
+
+generate-genesis: build-contracts checkout-optimism-monorepo
+    go run ./genesis/cmd/main.go --monorepo-artifacts $(just calculate-artifact-url) --periphery-artifacts ./contracts/out --outdir ./genesis/generated

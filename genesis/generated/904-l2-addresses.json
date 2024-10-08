@@ -1,0 +1,18 @@
+{
+  "OpChainProxyAdmin": "0x041ce2550a7925b7307fb1253962a3a6d89e7135",
+  "AddressManager": "0x4854df22f995ec55e68872e48d399205779263c4",
+  "L1ERC721BridgeProxy": "0xd11e58a9b15d44201d0e60c65511731a80a10d64",
+  "SystemConfigProxy": "0x83e3463f6d53730367af74ad398779760b6404dd",
+  "OptimismMintableERC20FactoryProxy": "0x4fc5dae2e847a48d8c80140f32ba5888326a24bf",
+  "L1StandardBridgeProxy": "0xe9a71816c99292dd4eb79cd0aadae1213c143d61",
+  "L1CrossDomainMessengerProxy": "0x50f023b87af0462a8322eadd5632eef4683fe89c",
+  "OptimismPortalProxy": "0xa15bc4939efd3a0819f815e0fd277f0174c66cdc",
+  "DisputeGameFactoryProxy": "0x0a4bf4bfdbd1155df635021f4558eef0754e3706",
+  "AnchorStateRegistryProxy": "0xb7601acc6ec5231d7709120c08d3b07f38ffcbf7",
+  "AnchorStateRegistryImpl": "0x684dada74a03594d8de822a3a752748a01b1957e",
+  "FaultDisputeGame": "0x0000000000000000000000000000000000000000",
+  "PermissionedDisputeGame": "0x8210d9ae121c7043c670521cde78a24fc5d83cb8",
+  "DelayedWETHPermissionedGameProxy": "0x742fb2473c25f8b9cf64963673aebcc7cb501338",
+  "DelayedWETHPermissionlessGameProxy": "0x0000000000000000000000000000000000000000"
+}
+

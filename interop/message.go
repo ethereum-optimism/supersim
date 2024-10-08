@@ -1,13 +1,13 @@
 package interop
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -53,51 +53,21 @@ func (m *L2ToL2Message) Hash() (common.Hash, error) {
 	return crypto.Keccak256Hash(encoded), nil
 }
 
-func (m *L2ToL2Message) EventData() ([]byte, error) {
-	return bindings.L2ToL2CrossDomainMessengerParsedABI.Pack("relayMessage", big.NewInt(int64(m.Destination)), big.NewInt(int64(m.Source)), m.Nonce, m.Sender, m.Target, m.Message)
-}
-
-func NewL2ToL2MessageFromSentMessageEventData(logData []byte) (*L2ToL2Message, error) {
-	args := logData[4:]
-
-	decoded, err := bindings.L2ToL2CrossDomainMessengerParsedABI.Methods["relayMessage"].Inputs.Unpack(args)
+func NewL2ToL2MessageFromSentMessageEventData(log *types.Log, identifier *bindings.ICrossL2InboxIdentifier) (*L2ToL2Message, error) {
+	event := new(bindings.L2ToL2CrossDomainMessengerSentMessage)
+	err := bindings.L2ToL2CrossDomainMessengerParsedABI.UnpackIntoInterface(event, "SentMessage", log.Data)
 	if err != nil {
 		return nil, err
 	}
-
-	destination, ok := decoded[0].(*big.Int)
-	if !ok {
-		return nil, errors.New("cannot abi decode destination")
-	}
-
-	source, ok := decoded[1].(*big.Int)
-	if !ok {
-		return nil, errors.New("cannot abi decode source")
-	}
-
-	nonce, ok := decoded[2].(*big.Int)
-	if !ok {
-		return nil, errors.New("cannot abi decode nonce")
-	}
-
-	sender, ok := decoded[3].(common.Address)
-	if !ok {
-		return nil, errors.New("cannot abi decode sender")
-	}
-
-	target, ok := decoded[4].(common.Address)
-	if !ok {
-		return nil, errors.New("cannot abi decode target")
-	}
-
-	message, ok := decoded[5].([]byte)
-	if !ok {
-		return nil, errors.New("cannot abi decode message")
-	}
+	nonce := new(big.Int).SetBytes(log.Topics[3].Bytes())
+	sender := event.Sender
+	message := event.Message
+	destination := log.Topics[1].Big().Uint64()
+	target := common.HexToAddress(log.Topics[2].Hex())
 
 	return &L2ToL2Message{
-		Destination: destination.Uint64(),
-		Source:      source.Uint64(),
+		Destination: destination,
+		Source:      identifier.ChainId.Uint64(),
 		Nonce:       nonce,
 		Sender:      sender,
 		Target:      target,
