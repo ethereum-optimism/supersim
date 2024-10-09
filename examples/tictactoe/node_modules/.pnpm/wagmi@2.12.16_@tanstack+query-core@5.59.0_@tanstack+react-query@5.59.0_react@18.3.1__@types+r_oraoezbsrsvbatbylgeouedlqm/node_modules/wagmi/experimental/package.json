@@ -1,5 +1,0 @@
-{
-  "type": "module",
-  "types": "../dist/types/exports/experimental.d.ts",
-  "main": "../dist/esm/exports/experimental.js"
-}

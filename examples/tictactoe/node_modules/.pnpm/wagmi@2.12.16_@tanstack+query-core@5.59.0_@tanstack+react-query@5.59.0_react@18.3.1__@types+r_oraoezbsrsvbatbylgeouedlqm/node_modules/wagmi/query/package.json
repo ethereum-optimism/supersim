@@ -1,5 +1,0 @@
-{
-  "type": "module",
-  "types": "../dist/types/exports/query.d.ts",
-  "main": "../dist/esm/exports/query.js"
-}

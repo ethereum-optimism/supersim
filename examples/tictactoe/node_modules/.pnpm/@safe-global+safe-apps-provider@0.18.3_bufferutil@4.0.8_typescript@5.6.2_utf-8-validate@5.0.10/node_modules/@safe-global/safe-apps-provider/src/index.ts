@@ -1,1 +1,0 @@
-export { SafeAppProvider } from './provider';
