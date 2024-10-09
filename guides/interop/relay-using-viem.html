@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Using viem to relay interop messages (TypeScript) - Supersim</title>
+        <title>Viem to send and relay interop messages - Supersim</title>
 
 
         <!-- Custom HTML head -->
@@ -88,7 +88,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Getting Started</li><li class="chapter-item expanded "><a href="../../getting-started/installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../../getting-started/first-steps.html"><strong aria-hidden="true">2.</strong> First steps</a></li><li class="chapter-item expanded affix "><li class="part-title">CLI Reference</li><li class="chapter-item expanded "><a href="../../reference/supersim.html"><strong aria-hidden="true">3.</strong> supersim</a></li><li class="chapter-item expanded "><a href="../../reference/supersim-fork.html"><strong aria-hidden="true">4.</strong> supersim fork</a></li><li class="chapter-item expanded affix "><li class="part-title">Chain Environment</li><li class="chapter-item expanded "><a href="../../chain-environment/contracts/index.html"><strong aria-hidden="true">5.</strong> Included contracts</a></li><li class="chapter-item expanded "><a href="../../chain-environment/network-details/index.html"><strong aria-hidden="true">6.</strong> Network details & contract addresses</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../chain-environment/network-details/op-chain-a.html"><strong aria-hidden="true">6.1.</strong> OPChainA</a></li><li class="chapter-item expanded "><a href="../../chain-environment/network-details/op-chain-b.html"><strong aria-hidden="true">6.2.</strong> OPChainB</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../../guides/deposit-transactions.html"><strong aria-hidden="true">7.</strong> Sending deposit transactions</a></li><li class="chapter-item expanded "><a href="../../guides/interop/index.html"><strong aria-hidden="true">8.</strong> Interoperability</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../guides/interop/manually-relaying-interop-messages-cast.html"><strong aria-hidden="true">8.1.</strong> Manually relaying interop messages with cast</a></li><li class="chapter-item expanded "><a href="../../guides/interop/relay-using-viem.html" class="active"><strong aria-hidden="true">8.2.</strong> Using viem to relay interop messages (TypeScript)</a></li><li class="chapter-item expanded "><a href="../../guides/interop/writing-contract-using-l2cdm.html"><strong aria-hidden="true">8.3.</strong> Writing cross-chain contract using L2ToL2CrossDomainMessenger</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.4.</strong> Calling a contract on destination chain</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.5.</strong> Bridging SuperchainWETH</div></li></ol></li><li class="chapter-item expanded "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="../../examples/cross-chain-tictactoe.html"><strong aria-hidden="true">9.</strong> Cross-chain tic-tac-toe</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Getting Started</li><li class="chapter-item expanded "><a href="../../getting-started/installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../../getting-started/first-steps.html"><strong aria-hidden="true">2.</strong> First steps</a></li><li class="chapter-item expanded affix "><li class="part-title">CLI Reference</li><li class="chapter-item expanded "><a href="../../reference/supersim.html"><strong aria-hidden="true">3.</strong> supersim</a></li><li class="chapter-item expanded "><a href="../../reference/supersim-fork.html"><strong aria-hidden="true">4.</strong> supersim fork</a></li><li class="chapter-item expanded affix "><li class="part-title">Chain Environment</li><li class="chapter-item expanded "><a href="../../chain-environment/contracts/index.html"><strong aria-hidden="true">5.</strong> Included contracts</a></li><li class="chapter-item expanded "><a href="../../chain-environment/network-details/index.html"><strong aria-hidden="true">6.</strong> Network details & contract addresses</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../chain-environment/network-details/op-chain-a.html"><strong aria-hidden="true">6.1.</strong> OPChainA</a></li><li class="chapter-item expanded "><a href="../../chain-environment/network-details/op-chain-b.html"><strong aria-hidden="true">6.2.</strong> OPChainB</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Guides</li><li class="chapter-item expanded "><a href="../../guides/deposit-transactions.html"><strong aria-hidden="true">7.</strong> Sending deposit transactions</a></li><li class="chapter-item expanded "><a href="../../guides/interop/index.html"><strong aria-hidden="true">8.</strong> Interoperability</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../guides/interop/relay-using-viem.html" class="active"><strong aria-hidden="true">8.1.</strong> Viem to send and relay interop messages</a></li><li class="chapter-item expanded "><a href="../../guides/interop/manually-relaying-interop-messages-cast.html"><strong aria-hidden="true">8.2.</strong> Manually relaying interop messages with cast</a></li><li class="chapter-item expanded "><a href="../../guides/interop/writing-contract-using-l2cdm.html"><strong aria-hidden="true">8.3.</strong> Writing cross-chain contract using L2ToL2CrossDomainMessenger</a></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.4.</strong> Calling a contract on destination chain</div></li><li class="chapter-item expanded "><div><strong aria-hidden="true">8.5.</strong> Bridging SuperchainWETH</div></li></ol></li><li class="chapter-item expanded "><li class="part-title">Examples</li><li class="chapter-item expanded "><a href="../../examples/cross-chain-tictactoe.html"><strong aria-hidden="true">9.</strong> Cross-chain tic-tac-toe</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -200,7 +200,7 @@
 <h3 id="2-install-typescript-packages"><a class="header" href="#2-install-typescript-packages">2. Install TypeScript packages</a></h3>
 <pre><code class="language-sh">npm i viem @eth-optimism/viem
 </code></pre>
-<h3 id="3-define-chains-and-constants"><a class="header" href="#3-define-chains-and-constants">3. Define chains and constants</a></h3>
+<h3 id="3-imports--setup"><a class="header" href="#3-imports--setup">3. Imports &amp; Setup</a></h3>
 <pre><code class="language-ts">import {
 	http,
 	encodeFunctionData,
@@ -211,72 +211,47 @@
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
+    contracts,
 	publicActionsL2,
 	walletActionsL2,
-	extractMessageIdentifierFromLogs,
+    supersimL2A,
+    supersimL2B,
+    createInteropSentL2ToL2Messages,
+    decodeRelayedL2ToL2Messages,
 } from "@eth-optimism/viem";
-import { anvil } from "viem/chains";
 
-// Define constants - L2NativeSuperchainERC20 contract address is the same on every chain
-const L2_NATIVE_SUPERCHAINERC20_ADDRESS =
-	"0x420beeF000000000000000000000000000000001";
+// SuperERC20 is in development so we manually define the address here
+const L2_NATIVE_SUPERCHAINERC20_ADDRESS = "0x420beeF000000000000000000000000000000001";
 
-const L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS =
-	"0x4200000000000000000000000000000000000023";
-
-// account for 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-const account = privateKeyToAccount(
-	"0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-);
+// Account for 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
 
 // Define chains
-const opChainA = defineChain({
-	...anvil,
-	id: 901,
-	name: "OPChainA",
-	rpcUrls: {
-		default: {
-			http: ["http://127.0.0.1:9545"],
-		},
-	},
-});
+// ... left out as we'll use the supersim chain definitions
 
-const opChainB = defineChain({
-	...anvil,
-	id: 902,
-	name: "OPChainB",
-	rpcUrls: {
-		default: {
-			http: ["http://127.0.0.1:9546"],
-		},
-	},
-});
-
-// Configure op clients
+// Configure clients with optimism extension
 const opChainAClient = createWalletClient({
 	transport: http(),
-	chain: opChainA,
+	chain: supersimL2A,
 	account,
-})
-	.extend(walletActionsL2())
+}).extend(walletActionsL2())
 	.extend(publicActionsL2())
 	.extend(publicActions);
 
 const opChainBClient = createWalletClient({
 	transport: http(),
-	chain: opChainB,
+	chain: superismL2B,
 	account,
-})
-	.extend(walletActionsL2())
+}).extend(walletActionsL2())
 	.extend(publicActionsL2())
 	.extend(publicActions);
 </code></pre>
-<h3 id="4-mint-and-send-l2nativesuperchainerc20-on-source-chain"><a class="header" href="#4-mint-and-send-l2nativesuperchainerc20-on-source-chain">4. Mint and send <code>L2NativeSuperchainERC20</code> on source chain</a></h3>
+<h3 id="4-mint-and-bridge-l2nativesuperchainerc20-from-source-chain"><a class="header" href="#4-mint-and-bridge-l2nativesuperchainerc20-from-source-chain">4. Mint and Bridge <code>L2NativeSuperchainERC20</code> from source chain</a></h3>
 <pre><code class="language-ts">// #######
 // OP Chain A
 // #######
 
-// 1. Mint 1000 `L2NativeSuperchainERC20` token
+// 1. Mint 1000 `L2NativeSuperchainERC20` token on chain A
 
 const mintTxHash = await opChainAClient.writeContract({
 	address: L2_NATIVE_SUPERCHAINERC20_ADDRESS,
@@ -287,47 +262,49 @@ const mintTxHash = await opChainAClient.writeContract({
 
 await opChainAClient.waitForTransactionReceipt({ hash: mintTxHash });
 
-// 2. Initiate sendERC20 tx
-console.log("Initiating sendERC20 on OPChainA...");
+// 2. Initiate sendERC20 tx to bridge funds to chain B
+
+console.log("Initiating sendERC20 on OPChainA to OPChainB...");
 const sendERC20TxHash = await opChainAClient.writeContract({
 	address: L2_NATIVE_SUPERCHAINERC20_ADDRESS,
 	abi: parseAbi([
 		"function sendERC20(address _to, uint256 _amount, uint256 _chainId)",
 	]),
 	functionName: "sendERC20",
-	args: [account.address, 1000n, BigInt(opChainB.id)],
+	args: [account.address, 1000n, BigInt(supersimL2B.id)],
 });
 
-const sendERC20TxReceipt = await opChainAClient.waitForTransactionReceipt({
-	hash: sendERC20TxHash,
-});
+const sendERC20Receipt = await opChainAClient.waitForTransactionReceipt({ hash: sendERC20TxHash });
 
-// 3. Grab the message identifier from the logs
-const { id: messageIdentifier, payload: l2ToL2CrossDomainMessengerCalldata } =
-	await extractMessageIdentifierFromLogs(opChainAClient, {
-		receipt: sendERC20TxReceipt,
-	});
+// 3. Construct the interoperable log data from the sent message
 
+const { sentMessages } = await createInteropSentL2ToL2Messages(opChainAClient, { receipt: sendERC20Receipt })
+const sentMessage = sentMessages[0] // We only sent 1 message
 </code></pre>
-<h3 id="5-relay-the-message-on-the-destination-chain"><a class="header" href="#5-relay-the-message-on-the-destination-chain">5. Relay the message on the destination chain</a></h3>
+<h3 id="5-relay-the-sent-message-on-the-destination-chain"><a class="header" href="#5-relay-the-sent-message-on-the-destination-chain">5. Relay the sent message on the destination chain</a></h3>
 <pre><code class="language-ts">
 // ##########
 // OP Chain B
 // ##########
 
-// 4. Execute the relayERC20 function on OPChainB
-console.log("Executing L2 to L2 message on OPChainB...");
-const executeTxHash = await opChainBClient.executeL2ToL2Message({
-	id: messageIdentifier,
-	target: L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS,
-	message: l2ToL2CrossDomainMessengerCalldata,
+// 4. Relay the sent message
+
+console.log("Relaying message on OPChainB...");
+const relayTxHash = await opChainBClient.relayL2ToL2Message({
+    sentMessageId: sentMessage.id,
+    sentMessagePayload: sentMessage.payload,
 });
 
-await opChainBClient.waitForTransactionReceipt({
-	hash: executeTxHash,
-});
+const relayReceipt = await opChainBClient.waitForTransactionReceipt({ hash: relayTxHash });
 
-// 5. Check balance on OPChainB
+// 5. Ensure the message was relayed successfully
+
+const { successfulMessages, failedMessages } = decodeRelayedL2ToL2Messages({ receipt: relayReceipt });
+if (successfulMessages.length != 1) {
+    throw new Error("failed to relay message!")
+}
+
+// 6. Check balance on OPChainB
 const balance = await opChainBClient.readContract({
 	address: L2_NATIVE_SUPERCHAINERC20_ADDRESS,
 	abi: parseAbi(["function balanceOf(address) view returns (uint256)"]),
@@ -352,69 +329,46 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
+    contracts,
 	publicActionsL2,
 	walletActionsL2,
-	extractMessageIdentifierFromLogs,
+    supersimL2A,
+    supersimL2B,
+    createInteropSentL2ToL2Messages,
+    decodeRelayedL2ToL2Messages,
 } from "@eth-optimism/viem";
-import { anvil } from "viem/chains";
 
-// Define constants - L2NativeSuperchainERC20 contract address is the same on every chain
+// SuperERC20 is in development so we manually define the address here
 const L2_NATIVE_SUPERCHAINERC20_ADDRESS =
 	"0x420beeF000000000000000000000000000000001";
 
-const L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS =
-	"0x4200000000000000000000000000000000000023";
-
 // account for 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-const account = privateKeyToAccount(
-	"0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-);
+const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
 
 // Define chains
-const opChainA = defineChain({
-	...anvil,
-	id: 901,
-	name: "OPChainA",
-	rpcUrls: {
-		default: {
-			http: ["http://127.0.0.1:9545"],
-		},
-	},
-});
-
-const opChainB = defineChain({
-	...anvil,
-	id: 902,
-	name: "OPChainB",
-	rpcUrls: {
-		default: {
-			http: ["http://127.0.0.1:9546"],
-		},
-	},
-});
+// ... left out as we'll use the supersim chain definitions
 
 // Configure op clients
 const opChainAClient = createWalletClient({
 	transport: http(),
-	chain: opChainA,
+	chain: supersimL2A,
 	account,
-})
-	.extend(walletActionsL2())
+}).extend(walletActionsL2())
 	.extend(publicActionsL2())
 	.extend(publicActions);
 
 const opChainBClient = createWalletClient({
 	transport: http(),
-	chain: opChainB,
+	chain: supersimL2B,
 	account,
-})
-	.extend(walletActionsL2())
+}).extend(walletActionsL2())
 	.extend(publicActionsL2())
 	.extend(publicActions);
 
 // #######
 // OP Chain A
 // #######
+
 // 1. Mint 1000 `L2NativeSuperchainERC20` token
 
 const mintTxHash = await opChainAClient.writeContract({
@@ -426,7 +380,8 @@ const mintTxHash = await opChainAClient.writeContract({
 
 await opChainAClient.waitForTransactionReceipt({ hash: mintTxHash });
 
-// 2. Initiate sendERC20 tx
+// 2. Initiate sendERC20 tx to bridge funds to chain B
+
 console.log("Initiating sendERC20 on OPChainA...");
 const sendERC20TxHash = await opChainAClient.writeContract({
 	address: L2_NATIVE_SUPERCHAINERC20_ADDRESS,
@@ -434,35 +389,38 @@ const sendERC20TxHash = await opChainAClient.writeContract({
 		"function sendERC20(address _to, uint256 _amount, uint256 _chainId)",
 	]),
 	functionName: "sendERC20",
-	args: [account.address, 1000n, BigInt(opChainB.id)],
+	args: [account.address, 1000n, BigInt(supersimL2B.id)],
 });
 
-const sendERC20TxReceipt = await opChainAClient.waitForTransactionReceipt({
-	hash: sendERC20TxHash,
-});
+const sendERC20Receipt = await opChainAClient.waitForTransactionReceipt({ hash: sendERC20TxHash });
 
-// 3. Grab the message identifier from the logs
-const { id: messageIdentifier, payload: l2ToL2CrossDomainMessengerCalldata } =
-	await extractMessageIdentifierFromLogs(opChainAClient, {
-		receipt: sendERC20TxReceipt,
-	});
+// 3. Construct the interoperable log data from the sent message
+
+const { sentMessages } = await createInteropSentL2ToL2Messages(opChainAClient, { receipt: sendERC20Receipt })
+const sentMessage = sentMessages[0] // We only sent 1 message
 
 // ##########
 // OP Chain B
 // ##########
-// 4. Execute the relayERC20 function on OPChainB
-console.log("Executing L2 to L2 message on OPChainB...");
-const executeTxHash = await opChainBClient.executeL2ToL2Message({
-	id: messageIdentifier,
-	target: L2_TO_L2_CROSS_DOMAIN_MESSENGER_ADDRESS,
-	message: l2ToL2CrossDomainMessengerCalldata,
+
+// 4. Relay the sent message
+
+console.log("Relaying message on OPChainB...");
+const relayTxHash = await opChainBClient.relayL2ToL2Message({
+    sentMessageId: sentMessage.id,
+    sentMessagePayload: sentMessage.payload,
 });
 
-await opChainBClient.waitForTransactionReceipt({
-	hash: executeTxHash,
-});
+const relayReceipt = await opChainBClient.waitForTransactionReceipt({ hash: relayTxHash });
 
-// 5. Check balance on OPChainB
+// 5. Ensure the message was relayed successfully
+
+const { successfulMessages, failedMessages } = decodeRelayedL2ToL2Messages({ receipt: relayReceipt });
+if (successfulMessages.length != 1) {
+    throw new Error("failed to relay message!")
+}
+
+// 6. Check balance on OPChainB
 const balance = await opChainBClient.readContract({
 	address: L2_NATIVE_SUPERCHAINERC20_ADDRESS,
 	abi: parseAbi(["function balanceOf(address) view returns (uint256)"]),
@@ -471,18 +429,17 @@ const balance = await opChainBClient.readContract({
 });
 
 console.log(`Balance on OPChainB: ${balance}`);
-
 </code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../../guides/interop/manually-relaying-interop-messages-cast.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../../guides/interop/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../../guides/interop/writing-contract-using-l2cdm.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../../guides/interop/manually-relaying-interop-messages-cast.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -492,11 +449,11 @@ console.log(`Balance on OPChainB: ${balance}`);
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../../guides/interop/manually-relaying-interop-messages-cast.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../../guides/interop/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../../guides/interop/writing-contract-using-l2cdm.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../../guides/interop/manually-relaying-interop-messages-cast.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
