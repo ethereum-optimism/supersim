@@ -1,0 +1,34 @@
+{
+  "name": "@stablelib/chacha20poly1305",
+  "version": "1.0.1",
+  "description": "ChaCha20-Poly1305 AEAD (RFC 7539)",
+  "main": "./lib/chacha20poly1305.js",
+  "typings": "./lib/chacha20poly1305.d.ts",
+  "author": "Dmitry Chestnykh",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/StableLib/stablelib"
+  },
+  "homepage": "https://github.com/StableLib/stablelib/tree/master/packages/chacha20poly1305",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jasmine JASMINE_CONFIG_PATH=../../configs/jasmine.json",
+    "bench": "node ./lib/chacha20poly1305.bench.js"
+  },
+  "dependencies": {
+    "@stablelib/aead": "^1.0.1",
+    "@stablelib/binary": "^1.0.1",
+    "@stablelib/chacha": "^1.0.1",
+    "@stablelib/constant-time": "^1.0.1",
+    "@stablelib/poly1305": "^1.0.1",
+    "@stablelib/wipe": "^1.0.1"
+  },
+  "devDependencies": {
+    "@stablelib/benchmark": "^1.0.1",
+    "@stablelib/hex": "^1.0.1"
+  },
+  "gitHead": "03dadf27703120d54e6be8436525228ee1c4299b"
+}

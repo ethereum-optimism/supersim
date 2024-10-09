@@ -1,0 +1,16 @@
+import type net from "node:net";
+export { Socket, SocketAddress } from "./socket";
+export declare const createServer: typeof net.createServer;
+export declare const Server: typeof net.Server;
+export declare const BlockList: typeof net.BlockList;
+export declare const connect: typeof net.connect;
+export declare const createConnection: typeof net.createConnection;
+export declare const getDefaultAutoSelectFamily: typeof net.getDefaultAutoSelectFamily;
+export declare const setDefaultAutoSelectFamily: typeof net.setDefaultAutoSelectFamily;
+export declare const getDefaultAutoSelectFamilyAttemptTimeout: typeof net.getDefaultAutoSelectFamilyAttemptTimeout;
+export declare const setDefaultAutoSelectFamilyAttemptTimeout: typeof net.setDefaultAutoSelectFamilyAttemptTimeout;
+export declare const isIPv4: typeof net.isIPv4;
+export declare const isIPv6: typeof net.isIPv6;
+export declare const isIP: typeof net.isIP;
+export declare const exports: typeof net;
+export default exports;

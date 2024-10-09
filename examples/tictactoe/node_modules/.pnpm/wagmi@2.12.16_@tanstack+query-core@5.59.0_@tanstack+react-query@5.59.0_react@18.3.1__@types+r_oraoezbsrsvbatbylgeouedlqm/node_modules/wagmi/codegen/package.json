@@ -1,0 +1,5 @@
+{
+  "type": "module",
+  "types": "../dist/types/exports/codegen.d.ts",
+  "main": "../dist/esm/exports/codegen.js"
+}

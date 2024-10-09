@@ -1,0 +1,21 @@
+{
+  "name": "@stablelib/wipe",
+  "version": "1.0.1",
+  "description": "Wipes bytes and arrays (sets all values to zero)",
+  "main": "./lib/wipe.js",
+  "typings": "./lib/wipe.d.ts",
+  "author": "Dmitry Chestnykh",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/StableLib/stablelib"
+  },
+  "homepage": "https://github.com/StableLib/stablelib/tree/master/packages/wipe",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "yarn build && jasmine JASMINE_CONFIG_PATH=../../configs/jasmine.json"
+  },
+  "gitHead": "03dadf27703120d54e6be8436525228ee1c4299b"
+}

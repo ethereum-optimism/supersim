@@ -1,0 +1,20 @@
+{
+  "name": "@stablelib/aead",
+  "version": "1.0.1",
+  "description": "AEAD interface declaration (authenticated encryption with associated data)",
+  "main": "./lib/aead.js",
+  "typings": "./lib/aead.d.ts",
+  "author": "Dmitry Chestnykh",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/StableLib/stablelib"
+  },
+  "homepage": "https://github.com/StableLib/stablelib/tree/master/packages/aead",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "gitHead": "03dadf27703120d54e6be8436525228ee1c4299b"
+}

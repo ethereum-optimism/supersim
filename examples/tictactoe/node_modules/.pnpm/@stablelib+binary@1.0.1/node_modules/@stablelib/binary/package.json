@@ -1,0 +1,24 @@
+{
+  "name": "@stablelib/binary",
+  "version": "1.0.1",
+  "description": "Binary encoding and decoding",
+  "main": "./lib/binary.js",
+  "typings": "./lib/binary.d.ts",
+  "author": "Dmitry Chestnykh",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/StableLib/stablelib"
+  },
+  "homepage": "https://github.com/StableLib/stablelib/tree/master/packages/binary",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jasmine JASMINE_CONFIG_PATH=../../configs/jasmine.json"
+  },
+  "dependencies": {
+    "@stablelib/int": "^1.0.1"
+  },
+  "gitHead": "03dadf27703120d54e6be8436525228ee1c4299b"
+}

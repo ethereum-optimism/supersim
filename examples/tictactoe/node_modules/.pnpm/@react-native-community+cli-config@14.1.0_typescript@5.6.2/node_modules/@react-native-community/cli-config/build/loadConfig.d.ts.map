@@ -1,0 +1,1 @@
+{"version":3,"file":"loadConfig.d.ts","sourceRoot":"","sources":["../src/loadConfig.ts"],"names":[],"mappings":"AACA,OAAO,EAKL,MAAM,EAEP,MAAM,mCAAmC,CAAC;AA4E3C;;GAEG;AACH,iBAAS,UAAU,CAAC,EAClB,WAA+B,EAC/B,gBAAgB,GACjB,EAAE;IACD,WAAW,CAAC,EAAE,MAAM,CAAC;IACrB,gBAAgB,CAAC,EAAE,MAAM,CAAC;CAC3B,GAAG,MAAM,CAoFT;AAED,eAAe,UAAU,CAAC"}

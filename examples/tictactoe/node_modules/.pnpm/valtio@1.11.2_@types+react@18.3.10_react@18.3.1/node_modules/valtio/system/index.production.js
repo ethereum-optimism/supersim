@@ -1,0 +1,1 @@
+System.register(["valtio/vanilla","valtio/react"],function(e){"use strict";var f={default:1};return{setters:[function(r){var i={};for(var t in r)f[t]||(i[t]=r[t]);e(i)},function(r){var i={};for(var t in r)f[t]||(i[t]=r[t]);e(i)}],execute:function(){}}});

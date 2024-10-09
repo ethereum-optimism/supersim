@@ -1,7 +1,7 @@
 <!-- omit in toc -->
 # Manually relaying interop messages with `cast` and L2ToL2CrossDomainMessenger
 
-This guide describes how to form a [message identifier](https://specs.optimism.io/interop/messaging.html#message-identifier) to execute a message on a destination chain.
+This guide describes how to form a [message identifier](https://specs.optimism.io/interop/messaging.html#message-identifier) to relay a [L2ToL2CrossDomainMessenger](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol) cross chain call.
 
 We'll perform the SuperchainERC20 interop transfer in [First steps](../../getting-started/first-steps.md#send-an-interoperable-superchainerc20-token-from-chain-901-to-902-l2-to-l2-message-passing) again, this time manually relaying the message without the autorelayer.
 
@@ -20,38 +20,33 @@ We'll perform the SuperchainERC20 interop transfer in [First steps](../../gettin
   - [8. Check the balance on chain 902](#8-check-the-balance-on-chain-902)
 - [Alternatives](#alternatives)
 
-
-
 ## Overview
 
 ### Contracts used
 - [L2NativeSuperchainERC20](https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/L2NativeSuperchainERC20.sol)
   - `0x420beeF000000000000000000000000000000001`
-- [CrossL2Inbox](https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/CrossL2Inbox.sol)
-  - `0x4200000000000000000000000000000000000022`
 - [L2ToL2CrossDomainMessenger](https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol)
   - `0x4200000000000000000000000000000000000023`
-
 
 ### High level steps
 
 Sending an interop message using the `L2ToL2CrossDomainMessenger`:
 
-**on source chain** (OPChainA 901)
+**On source chain** (OPChainA 901)
 
-1. call the `L2ToL2CrossChainMessenger.sendMessage`
-   - the `L2NativeSuperchainERC20.sendERC20` contract will call this under the hood
-2. get the log identifier and the message payload
+1. Invoke `L2NativeSuperchainERC20.sentERC20` to bridge funds
+   - this leverages `L2ToL2CrossDomainMessenger.sendMessage` to make the cross chain call
+2. Retrieve the log identifier and the message payload for the `SentMessage` event.
 
-**on destination chain** (OPChainB 902)
+**On destination chain** (OPChainB 902)
 
-3. call `L2ToL2CrossDomainMessenger.relayMessage`
-   - this calls `L2NativeSuperchainERC20.relayERC20`
+3. Relay the message with `L2ToL2CrossDomainMessenger.relayMessage`
+   - which then calls `L2NativeSuperchainERC20.relayERC20`
 
 ### Message identifier
 
 A message identifier uniquely identifies a log emitted on a chain. 
-The sequencer and smart contracts (CrossL2Inbox) use the identifier to perform [invariant checks](https://specs.optimism.io/interop/messaging.html#messaging-invariants) to confirm that the source message is valid.
+The sequencer and smart contracts (CrossL2Inbox) use the identifier to perform [invariant checks](https://specs.optimism.io/interop/messaging.html#messaging-invariants) to confirm that the message is valid.
 
 ```solidity
 struct Identifier {
@@ -89,104 +84,68 @@ cast send 0x420beeF000000000000000000000000000000001 "sendERC20(address _to, uin
 
 ### 4. Get the log emitted by the `L2ToL2CrossDomainMessenger`
 
-The token contract calls the [L2ToL2CrossDomainMessenger](https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol), which emits a message (log) that can be executed on the destination chain.
+The token contract calls the [L2ToL2CrossDomainMessenger](https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol), which emits a message (log) that can be relayed on the destination chain.
 
 ```sh
-cast logs --address 0x4200000000000000000000000000000000000023 --rpc-url http://127.0.0.1:9545
+$ cast logs --address 0x4200000000000000000000000000000000000023 --rpc-url http://127.0.0.1:9545
+
+address: 0x4200000000000000000000000000000000000023
+blockHash: 0x3905831f1b109ce787d180c1ed977ebf0ff1a6334424a0ae8f3731b035e3f708
+blockNumber: 4
+data: 0x000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000
+logIndex: 1
+topics: [
+      0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320
+      0x0000000000000000000000000000000000000000000000000000000000000386
+      0x000000000000000000000000420beef000000000000000000000000000000001
+      0x0000000000000000000000000000000000000000000000000000000000000000
+]
+...
 ```
 
-**example result:**
-
-```sh
-- address: 0x4200000000000000000000000000000000000023
-  blockHash: 0x644e640094d96e379fec06f3dfbb3b03ee54cde15450543a847f61a063977e90
-  blockNumber: 10
-  data: 0x000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000
-  logIndex: 1
-  removed: false
-  topics: [
-        0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320
-        0x0000000000000000000000000000000000000000000000000000000000000386
-        0x000000000000000000000000420beef000000000000000000000000000000001
-        0x0000000000000000000000000000000000000000000000000000000000000000
-  ]
-  transactionHash: 0xf6fcec6ae3941e33223cd6a63d0ffaeac1795b65c144db17e6ae7c8d3e2250dc
-  transactionIndex: 0
-```
-
-### 5. Get the block timestamp the log was emitted in
+### 5. Retrive the block timestamp the log was emitted in
 
 Since the message identifier requires the block timestamp, fetch the block info to get the timestamp.
 
 ```sh
-cast block 0xREPLACE_WITH_CORRECT_BLOCKHASH --rpc-url http://127.0.0.1:9545
+$ cast block 0xREPLACE_WITH_CORRECT_BLOCKHASH --rpc-url http://127.0.0.1:9545
+...
+timestamp            1728507703
+...
 ```
 
-**example result:**
-
-```sh
-baseFeePerGas        301131671
-difficulty           0
-extraData            0x
-gasLimit             30000000
-gasUsed              63173
-hash                 0x644e640094d96e379fec06f3dfbb3b03ee54cde15450543a847f61a063977e90
-logsBloom            0x20000000000000020000000000000000000000080000000000000010000000000000000000000000000000000000000010000000000000000008000000000000000000000000000002000008000000000000000000000100000020000000000000000000020000000040000100000800000000000008000000000010000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000010000000000000000000000000040000002000000200000000000000000000000102000000800000000000020000000000000000000000000000000000000000000000000000000001400000000
-miner                0x4200000000000000000000000000000000000011
-mixHash              0x0000000000000000000000000000000000000000000000000000000000000000
-nonce                0x0000000000000000
-number               10
-parentHash           0xac9dc75fdf4ab41e5b90eefb103745eade25c4b98b48dff784df7d6d45c6144a
-parentBeaconRoot     
-transactionsRoot     0x15e50417f6fa12895cb81dcf9db89f486d3a5760db538ebca97337d28c90f12a
-receiptsRoot         0x1a3a7571e087a8200fba03d0c19d433c8293d99d7faa55d953c19006333fe75a
-sha3Uncles           0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347
-size                 731
-stateRoot            0xb436dee5ab769a104f36e4c1ae3d09c79ec07a8741f0b724c06f0ab8264f1cd1
-timestamp            1728428155 (Tue, 8 Oct 2024 22:55:55 +0000)
-withdrawalsRoot      
-totalDifficulty      0
-transactions:        [
-        0xf6fcec6ae3941e33223cd6a63d0ffaeac1795b65c144db17e6ae7c8d3e2250dc
-]
-```
-
-### 6. Construct message payload
-
-To construct the message payload we need to concatenate all the log topics and log data. These need to be concatenated as all the topics first in order and then the data:
-
-```sh
-# 0x + topics[0] + topics[1] + topics[2] + topics[3] + data
-0x + 382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320 + 0000000000000000000000000000000000000000000000000000000000000386 + 000000000000000000000000420beef000000000000000000000000000000001 + 0000000000000000000000000000000000000000000000000000000000000000 + 000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000
-```
-
-### 7. Prepare the identifier
+### 6. Prepare the message identifier & payload
 
 Now we have all the information needed for the message (log) identifier.
 
 | **Parameter** | **Value**                                  | **Note**                   |
 |---------------|--------------------------------------------|----------------------------|
 | origin        | 0x4200000000000000000000000000000000000023 | L2ToL2CrossDomainMessenger |
-| blocknumber   | 10                                         | from step 4                |
+| blocknumber   | 4                                          | from step 4                |
 | logIndex      | 1                                          | from step 4                |
-| timestamp     | 1728428155                                 | from step 5                |
+| timestamp     | 1728507703                                 | from step 5                |
 | chainid       | 901                                        | OPChainA chainID           |
 
-### 8. Send the relayMessage transaction
+The message payload is the concatenation of the [...topics, data] in order.
 
-Call `relayMessage` on [L2ToL2CrossDomainMessenger](https://github.com/ethereum-optimism/optimism/blob/a05feb362b5209ab6a200874e9d45244f12240d1/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol#L149)
+```
+0x + 382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320
+   + 0000000000000000000000000000000000000000000000000000000000000386
+   + 000000000000000000000000420beef000000000000000000000000000000001
+   + 0000000000000000000000000000000000000000000000000000000000000000
+   + 000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000
+```
+
+Payload: `0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f3200000000000000000000000000000000000000000000000000000000000000386000000000000000000000000420beef0000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000`
+
+### 7. Send the relayMessage transaction
+
+Call `relayMessage` on the [L2ToL2CrossDomainMessenger](https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol#L126)
 
 ```solidity
 // L2ToL2CrossDomainMessenger.sol (truncated for brevity)
 
-interface ICrossL2Inbox {
-  struct Identifier {
-      address origin;
-      uint256 blockNumber;
-      uint256 logIndex;
-      uint256 timestamp;
-      uint256 chainId;
-  }
+contract L2ToL2CrossDomainMessenger {
 
   // ...
 
@@ -202,20 +161,18 @@ interface ICrossL2Inbox {
 
 **`relayMessage` parameters**
 
-- `ICrossL2Inbox.Identifier calldata _id`: identifier pointing to the log on the source chain
-   - same as the identifier in step 7.
-- `bytes calldata _sentMessage`: calldata to call the contract on the destination chain with.
-   - message payload from step 6.
+- `ICrossL2Inbox.Identifier calldata _id`: identifier pointing to the `SentMessage` log on the source chain
+- `bytes memory _sentMessage`: encoding of the log topics & data
 
 Below is an example call, but make sure to replace them with the correct values you received in previous steps.
 
 ```sh
-cast send 0x4200000000000000000000000000000000000023 \
-"relayMessage((address, uint256, uint256, uint256, uint256), bytes)" \
-"(0x4200000000000000000000000000000000000023, 10, 1, 1728428155, 901)" \
-0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f3200000000000000000000000000000000000000000000000000000000000000386000000000000000000000000420beef0000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000 \
---rpc-url http://127.0.0.1:9546 \
---private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+$ cast send 0x4200000000000000000000000000000000000023 \
+    "relayMessage((address, uint256, uint256, uint256, uint256), bytes)" \
+    "(0x4200000000000000000000000000000000000023, 4, 1, 1728507703, 901)" \
+    0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f3200000000000000000000000000000000000000000000000000000000000000386000000000000000000000000420beef0000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000 \
+    --rpc-url http://127.0.0.1:9546 \
+    --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
 
 ### 9. Check the balance on chain 902
@@ -231,4 +188,4 @@ cast balance --erc20 0x420beeF000000000000000000000000000000001 0xf39Fd6e51aad88
 This is obviously very tedious to do by hand 😅. Here are some alternatives
 
 - use `supersim --interop.autorelay` - this only works on supersim, but relayers for the testnet/prod environment will be available soon!
-- [use `viem` bindings/actions](relay-using-viem.md) - if you're using typescript, we have bindings available to make fetching identifiers and relaying messages easier
+- [use `viem` bindings/actions](relay-using-viem.md) - if you're using typescript, we have bindings available to make fetching identifiers and relaying messages easy

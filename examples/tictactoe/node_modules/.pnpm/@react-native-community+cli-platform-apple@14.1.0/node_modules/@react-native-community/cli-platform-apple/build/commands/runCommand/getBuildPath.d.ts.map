@@ -1,0 +1,1 @@
+{"version":3,"file":"getBuildPath.d.ts","sourceRoot":"","sources":["../../../src/commands/runCommand/getBuildPath.ts"],"names":[],"mappings":"AAEA,OAAO,EAAC,aAAa,EAAC,MAAM,oBAAoB,CAAC;AACjD,OAAO,EAAC,aAAa,EAAC,MAAM,aAAa,CAAC;AAE1C,wBAAsB,YAAY,CAChC,aAAa,EAAE,aAAa,EAC5B,QAAQ,GAAE,aAAqB,EAC/B,UAAU,GAAE,OAAe,mBAyB5B"}

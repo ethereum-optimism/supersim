@@ -1,0 +1,5 @@
+{
+  "type": "module",
+  "types": "../dist/types/exports/connectors.d.ts",
+  "main": "../dist/esm/exports/connectors.js"
+}

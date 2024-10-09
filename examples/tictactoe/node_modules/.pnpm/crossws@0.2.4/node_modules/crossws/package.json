@@ -1,0 +1,116 @@
+{
+  "name": "crossws",
+  "version": "0.2.4",
+  "description": "Cross-platform WebSocket Servers for Node.js, Deno, Bun and Cloudflare Workers",
+  "repository": "unjs/crossws",
+  "license": "MIT",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./websocket": {
+      "types": {
+        "import": "./dist/websocket/index.d.mts",
+        "require": "./dist/websocket/index.d.cts"
+      },
+      "browser": "./dist/websocket/index.mjs",
+      "worker": "./dist/websocket/index.mjs",
+      "bun": "./dist/websocket/index.mjs",
+      "deno": "./dist/websocket/index.mjs",
+      "edge-light": "./dist/websocket/index.mjs",
+      "workerd": "./dist/websocket/index.mjs",
+      "node": {
+        "import": "./dist/websocket/node.mjs",
+        "require": "./dist/websocket/node.cjs"
+      },
+      "import": "./dist/websocket/index.mjs",
+      "require": "./dist/websocket/index.cjs"
+    },
+    "./adapters/bun": {
+      "types": "./dist/adapters/bun.d.ts",
+      "import": "./dist/adapters/bun.mjs",
+      "require": "./dist/adapters/bun.cjs"
+    },
+    "./adapters/deno": {
+      "types": "./dist/adapters/deno.d.ts",
+      "import": "./dist/adapters/deno.mjs",
+      "require": "./dist/adapters/deno.cjs"
+    },
+    "./adapters/cloudflare": {
+      "types": "./dist/adapters/cloudflare.d.ts",
+      "import": "./dist/adapters/cloudflare.mjs",
+      "require": "./dist/adapters/cloudflare.cjs"
+    },
+    "./adapters/node": {
+      "types": "./dist/adapters/node.d.ts",
+      "import": "./dist/adapters/node.mjs",
+      "require": "./dist/adapters/node.cjs"
+    },
+    "./adapters/uws": {
+      "types": "./dist/adapters/uws.d.ts",
+      "import": "./dist/adapters/uws.mjs",
+      "require": "./dist/adapters/uws.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "adapters",
+    "*.d.ts"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "pnpm play:node",
+    "lint": "eslint --cache --ext .ts,.js,.mjs,.cjs . && prettier -c src",
+    "lint:fix": "eslint --cache --ext .ts,.js,.mjs,.cjs . --fix && prettier -c src -w",
+    "prepack": "pnpm run build",
+    "play:bun": "bun playground/bun.ts",
+    "play:cf": "wrangler dev --port 3001",
+    "play:deno": "deno run --unstable-sloppy-imports -A playground/deno.ts",
+    "play:node": "jiti playground/node.ts",
+    "play:uws": "jiti playground/uws.ts",
+    "release": "pnpm test && pnpm build && changelogen --release && npm publish && git push --follow-tags",
+    "test": "pnpm lint && pnpm test:types",
+    "test:types": "tsc --noEmit --skipLibCheck"
+  },
+  "resolutions": {
+    "crossws": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "@deno/types": "^0.0.1",
+    "@types/bun": "^1.0.4",
+    "@types/node": "^20.11.10",
+    "@types/web": "^0.0.135",
+    "@types/ws": "^8.5.10",
+    "automd": "^0.3.6",
+    "changelogen": "^0.5.5",
+    "consola": "^3.2.3",
+    "eslint": "^8.56.0",
+    "eslint-config-unjs": "^0.2.1",
+    "h3": "^1.10.1",
+    "jiti": "^1.21.0",
+    "listhen": "^1.7.0",
+    "prettier": "^3.2.4",
+    "typescript": "^5.3.3",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.33.0",
+    "unbuild": "^2.0.0",
+    "wrangler": "^3.25.0",
+    "ws": "^8.16.0"
+  },
+  "peerDependencies": {
+    "uWebSockets.js": "*"
+  },
+  "peerDependenciesMeta": {
+    "uWebSockets.js": {
+      "optional": true
+    }
+  },
+  "packageManager": "pnpm@8.15.0"
+}

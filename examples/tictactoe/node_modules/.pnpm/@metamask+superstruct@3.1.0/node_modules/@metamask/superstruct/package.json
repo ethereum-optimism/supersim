@@ -1,0 +1,125 @@
+{
+  "name": "@metamask/superstruct",
+  "version": "3.1.0",
+  "description": "A simple and composable way to validate data in JavaScript (and TypeScript).",
+  "keywords": [
+    "api",
+    "array",
+    "assert",
+    "cast",
+    "check",
+    "checker",
+    "collection",
+    "data",
+    "error",
+    "express",
+    "hapi",
+    "interface",
+    "invalid",
+    "joi",
+    "json",
+    "list",
+    "model",
+    "object",
+    "orm",
+    "scalar",
+    "schema",
+    "struct",
+    "throw",
+    "type",
+    "types",
+    "valid",
+    "validate",
+    "validation",
+    "validator"
+  ],
+  "homepage": "https://github.com/MetaMask/superstruct#readme",
+  "bugs": {
+    "url": "https://github.com/MetaMask/superstruct/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MetaMask/superstruct.git"
+  },
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "ts-bridge --project tsconfig.build.json --clean",
+    "build:docs": "typedoc",
+    "lint": "yarn lint:eslint && yarn lint:misc --check && yarn lint:dependencies --check && yarn lint:changelog",
+    "lint:changelog": "auto-changelog validate --prettier",
+    "lint:dependencies": "depcheck && yarn dedupe",
+    "lint:eslint": "eslint . --cache --ext js,ts",
+    "lint:fix": "yarn lint:eslint --fix && yarn lint:misc --write && yarn lint:dependencies && yarn lint:changelog --fix",
+    "lint:misc": "prettier '**/*.json' '**/*.md' '**/*.yml' '!.yarnrc.yml' '!CHANGELOG.md' --ignore-path .gitignore --no-error-on-unmatched-pattern",
+    "test": "yarn test:types && yarn test:vitest",
+    "test:types": "tsc --noEmit",
+    "test:vitest": "vitest run"
+  },
+  "devDependencies": {
+    "@lavamoat/allow-scripts": "^3.0.3",
+    "@metamask/auto-changelog": "^3.4.4",
+    "@metamask/eslint-config": "^12.2.0",
+    "@metamask/eslint-config-jest": "^12.1.0",
+    "@metamask/eslint-config-nodejs": "^12.1.0",
+    "@metamask/eslint-config-typescript": "^12.1.0",
+    "@ts-bridge/cli": "^0.1.2",
+    "@ts-bridge/shims": "^0.1.1",
+    "@types/expect": "^24.3.0",
+    "@types/lodash": "^4.14.144",
+    "@types/node": "^18.7.14",
+    "@typescript-eslint/eslint-plugin": "^5.43.0",
+    "@typescript-eslint/parser": "^5.43.0",
+    "depcheck": "^1.4.3",
+    "eslint": "^8.44.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-import": "~2.26.0",
+    "eslint-plugin-jest": "^27.2.2",
+    "eslint-plugin-jsdoc": "^39.9.1",
+    "eslint-plugin-n": "^15.7.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-promise": "^6.1.1",
+    "is-email": "^1.0.0",
+    "is-url": "^1.2.4",
+    "is-uuid": "^1.0.2",
+    "jest": "^29.7.0",
+    "lodash": "^4.17.21",
+    "prettier": "^2.7.1",
+    "prettier-plugin-packagejson": "^2.3.0",
+    "typedoc": "^0.25.9",
+    "typescript": "~4.8.4",
+    "vitest": "^1.2.2"
+  },
+  "packageManager": "yarn@4.1.0",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "lavamoat": {
+    "allowScripts": {
+      "vitest>vite>esbuild": true
+    }
+  }
+}

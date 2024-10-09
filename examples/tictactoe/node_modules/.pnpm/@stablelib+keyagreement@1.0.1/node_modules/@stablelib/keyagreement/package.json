@@ -1,0 +1,24 @@
+{
+  "name": "@stablelib/keyagreement",
+  "version": "1.0.1",
+  "description": "Key agreement interface declaration and utilities",
+  "main": "./lib/keyagreement.js",
+  "typings": "./lib/keyagreement.d.ts",
+  "author": "Dmitry Chestnykh",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/StableLib/stablelib"
+  },
+  "homepage": "https://github.com/StableLib/stablelib/tree/master/packages/keyagreement",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "echo No test"
+  },
+  "dependencies": {
+    "@stablelib/bytes": "^1.0.1"
+  },
+  "gitHead": "03dadf27703120d54e6be8436525228ee1c4299b"
+}

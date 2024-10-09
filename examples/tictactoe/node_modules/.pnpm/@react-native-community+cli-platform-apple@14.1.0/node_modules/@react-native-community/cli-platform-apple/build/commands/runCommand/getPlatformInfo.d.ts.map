@@ -1,0 +1,1 @@
+{"version":3,"file":"getPlatformInfo.d.ts","sourceRoot":"","sources":["../../../src/commands/runCommand/getPlatformInfo.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,aAAa,EAAC,MAAM,aAAa,CAAC;AAE1C,UAAU,YAAY;IACpB,YAAY,EAAE,MAAM,CAAC;IACrB,QAAQ,EAAE,MAAM,EAAE,CAAC;CACpB;AAED;;;;;GAKG;AACH,wBAAgB,eAAe,CAAC,QAAQ,EAAE,aAAa,GAAG,YAAY,CA2BrE"}

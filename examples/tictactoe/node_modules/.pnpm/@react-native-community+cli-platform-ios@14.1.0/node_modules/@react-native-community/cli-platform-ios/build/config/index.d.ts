@@ -1,0 +1,3 @@
+export declare const dependencyConfig: (folder: string, userConfig?: import("@react-native-community/cli-types").IOSDependencyParams | null | undefined) => import("@react-native-community/cli-types").IOSDependencyConfig | null;
+export declare const projectConfig: (folder: string, userConfig: import("@react-native-community/cli-types").IOSProjectParams) => import("@react-native-community/cli-types").IOSProjectConfig | null;
+//# sourceMappingURL=index.d.ts.map

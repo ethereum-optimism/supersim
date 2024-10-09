@@ -1,0 +1,44 @@
+{
+  "name": "ohash",
+  "version": "1.1.4",
+  "description": "Super fast hashing library based on murmurhash3 written in Vanilla JS",
+  "repository": "unjs/ohash",
+  "license": "MIT",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.5.5",
+    "@vitest/coverage-v8": "^2.1.1",
+    "benchmark": "^2.1.4",
+    "changelogen": "^0.5.5",
+    "eslint": "^9.10.0",
+    "eslint-config-unjs": "^0.3.2",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.2",
+    "unbuild": "^2.0.0",
+    "vitest": "^2.1.1"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "dev": "vitest dev",
+    "lint": "eslint . && prettier -c src test",
+    "lint:fix": "eslint --fix . && prettier -w src test",
+    "release": "pnpm test && changelogen --release --push && pnpm publish",
+    "benchmark": "node benchmark/object-hash.mjs",
+    "test": "pnpm lint && vitest run && pnpm typecheck",
+    "typecheck": "tsc --noEmit"
+  }
+}

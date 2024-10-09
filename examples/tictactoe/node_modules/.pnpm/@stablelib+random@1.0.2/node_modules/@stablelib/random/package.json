@@ -1,0 +1,35 @@
+{
+  "name": "@stablelib/random",
+  "version": "1.0.2",
+  "description": "Cryptographically-secure pseudorandom number generator",
+  "main": "./lib/random.js",
+  "typings": "./lib/random.d.ts",
+  "author": "Dmitry Chestnykh",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/StableLib/stablelib"
+  },
+  "homepage": "https://github.com/StableLib/stablelib/tree/master/packages/random",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jasmine JASMINE_CONFIG_PATH=../../configs/jasmine.json"
+  },
+  "dependencies": {
+    "@stablelib/binary": "^1.0.1",
+    "@stablelib/wipe": "^1.0.1"
+  },
+  "devDependencies": {
+    "@stablelib/benchmark": "^1.0.1",
+    "@stablelib/hex": "^1.0.1"
+  },
+  "browser": {
+    "crypto": false
+  },
+  "react-native": {
+    "crypto": false
+  },
+  "gitHead": "a402dc74f45c6a93a777a0e2840ce50ba68c3010"
+}

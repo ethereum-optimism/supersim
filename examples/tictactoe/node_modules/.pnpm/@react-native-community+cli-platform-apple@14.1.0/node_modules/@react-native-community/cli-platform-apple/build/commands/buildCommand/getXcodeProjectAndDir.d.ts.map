@@ -1,0 +1,1 @@
+{"version":3,"file":"getXcodeProjectAndDir.d.ts","sourceRoot":"","sources":["../../../src/commands/buildCommand/getXcodeProjectAndDir.ts"],"names":[],"mappings":"AACA,OAAO,EAAC,gBAAgB,EAAC,MAAM,mCAAmC,CAAC;AAInE,OAAO,EAAC,aAAa,EAAC,MAAM,aAAa,CAAC;AAE1C,wBAAgB,qBAAqB,CACnC,gBAAgB,EAAE,gBAAgB,GAAG,SAAS,EAC9C,YAAY,EAAE,aAAa,EAC3B,aAAa,CAAC,EAAE,OAAO;;;EA4BxB"}

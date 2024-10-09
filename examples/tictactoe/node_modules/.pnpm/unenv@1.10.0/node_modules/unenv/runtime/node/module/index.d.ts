@@ -1,0 +1,13 @@
+import type nodeModule from "node:module";
+export declare const builtinModules: typeof nodeModule.builtinModules;
+export declare const createRequire: typeof nodeModule.createRequire;
+export declare const runMain: typeof nodeModule.runMain;
+export declare const isBuiltin: typeof nodeModule.isBuiltin;
+export declare const register: typeof nodeModule.register;
+export declare const syncBuiltinESMExports: typeof nodeModule.syncBuiltinESMExports;
+export declare const findSourceMap: typeof nodeModule.findSourceMap;
+export declare const wrap: typeof nodeModule.wrap;
+export declare const Module: typeof nodeModule.Module;
+export declare const SourceMap: typeof nodeModule.SourceMap;
+declare const _default: typeof nodeModule;
+export default _default;

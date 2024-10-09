@@ -1,0 +1,24 @@
+{
+  "name": "@react-native-community/cli-types",
+  "version": "14.1.0",
+  "main": "build",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "build",
+    "!*.map"
+  ],
+  "dependencies": {
+    "joi": "^17.2.1"
+  },
+  "types": "build/index.d.ts",
+  "license": "MIT",
+  "homepage": "https://github.com/react-native-community/cli/tree/main/packages/cli-types",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/react-native-community/cli.git",
+    "directory": "packages/cli-types"
+  },
+  "gitHead": "9eb448fe7286bdf5f12a820c75be4ef0cf5eef67"
+}
