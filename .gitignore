@@ -31,3 +31,5 @@ lib
 
 /main
 dist/
+
+cache
