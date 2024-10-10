@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=../schema.json
+chainId: 902
+displayName: Opchainb
+domainId: 902
+isTestnet: true
+name: opchainb
+nativeToken:
+  decimals: 18
+  name: Ether
+  symbol: ETH
+protocol: ethereum
+rpcUrls:
+  - http: http://localhost:9546
