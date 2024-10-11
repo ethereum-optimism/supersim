@@ -3,7 +3,7 @@ import { useConfig, useWatchContractEvent, useContractRead } from "wagmi";
 import { getPublicClient } from "wagmi/actions"
 import { Block, concat, } from "viem"
 
-import { Game, GameKey, GameStatus, PlayerTurn, createGameKey } from "../types/Game";
+import { Game, GameKey, GameStatus, PlayerTurn, createGameKey } from "../types/game";
 import { abi, address } from "../constants/tictactoe";
 
 const newGameEvent = {

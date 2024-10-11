@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { Game, PlayerTurn } from '../types/Game';
+import { Game, PlayerTurn } from '../types/game';
 import { useMakeMove } from '../hooks/useMakeMove';
 
 interface BoardProps {

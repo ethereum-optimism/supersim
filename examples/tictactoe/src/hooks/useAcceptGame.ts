@@ -1,7 +1,7 @@
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 
 import { useGames } from './useGames'
-import { createGameKey } from '../types/Game'
+import { createGameKey } from '../types/game'
 import { address, abi } from '../constants/tictactoe'
 
 export const useAcceptGame = () => {

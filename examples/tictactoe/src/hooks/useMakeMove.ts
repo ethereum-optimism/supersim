@@ -1,6 +1,6 @@
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
 
-import { Game } from '../types/Game'
+import { Game } from '../types/game'
 import { abi, address } from '../constants/tictactoe'
 
 export const useMakeMove = () => {
