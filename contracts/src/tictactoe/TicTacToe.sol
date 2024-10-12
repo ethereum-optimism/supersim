@@ -64,7 +64,7 @@ contract TicTacToe {
         uint8[3][3] moves;
         uint8 movesLeft;
 
-        ICrossL2Inbox.Identifier lastId;
+        ICrossL2Inbox.Identifier lastOpponentId;
     }
 
     /// @notice A game is identifed from the (chainId, gameId) tuple from the chain it was initiated on
@@ -109,7 +109,7 @@ contract TicTacToe {
         Game storage game = games[chainId][gameId][msg.sender];
         game.player = msg.sender;
         game.opponent = opponent;
-        game.lastId = _newGameId;
+        game.lastOpponentId = _newGameId;
         game.movesLeft = 9;
 
         emit AcceptedGame(chainId, gameId, game.opponent, game.player);
@@ -139,7 +139,7 @@ contract TicTacToe {
         // Record Game Metadata
         game.player = msg.sender;
         game.opponent = opponent;
-        game.lastId = _acceptedGameId;
+        game.lastOpponentId = _acceptedGameId;
         game.movesLeft = 9;
 
         // Make the first move (any spot on the board)
@@ -167,9 +167,9 @@ contract TicTacToe {
         if (game.player != msg.sender) revert GameNotExists();
 
         // The move played is forward progressing from the same chain
-        if (_movePlayedId.chainId != game.lastId.chainId) revert IdChainMismatch();
-        if (_movePlayedId.blockNumber <= game.lastId.blockNumber) revert MoveNotForwardProgressing();
-        game.lastId = _movePlayedId;
+        if (_movePlayedId.chainId != game.lastOpponentId.chainId) revert IdChainMismatch();
+        if (_movePlayedId.blockNumber <= game.lastOpponentId.blockNumber) revert MoveNotForwardProgressing();
+        game.lastOpponentId = _movePlayedId;
 
         // NOTE: Since the supplied move is valid, `movesLeft > 0` as the code below will emit
         // `GameDrawn` when there are no moves left to play and `GameWon` on the winning move

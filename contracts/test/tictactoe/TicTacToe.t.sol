@@ -63,7 +63,7 @@ contract TicTacToeTest is Test {
             }
         }
 
-        assertEq(abi.encode(state.lastId), abi.encode(newGameId));
+        assertEq(abi.encode(state.lastOpponentId), abi.encode(newGameId));
     }
 
     function testFuzz_acceptGame_invalidIdOrigin_reverts(uint256 chainId, uint256 gameId, address opponent) public {
@@ -131,7 +131,7 @@ contract TicTacToeTest is Test {
             }
         }
 
-        assertEq(abi.encode(state.lastId), abi.encode(acceptGameId));
+        assertEq(abi.encode(state.lastOpponentId), abi.encode(acceptGameId));
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
         assertEq(logs.length, 1);
@@ -303,7 +303,7 @@ contract TicTacToeTest is Test {
 
         game.startGame(acceptGameId, acceptGameData, 0, 0);
 
-        ICrossL2Inbox.Identifier memory movePlayId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
+        ICrossL2Inbox.Identifier memory movePlayId = ICrossL2Inbox.Identifier(address(game), 1, 0, 0, chainId);
         bytes memory movePlayData = abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 1, 1));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
@@ -330,7 +330,7 @@ contract TicTacToeTest is Test {
 
         game.startGame(acceptGameId, acceptGameData, 0, 0);
 
-        ICrossL2Inbox.Identifier memory movePlayId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
+        ICrossL2Inbox.Identifier memory movePlayId = ICrossL2Inbox.Identifier(address(game), 1, 0, 0, chainId);
         bytes memory movePlayData = abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 1, 1));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
@@ -359,8 +359,9 @@ contract TicTacToeTest is Test {
 
         // Play Row 0 for player and Row 1 for opponent
         Vm.Log[] memory logs;
+        uint256 blockNum = acceptGameId.blockNumber + 1;
         for (uint8 i = 1; i < 3; i++) {
-            ICrossL2Inbox.Identifier memory movePlayId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
+            ICrossL2Inbox.Identifier memory movePlayId = ICrossL2Inbox.Identifier(address(game), blockNum, 0, 0, chainId);
             bytes memory movePlayData = abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 2, i));
             vm.mockCall({
                 callee: Predeploys.CROSS_L2_INBOX,
@@ -375,6 +376,8 @@ contract TicTacToeTest is Test {
             if (i == 2) {
                 logs = vm.getRecordedLogs();
             }
+
+            blockNum++;
         }
 
         assertEq(logs.length, 1);
