@@ -3,7 +3,8 @@ import { WagmiProvider, http, createConfig, useAccount } from 'wagmi';
 import { injected } from 'wagmi/connectors'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-import './App.css'
+import TicTacToe from './components/TicTacToe';
+
 import NewGame from './components/NewGame';
 import GameLists from './components/GameLists';
 import ConnectWallet from './components/ConnectWallet';
@@ -25,8 +26,11 @@ const App: React.FC = () => {
   const { isConnected, chainId } = useAccount()
   const { syncing } =  useGames();
   const isChainInSuperchain = chainId === supersimChainA.id || chainId === supersimChainB.id
+
   return (
     <div className="app" >
+      {
+        /*
       <header className="app-header">
         <h1>TicTacToe</h1>
         <ConnectWallet />
@@ -45,6 +49,9 @@ const App: React.FC = () => {
           )
         }
       </main>
+      */
+      }
+      <TicTacToe />
     </div>
   )
 }

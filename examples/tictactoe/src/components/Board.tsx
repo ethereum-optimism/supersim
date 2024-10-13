@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAccount } from "wagmi"
 
 import { Game, PlayerTurn } from '../types/game';
 import { useMakeMove } from '../hooks/useMakeMove';
@@ -9,11 +10,17 @@ interface BoardProps {
 }
 
 const Board: React.FC<BoardProps> = ({ game, opponentGame }) => {
+  const { chainId } = useAccount()
+  const isConnectedToChain = chainId === Number(game.lastActionId.chainId)
+
   const { makeMove, isConfirming, isPending, isSuccess, hash } = useMakeMove()
   const [hoveredSquare, setHoveredSquare] = useState<string | null>(null);
 
   const isPlayerTurn = game.turn == PlayerTurn.Player
   const isPendingTx = isPending || isConfirming
+
+  // Player can make a move on the board
+  const isInteractive = isConnectedToChain && isPlayerTurn && !isPendingTx
 
   const renderSquare = (x: number, y: number) => {
     const move = game.moves[x][y]
@@ -33,10 +40,10 @@ const Board: React.FC<BoardProps> = ({ game, opponentGame }) => {
         onMouseLeave={() => !isPendingTx && setHoveredSquare(null)}
         style={{
           ...styles.square,
-          cursor: isPlayerTurn && !isPendingTx && !move ? 'pointer' : 'default',
+          cursor: isInteractive ? 'pointer' : 'default',
           backgroundColor: isPendingTx ? '#f0f0f0' : 'white',
-          opacity: isPlayerTurn && !isPendingTx ? 1 : 0.7,
-          pointerEvents: isPlayerTurn && !isPendingTx && !move ? 'auto' : 'none',
+          opacity: isInteractive ? 1 : 0.7,
+          pointerEvents: isInteractive ? 'auto' : 'none',
         }}
       >
         <span style={{
@@ -53,15 +60,19 @@ const Board: React.FC<BoardProps> = ({ game, opponentGame }) => {
     )
   }
 
+  const turnText = isPlayerTurn ? 'Your turn!' : 'Waiting for opponent'
   return (
-    <div style={{ 
-      ...styles.boardContainer,
-      opacity: isPlayerTurn && !isPendingTx ? 1 : 0.5, 
-    }}>
-      <p style={{
-        ...styles.statusText,
-        color: isPlayerTurn ? '#FF5722' : '#2196F3',
-      }}>{isConfirming ? 'Confirming Tx...' : isPlayerTurn ? 'Your turn!' : 'Waiting for opponent'}</p>
+    <div style={{ ...styles.boardContainer, opacity: isPlayerTurn && !isPendingTx ? 1 : 0.5 }}>
+      {
+        !isConnectedToChain && (
+          <p style={{ ...styles.statusText, color: 'black' }}>
+            switch to chain {game.lastActionId.chainId} to make a move
+          </p>
+        )
+      }
+      <p style={{ ...styles.statusText, color: isPlayerTurn ? '#FF5722' : '#2196F3' }}>
+        {isConfirming ? 'Confirming Tx...' : turnText}
+      </p>
       <div style={styles.board}>
         {[0, 1, 2].map(x => (
           <div key={x} style={styles.boardRow}> 
