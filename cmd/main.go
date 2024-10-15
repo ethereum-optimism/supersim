@@ -17,16 +17,18 @@ import (
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
 
 	"github.com/joho/godotenv"
 	"github.com/urfave/cli/v2"
 )
 
 var (
-	GitCommit = ""
-	GitDate   = ""
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
 
+var (
 	envVarPrefix = "SUPERSIM"
 )
 
@@ -45,7 +47,7 @@ func main() {
 	logFlags := oplog.CLIFlags(envVarPrefix)
 
 	app := cli.NewApp()
-	app.Version = params.VersionWithCommit(GitCommit, GitDate)
+	app.Version = formatVersion()
 	app.Name = "supersim"
 	app.Usage = "Superchain Multi-L2 Simulator"
 	app.Description = "Local multichain optimism development environment"
@@ -135,4 +137,15 @@ func isTimestampGreaterOrEqual(timestamp, minTimestamp string) (bool, error) {
 	}
 
 	return !parsedTimestamp.Before(parsedMinTimestamp), nil
+}
+
+func formatVersion() string {
+	result := version
+	if commit != "none" {
+		result += fmt.Sprintf(" (%s)", commit)
+	}
+	if date != "unknown" {
+		result += fmt.Sprintf(" built at %s", date)
+	}
+	return result
 }
