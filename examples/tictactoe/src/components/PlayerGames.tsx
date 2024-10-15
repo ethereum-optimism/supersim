@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { Game, GameKey, createGameKey } from '../types/game';
 import GameCard from './GameCard';
 
 interface PlayerGamesProps {
     games: Game[]
+    selectedGameKey?: GameKey
+    setSelectedGameKey: (gameKey: GameKey) => void
 }
 
-const PlayerGames: React.FC<PlayerGamesProps> = ({ games }) => {
-  const [selectedGameKey, setSelectedGameKey] = useState<GameKey | null>(null)
+const PlayerGames: React.FC<PlayerGamesProps> = ({ games, selectedGameKey, setSelectedGameKey }) => {
+  // move unaccepted games to the end of the list
+  const acceptedGames = games.filter(game => game.opponent)
+  const unacceptedGames = games.filter(game => !game.opponent)
+  games = [...acceptedGames, ...unacceptedGames]
 
-  // TODO: By default have the first game selected
+  // Default to the first game if have a playable one available
+  if (!selectedGameKey && acceptedGames.length > 0) {
+    setSelectedGameKey(createGameKey(acceptedGames[0].chainId, acceptedGames[0].gameId, acceptedGames[0].player))
+  }
 
   return (
     <div>
@@ -22,13 +30,11 @@ const PlayerGames: React.FC<PlayerGamesProps> = ({ games }) => {
           const gameKey = createGameKey(game.chainId, game.gameId, game.player)
           const isSelected = selectedGameKey === gameKey
           return (
-            <>
-              <GameCard 
-                key={index}
-                game={game}
-                isSelected={isSelected}
-                onSelect={() => isSelected ? setSelectedGameKey(null) : setSelectedGameKey(gameKey)} />
-            </>
+            <GameCard 
+              key={index}
+              game={game}
+              isSelected={isSelected}
+              onSelect={() => setSelectedGameKey(gameKey)} />
           )
         })}
       </div>

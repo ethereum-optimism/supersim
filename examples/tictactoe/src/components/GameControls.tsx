@@ -2,6 +2,8 @@ import React from 'react';
 
 import { useNewGame } from '../hooks/useNewGame';
 import { usePlayerGames } from '../hooks/usePlayerGames';
+import { GameKey } from '../types/game';
+
 import AvailableGames from './AvailableGames';
 import PlayerGames from './PlayerGames';
 
@@ -21,7 +23,12 @@ const NewGameButton: React.FC = () => {
   )
 }
 
-const GameControls: React.FC = () => {
+interface GameControlsProps {
+  selectedGameKey?: GameKey
+  setSelectedGameKey: (gameKey: GameKey) => void
+}
+
+const GameControls: React.FC<GameControlsProps> = ({ selectedGameKey, setSelectedGameKey }) => {
   const { availableGames, playerGames } = usePlayerGames()
   return (
     <div style={styles.container}>
@@ -32,7 +39,7 @@ const GameControls: React.FC = () => {
         <div style={styles.divider}></div>
       </div>
 
-      <PlayerGames games={playerGames} />
+      <PlayerGames games={playerGames} selectedGameKey={selectedGameKey} setSelectedGameKey={setSelectedGameKey} />
     </div>
   );
 };
@@ -44,13 +51,13 @@ const styles = {
     height: '100%',
   },
   newGameButton: {
-    backgroundColor: '#FF5722',
+    backgroundColor: '#FF0420',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
     padding: '12px 20px',
-    fontSize: '16px',
-    fontWeight: 'bold',
+    fontSize: '14px',
+    fontFamily: 'Inter, sans-serif',
     cursor: 'pointer',
     marginBottom: '20px',
   },

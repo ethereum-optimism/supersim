@@ -10,11 +10,14 @@ export const usePlayerGames = () => {
     const availableGames: Game[] = []
     
     Object.values(games).forEach(game => {
-      const isGamePlayer = game.player.toLowerCase() === player!.toLowerCase()
+      if (!player) { return }
+
+      const isGamePlayer = game.player.toLowerCase() === player.toLowerCase()
       if (isGamePlayer) {
         playerGames.push(game)
       }
-      if (!isGamePlayer && game.opponent === undefined) {
+
+      if (!isGamePlayer && !game.opponent) {
         availableGames.push(game)
       }
     })

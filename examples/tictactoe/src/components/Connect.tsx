@@ -1,5 +1,5 @@
 import React from 'react';
-import TicTacToeLogo from '../assets/TicTacToeLogo';
+import TicTacToeLogo from './TicTacToeLogo';
 
 interface ConnectProps {
   onConnect: () => void;

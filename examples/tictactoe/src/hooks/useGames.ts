@@ -92,6 +92,7 @@ export const useGames = () => {
                         ...gamesInit[gameKey],
                         ...game,
                         chainId, gameId, player,
+                        status: GameStatus.Active,
                         moves: new Array(3).fill(null).map(() =>new Array(3).fill(null)),
                 }
             }
@@ -125,12 +126,14 @@ export const useGames = () => {
                     const gameId = Number(BigInt(log.args.gameId))
                     const player = log.args.player
                     const opponent = log.args.opponent
-                    addGame(chainId, gameId, player, { opponent, turn: PlayerTurn.Opponent, lastActionId, lastActionData })
+                    const opponentChainId = chainId // chain id of the creating chain
+                    addGame(chainId, gameId, player, { opponent, opponentChainId, turn: PlayerTurn.Opponent, lastActionId, lastActionData })
 
                     // update the opponent in the opponent's game
                     const opponentGameKey = createGameKey(chainId, gameId, opponent)
                     const opponentGame = gamesInit[opponentGameKey]
                     opponentGame.opponent = player
+                    opponentGame.opponentChainId = chain.id // chain id of the accepted game event
                     gamesInit[opponentGameKey] = opponentGame
                 }
             }
@@ -285,11 +288,12 @@ export const useGames = () => {
                         const lastActionId = { origin: log.address, blockNumber: log.blockNumber, logIndex: log.logIndex, timestamp: block.timestamp, chainId: chain.id }
                         const lastActionData = concat([...log.topics, log.data])
                         const opponent = log.args.opponent
-                        newGame(chainId, gameId, player, { opponent: log.args.opponent, turn: PlayerTurn.Opponent, lastActionId, lastActionData })
+                        const opponentChainId = chainId // chain id of the creator
+                        newGame(chainId, gameId, player, { opponent, opponentChainId, turn: PlayerTurn.Opponent, lastActionId, lastActionData })
 
                         // update the player in the opponent's game (New Game must have already been seen based on ordering)
                         const opponentGameKey = createGameKey(chainId, gameId, opponent)
-                        setGames(prev => ({ ...prev, [opponentGameKey]: { ...prev[opponentGameKey], opponent: player } }))
+                        setGames(prev => ({ ...prev, [opponentGameKey]: { ...prev[opponentGameKey], opponent: player, opponentChainId: chain.id } }))
                     })
                     .catch((error: any) => {
                         console.error("Error processing log. Needs to be replayed which isn't supported...", error)

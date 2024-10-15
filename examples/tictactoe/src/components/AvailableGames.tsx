@@ -21,11 +21,7 @@ const AvailableGames: React.FC<AvailableGamesProps> = ({ games  }) => {
       </div>
       {isExpanded && (
         <div style={styles.items}>
-          {games.map((game, index) => (
-            <>
-              <GameCard key={index} game={game} />
-            </>
-          ))}
+          {games.map((game, index) => ( <GameCard key={index} game={game} />))}
         </div>
       )}
     </div>

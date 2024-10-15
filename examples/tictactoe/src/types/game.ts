@@ -19,7 +19,8 @@ export interface Game {
     player: string;
 
     // Opponent is not defined until accepted
-    opponent: string | undefined;
+    opponent?: string;
+    opponentChainId?: number;
 
     moves: number[][];
     turn: PlayerTurn
