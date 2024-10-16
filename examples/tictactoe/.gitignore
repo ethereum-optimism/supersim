@@ -22,4 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# vite / ts
 .vite
+*.tsbuildinfo
