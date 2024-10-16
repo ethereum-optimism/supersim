@@ -52,6 +52,7 @@ import {
 
 // SuperERC20 is in development so we manually define the address here
 const L2_NATIVE_SUPERCHAINERC20_ADDRESS = "0x420beeF000000000000000000000000000000001";
+const SUPERCHAIN_TOKEN_BRIDGE_ADDRESS = "0x4200000000000000000000000000000000000028";
 
 // Account for 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 const account = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
@@ -98,12 +99,12 @@ await opChainAClient.waitForTransactionReceipt({ hash: mintTxHash });
 
 console.log("Initiating sendERC20 on OPChainA to OPChainB...");
 const sendERC20TxHash = await opChainAClient.writeContract({
-	address: L2_NATIVE_SUPERCHAINERC20_ADDRESS,
+	address: SUPERCHAIN_TOKEN_BRIDGE_ADDRESS,
 	abi: parseAbi([
-		"function sendERC20(address _to, uint256 _amount, uint256 _chainId)",
+		"function sendERC20(address _token, address _to, uint256 _amount, uint256 _chainId)",
 	]),
 	functionName: "sendERC20",
-	args: [account.address, 1000n, BigInt(supersimL2B.id)],
+	args: [L2_NATIVE_SUPERCHAINERC20_ADDRESS, account.address, 1000n, BigInt(supersimL2B.id)],
 });
 
 const sendERC20Receipt = await opChainAClient.waitForTransactionReceipt({ hash: sendERC20TxHash });
@@ -223,12 +224,12 @@ await opChainAClient.waitForTransactionReceipt({ hash: mintTxHash });
 
 console.log("Initiating sendERC20 on OPChainA...");
 const sendERC20TxHash = await opChainAClient.writeContract({
-	address: L2_NATIVE_SUPERCHAINERC20_ADDRESS,
+	address: SUPERCHAIN_TOKEN_BRIDGE_ADDRESS,
 	abi: parseAbi([
-		"function sendERC20(address _to, uint256 _amount, uint256 _chainId)",
+		"function sendERC20(address _token, address _to, uint256 _amount, uint256 _chainId)",
 	]),
 	functionName: "sendERC20",
-	args: [account.address, 1000n, BigInt(supersimL2B.id)],
+	args: [L2_NATIVE_SUPERCHAINERC20_ADDRESS, account.address, 1000n, BigInt(supersimL2B.id)],
 });
 
 const sendERC20Receipt = await opChainAClient.waitForTransactionReceipt({ hash: sendERC20TxHash });

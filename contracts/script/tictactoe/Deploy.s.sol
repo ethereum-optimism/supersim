@@ -9,7 +9,7 @@ contract DeployScript is Script {
 
     function run() public {
         vm.broadcast();
-        TicTacToe game = new TicTacToe{ salt: "tictactoe" }();
+        TicTacToe game = new TicTacToe{salt: "tictactoe"}();
         console.log("Deployed at: ", address(game));
     }
 }

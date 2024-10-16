@@ -11,7 +11,7 @@
   "AnchorStateRegistryProxy": "0x9883f4e327051da515a177b11d8b9b6f6a5a9cfb",
   "AnchorStateRegistryImpl": "0x995fb165763e30bd8d19dba2f7446a5a7c321b1c",
   "FaultDisputeGame": "0x0000000000000000000000000000000000000000",
-  "PermissionedDisputeGame": "0xf5ac751a94effd3383f1dd4d2235987afd18fa1a",
+  "PermissionedDisputeGame": "0x6bb6328f20179860be5ea852aeac9e6ff0f37270",
   "DelayedWETHPermissionedGameProxy": "0xf6892a113c9dd542e6d9a652a560a1f1dac33c8e",
   "DelayedWETHPermissionlessGameProxy": "0x0000000000000000000000000000000000000000"
 }
