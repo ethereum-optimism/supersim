@@ -103,8 +103,10 @@ jobs:
       - name: Build image
         uses: docker/build-push-action@v6
         with:
-          tags: optimism/supersim:dev
           platforms: ${{ matrix.platform }}
+          outputs: type=docker,supersim:dev
+          cache-from: type=gha,scope=build-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}
 
       - name: Smoke test docker image
-        run: docker run optimism/supersim:dev --help
+        run: docker run supersim:dev --help
