@@ -256,7 +256,7 @@ The sequencer and smart contracts (CrossL2Inbox) use the identifier to perform <
 </code></pre>
 <h3 id="3-initiate-the-send-transaction-on-chain-901"><a class="header" href="#3-initiate-the-send-transaction-on-chain-901">3. Initiate the send transaction on chain 901</a></h3>
 <p>Send the tokens from Chain 901 to Chain 902 using the following command:</p>
-<pre><code class="language-sh">cast send 0x420beeF000000000000000000000000000000001 "sendERC20(address _to, uint256 _amount, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000028 "sendERC20(address _token, address _to, uint256 _amount, uint256 _chainId)" 0x420beeF000000000000000000000000000000001 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
 <h3 id="4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger"><a class="header" href="#4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger">4. Get the log emitted by the <code>L2ToL2CrossDomainMessenger</code></a></h3>
 <p>The token contract calls the <a href="https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol">L2ToL2CrossDomainMessenger</a>, which emits a message (log) that can be relayed on the destination chain.</p>
@@ -322,7 +322,7 @@ contract L2ToL2CrossDomainMessenger {
 <li><code>bytes memory _sentMessage</code>: encoding of the log topics &amp; data</li>
 </ul>
 <p>Below is an example call, but make sure to replace them with the correct values you received in previous steps.</p>
-<pre><code class="language-sh">$ cast send 0x4200000000000000000000000000000000000023 \
+<pre><code class="language-sh">$ cast send 0x4200000000000000000000000000000000000023 --gas-limit 200000 \
     "relayMessage((address, uint256, uint256, uint256, uint256), bytes)" \
     "(0x4200000000000000000000000000000000000023, 4, 1, 1728507703, 901)" \
     0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f3200000000000000000000000000000000000000000000000000000000000000386000000000000000000000000420beef0000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000 \
