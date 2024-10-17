@@ -17,7 +17,8 @@ import (
 
 const blockTime = 2
 
-func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig *config.ForkCLIConfig) (config.NetworkConfig, error) {
+func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, cliConfig *config.CLIConfig) (config.NetworkConfig, error) {
+	forkConfig := cliConfig.ForkConfig
 	superchain := registry.Superchains[forkConfig.Network]
 	networkConfig := config.NetworkConfig{InteropEnabled: forkConfig.InteropEnabled}
 
@@ -54,6 +55,7 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 		Name:          forkConfig.Network,
 		ChainID:       superchain.Config.L1.ChainID,
 		SecretsConfig: config.DefaultSecretsConfig,
+		LogsDirectory: cliConfig.LogsDirectory,
 		ForkConfig: &config.ForkConfig{
 			RPCUrl:      l1RpcUrl,
 			BlockNumber: l1Header.Number.Uint64(),
@@ -95,6 +97,7 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, forkConfig
 			Name:          chainCfg.Chain,
 			ChainID:       chainCfg.ChainID,
 			SecretsConfig: config.DefaultSecretsConfig,
+			LogsDirectory: cliConfig.LogsDirectory,
 			ForkConfig: &config.ForkConfig{
 				RPCUrl:      l2RpcUrl,
 				BlockNumber: l2ForkHeight,
