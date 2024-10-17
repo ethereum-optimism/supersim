@@ -40,7 +40,7 @@ jobs:
         run: |
           just test-contracts
         id: test
-  
+
   go-lint:
     runs-on: ubuntu-latest
     steps:
@@ -67,7 +67,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup
         uses: ./.github/actions/setup
 
@@ -79,3 +79,23 @@ jobs:
         env:
           SUPERSIM_RPC_URL_OP: ${{ vars.SUPERSIM_RPC_URL_OP }}
           SUPERSIM_RPC_URL_BASE: ${{ vars.SUPERSIM_RPC_URL_BASE }}
+
+  docker-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build docker image
+        run: docker build --tag supersim:dev --platform ${{ matrix.platform }} .
+
+      - name: Smoke test docker image
+        run: docker run supersim:dev --help
