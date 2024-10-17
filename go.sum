@@ -97,8 +97,8 @@ github.com/ethereum-optimism/go-ethereum-hdwallet v0.1.3 h1:RWHKLhCrQThMfch+QJ1Z
 github.com/ethereum-optimism/go-ethereum-hdwallet v0.1.3/go.mod h1:QziizLAiF0KqyLdNJYD7O5cpDlaFMNZzlxYNcWsJUxs=
 github.com/ethereum-optimism/op-geth v1.101411.0-rc.1 h1:xRheNbOM+Js9a+dqVt5LmBqQK8L5IyHKU8FfI4Cy9qw=
 github.com/ethereum-optimism/op-geth v1.101411.0-rc.1/go.mod h1:7S4pp8KHBmEmKkRjL1BPOc6jY9hW+64YeMUjR3RVLw4=
-github.com/ethereum-optimism/optimism v1.9.4-0.20241016180232-3f65402acca0 h1:Yof8WmPC4iC0gH0BeTYxu3GVc0SXXHWXXpDevbR6/Ts=
-github.com/ethereum-optimism/optimism v1.9.4-0.20241016180232-3f65402acca0/go.mod h1:Xghe72cmK8ehQipbTp2TZSaiaKNIFKz2LWxKccAu5bg=
+github.com/ethereum-optimism/optimism v1.9.4-0.20241017231226-27c12a132d32 h1:0aL9mA2eP6HTUtGkATxJ+I4cELWp2uG1hALwRPAWvqg=
+github.com/ethereum-optimism/optimism v1.9.4-0.20241017231226-27c12a132d32/go.mod h1:Xghe72cmK8ehQipbTp2TZSaiaKNIFKz2LWxKccAu5bg=
 github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20241002103526-9083af857790 h1:yZlEBCdD0izqzTvmhET1roNSzMfXL50DhL+dALYlnXk=
 github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20241002103526-9083af857790/go.mod h1:XaVXL9jg8BcyOeugECgIUGa9Y3DjYJj71RHmb5qon6M=
 github.com/ethereum/c-kzg-4844 v1.0.0 h1:0X1LBXxaEtYD9xsyj9B9ctQEZIpnvVDeoBx8aHEwTNA=

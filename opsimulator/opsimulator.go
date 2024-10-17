@@ -35,7 +35,6 @@ import (
 const (
 	host                        = "127.0.0.1"
 	l2NativeSuperchainERC20Addr = "0x420beeF000000000000000000000000000000001"
-	superchainTokenBridgeAddr   = "0x4200000000000000000000000000000000000028"
 )
 
 type OpSimulator struct {
@@ -203,7 +202,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 
 	// Log SuperchainTokenBridge events
 	opSim.bgTasks.Go(func() error {
-		superchainTokenBridge, err := bindings.NewSuperchainTokenBridge(common.HexToAddress(superchainTokenBridgeAddr), opSim.Chain.EthClient())
+		superchainTokenBridge, err := bindings.NewSuperchainTokenBridge(predeploys.SuperchainTokenBridgeAddr, opSim.Chain.EthClient())
 		if err != nil {
 			return fmt.Errorf("failed to create SuperchainTokenBridge contract: %w", err)
 		}
