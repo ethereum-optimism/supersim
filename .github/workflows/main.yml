@@ -107,4 +107,4 @@ jobs:
           platforms: ${{ matrix.platform }}
 
       - name: Smoke test docker image
-        run: docker run supersim:dev --help
+        run: docker run optimism/supersim:dev --help
