@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import { Predeploys } from "@contracts-bedrock/libraries/Predeploys.sol";
-import { ICrossL2Inbox } from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
+import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
+import {ICrossL2Inbox} from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
 
 /// @notice Thrown when cross l2 origin is not the TicTacToe contract
 error IdOriginNotTicTacToe();
@@ -59,22 +59,20 @@ contract TicTacToe {
     struct Game {
         address player;
         address opponent;
-
         // `1` for the player's moves, `2` opposing.
         uint8[3][3] moves;
         uint8 movesLeft;
-
         ICrossL2Inbox.Identifier lastOpponentId;
     }
 
     /// @notice A game is identifed from the (chainId, gameId) tuple from the chain it was initiated on
     ///         Since players on the same chain can play each other, we need to subspace by address as well.
-    mapping(uint256 => mapping(uint256 =>  mapping(address => Game))) games;
+    mapping(uint256 => mapping(uint256 => mapping(address => Game))) games;
 
     /// @notice Emitted when broadcasting a new game invitation. Anyone is allowed to accept
     event NewGame(uint256 chainId, uint256 gameId, address player);
 
-    /// @notice Emitted when a player accepts an opponent's game 
+    /// @notice Emitted when a player accepts an opponent's game
     event AcceptedGame(uint256 chainId, uint256 gameId, address opponent, address player);
 
     /// @notice Emitted when a player makes a move in a game
@@ -102,7 +100,7 @@ contract TicTacToe {
         bytes32 selector = abi.decode(_newGameData[:32], (bytes32));
         if (selector != NewGame.selector) revert DataNotNewGame();
 
-        (uint256 chainId, uint256 gameId, address opponent) = abi.decode(_newGameData[32:], (uint256, uint256, address)); 
+        (uint256 chainId, uint256 gameId, address opponent) = abi.decode(_newGameData[32:], (uint256, uint256, address));
         if (opponent == msg.sender) revert SenderIsOpponent();
 
         // Record Game Metadata (no moves)
@@ -116,7 +114,12 @@ contract TicTacToe {
     }
 
     /// @notice Start a game accepted by an opponent with a starting move
-    function startGame(ICrossL2Inbox.Identifier calldata _acceptedGameId, bytes calldata _acceptedGameData, uint8 _x, uint8 _y) external {
+    function startGame(
+        ICrossL2Inbox.Identifier calldata _acceptedGameId,
+        bytes calldata _acceptedGameData,
+        uint8 _x,
+        uint8 _y
+    ) external {
         // Validate Cross Chain Log
         if (_acceptedGameId.origin != address(this)) revert IdOriginNotTicTacToe();
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_acceptedGameId, keccak256(_acceptedGameData));
@@ -126,7 +129,7 @@ contract TicTacToe {
         if (selector != AcceptedGame.selector) revert DataNotAcceptedGame();
 
         (uint256 chainId, uint256 gameId, address player, address opponent) = // player, opponent swapped in local view
-            abi.decode(_acceptedGameData[32:], (uint256,uint256,address,address));
+         abi.decode(_acceptedGameData[32:], (uint256, uint256, address, address));
 
         // The accepted game was started from this chain, from the sender
         if (chainId != block.chainid) revert GameChainMismatch();
@@ -150,7 +153,12 @@ contract TicTacToe {
     }
 
     /// @notice Make a move for a game.
-    function makeMove(ICrossL2Inbox.Identifier calldata _movePlayedId, bytes calldata _movePlayedData, uint8 _x, uint8 _y) external {
+    function makeMove(
+        ICrossL2Inbox.Identifier calldata _movePlayedId,
+        bytes calldata _movePlayedData,
+        uint8 _x,
+        uint8 _y
+    ) external {
         // Validate Cross Chain Log
         if (_movePlayedId.origin != address(this)) revert IdOriginNotTicTacToe();
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_movePlayedId, keccak256(_movePlayedData));
@@ -160,7 +168,7 @@ contract TicTacToe {
         if (selector != MovePlayed.selector) revert DataNotMovePlayed();
 
         (uint256 chainId, uint256 gameId,, uint8 oppX, uint8 oppY) =
-            abi.decode(_movePlayedData[32:], (uint256,uint256,address,uint8,uint8));
+            abi.decode(_movePlayedData[32:], (uint256, uint256, address, uint8, uint8));
 
         // Game was instantiated for this player
         Game storage game = games[chainId][gameId][msg.sender];
@@ -186,11 +194,9 @@ contract TicTacToe {
 
         if (_isGameWon(game)) {
             emit GameWon(chainId, gameId, game.player, _x, _y);
-        }
-        else if (game.movesLeft == 0) {
+        } else if (game.movesLeft == 0) {
             emit GameDraw(chainId, gameId, game.player, _x, _y);
-        }
-        else {
+        } else {
             emit MovePlayed(chainId, gameId, game.player, _x, _y);
         }
     }
@@ -203,33 +209,25 @@ contract TicTacToe {
     function _isGameWon(Game memory _game) internal view returns (bool) {
         // Check for a row/col win
         for (uint8 i = 0; i < 3; i++) {
-            uint8 rowSum =
-                (_game.moves[i][0] * MAGIC_SQUARE[i][0]) +
-                (_game.moves[i][1] * MAGIC_SQUARE[i][1]) +
-                (_game.moves[i][2] * MAGIC_SQUARE[i][2]);
+            uint8 rowSum = (_game.moves[i][0] * MAGIC_SQUARE[i][0]) + (_game.moves[i][1] * MAGIC_SQUARE[i][1])
+                + (_game.moves[i][2] * MAGIC_SQUARE[i][2]);
 
             if (rowSum == MAGIC_SUM) return true;
 
-            uint8 colSum =
-                (_game.moves[0][i] * MAGIC_SQUARE[0][i]) +
-                (_game.moves[1][i] * MAGIC_SQUARE[1][i]) +
-                (_game.moves[2][i] * MAGIC_SQUARE[2][i]);
+            uint8 colSum = (_game.moves[0][i] * MAGIC_SQUARE[0][i]) + (_game.moves[1][i] * MAGIC_SQUARE[1][i])
+                + (_game.moves[2][i] * MAGIC_SQUARE[2][i]);
 
             if (colSum == MAGIC_SUM) return true;
         }
 
         // Check for a diag win
-        uint8 leftToRightDiagSum =
-            (_game.moves[0][0] * MAGIC_SQUARE[0][0]) +
-            (_game.moves[1][1] * MAGIC_SQUARE[1][1]) +
-            (_game.moves[2][2] * MAGIC_SQUARE[2][2]);
+        uint8 leftToRightDiagSum = (_game.moves[0][0] * MAGIC_SQUARE[0][0]) + (_game.moves[1][1] * MAGIC_SQUARE[1][1])
+            + (_game.moves[2][2] * MAGIC_SQUARE[2][2]);
 
         if (leftToRightDiagSum == MAGIC_SUM) return true;
 
-        uint8 rightToLeftDiagSum =
-            (_game.moves[0][2] * MAGIC_SQUARE[0][2]) +
-            (_game.moves[1][1] * MAGIC_SQUARE[1][1]) +
-            (_game.moves[2][0] * MAGIC_SQUARE[2][0]);
+        uint8 rightToLeftDiagSum = (_game.moves[0][2] * MAGIC_SQUARE[0][2]) + (_game.moves[1][1] * MAGIC_SQUARE[1][1])
+            + (_game.moves[2][0] * MAGIC_SQUARE[2][0]);
 
         if (rightToLeftDiagSum == MAGIC_SUM) return true;
 

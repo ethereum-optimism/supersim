@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import { Test } from "forge-std/Test.sol";
-import { Vm } from "forge-std/Vm.sol";
+import {Test} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 
-import { Predeploys } from "@contracts-bedrock/libraries/Predeploys.sol";
-import { ICrossL2Inbox } from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
+import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
+import {ICrossL2Inbox} from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
 
-import { TicTacToe } from "../../src/tictactoe/TicTacToe.sol";
-import { 
+import {TicTacToe} from "../../src/tictactoe/TicTacToe.sol";
+import {
     IdOriginNotTicTacToe,
     DataNotNewGame,
     DataNotAcceptedGame,
@@ -87,7 +87,8 @@ contract TicTacToeTest is Test {
 
         // Use an invalid selector. This couldn't occur due CrossL2Inbox invalidation but we test for it anyways
         ICrossL2Inbox.Identifier memory newGameId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
-        bytes memory newGameData = abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, opponent));
+        bytes memory newGameData =
+            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, opponent));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, newGameId, newGameData),
@@ -98,7 +99,9 @@ contract TicTacToeTest is Test {
         game.acceptGame(newGameId, newGameData);
     }
 
-    function testFuzz_startGame_succeeds(uint256 oppChainId, uint256 gameId, address opponent, uint8 x, uint8 y) public {
+    function testFuzz_startGame_succeeds(uint256 oppChainId, uint256 gameId, address opponent, uint8 x, uint8 y)
+        public
+    {
         TicTacToe game = new TicTacToe();
         vm.assume(x < 3 && y < 3);
 
@@ -109,7 +112,8 @@ contract TicTacToeTest is Test {
 
         // player is the opponent in the AcceptedGame event
         ICrossL2Inbox.Identifier memory acceptGameId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, oppChainId);
-        bytes memory acceptGameData = abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
+        bytes memory acceptGameData =
+            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, acceptGameId, acceptGameData),
@@ -145,7 +149,8 @@ contract TicTacToeTest is Test {
 
         // Use an invalid origin. This couldn't occur due CrossL2Inbox invalidation but we test for it anyways
         ICrossL2Inbox.Identifier memory acceptGameId = ICrossL2Inbox.Identifier(address(this), 0, 0, 0, chainId);
-        bytes memory acceptGameData = abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, opponent));
+        bytes memory acceptGameData =
+            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, opponent));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, acceptGameId, acceptGameData),
@@ -162,7 +167,8 @@ contract TicTacToeTest is Test {
 
         // Use an invalid selector. This couldn't occur due CrossL2Inbox invalidation but we test for it anyways
         ICrossL2Inbox.Identifier memory acceptGameId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
-        bytes memory acceptGameData = abi.encodePacked(TicTacToe.NewGame.selector, abi.encode(chainId, gameId, opponent));
+        bytes memory acceptGameData =
+            abi.encodePacked(TicTacToe.NewGame.selector, abi.encode(chainId, gameId, opponent));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, acceptGameId, acceptGameData),
@@ -173,14 +179,21 @@ contract TicTacToeTest is Test {
         game.startGame(acceptGameId, acceptGameData, x, y);
     }
 
-    function testFuzz_startGame_differentChain_reverts(uint256 oppChainId, uint256 gameId, address opponent, uint8 x, uint8 y) public {
+    function testFuzz_startGame_differentChain_reverts(
+        uint256 oppChainId,
+        uint256 gameId,
+        address opponent,
+        uint8 x,
+        uint8 y
+    ) public {
         TicTacToe game = new TicTacToe();
         address player = address(this);
 
         // An accepted game that was started on oppChainId and not block.chainId
         vm.assume(oppChainId != block.chainid);
         ICrossL2Inbox.Identifier memory acceptGameId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, oppChainId);
-        bytes memory acceptGameData = abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(oppChainId, gameId, opponent, player));
+        bytes memory acceptGameData =
+            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(oppChainId, gameId, opponent, player));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, acceptGameId, acceptGameData),
@@ -199,7 +212,8 @@ contract TicTacToeTest is Test {
         address player = address(game);
 
         ICrossL2Inbox.Identifier memory acceptGameId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
-        bytes memory acceptGameData = abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, opponent, player));
+        bytes memory acceptGameData =
+            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, opponent, player));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, acceptGameId, acceptGameData),
@@ -219,7 +233,8 @@ contract TicTacToeTest is Test {
 
         // player is the opponent in the AcceptedGame event
         ICrossL2Inbox.Identifier memory acceptGameId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
-        bytes memory acceptGameData = abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
+        bytes memory acceptGameData =
+            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, acceptGameId, acceptGameData),
@@ -239,7 +254,8 @@ contract TicTacToeTest is Test {
 
         // Start a game from the local chain
         ICrossL2Inbox.Identifier memory acceptGameId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
-        bytes memory acceptGameData = abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
+        bytes memory acceptGameData =
+            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, acceptGameId, acceptGameData),
@@ -249,7 +265,8 @@ contract TicTacToeTest is Test {
 
         // Play a move after the opponent
         ICrossL2Inbox.Identifier memory movePlayId = ICrossL2Inbox.Identifier(address(game), 1, 0, 0, chainId);
-        bytes memory movePlayData = abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 1, 1));
+        bytes memory movePlayData =
+            abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 1, 1));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, movePlayId, movePlayData),
@@ -257,7 +274,7 @@ contract TicTacToeTest is Test {
         });
 
         vm.recordLogs();
-        game.makeMove(movePlayId, movePlayData, 2,2);
+        game.makeMove(movePlayId, movePlayData, 2, 2);
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
         TicTacToe.Game memory state = game.gameState(chainId, gameId, player);
@@ -277,7 +294,8 @@ contract TicTacToeTest is Test {
 
         // Game was never started or accepted
         ICrossL2Inbox.Identifier memory movePlayId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
-        bytes memory movePlayData = abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 1, 1));
+        bytes memory movePlayData =
+            abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 1, 1));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, movePlayId, movePlayData),
@@ -294,7 +312,8 @@ contract TicTacToeTest is Test {
         address player = address(this);
 
         ICrossL2Inbox.Identifier memory acceptGameId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
-        bytes memory acceptGameData = abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
+        bytes memory acceptGameData =
+            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, acceptGameId, acceptGameData),
@@ -304,7 +323,8 @@ contract TicTacToeTest is Test {
         game.startGame(acceptGameId, acceptGameData, 0, 0);
 
         ICrossL2Inbox.Identifier memory movePlayId = ICrossL2Inbox.Identifier(address(game), 1, 0, 0, chainId);
-        bytes memory movePlayData = abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 1, 1));
+        bytes memory movePlayData =
+            abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 1, 1));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, movePlayId, movePlayData),
@@ -321,7 +341,8 @@ contract TicTacToeTest is Test {
         address player = address(this);
 
         ICrossL2Inbox.Identifier memory acceptGameId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
-        bytes memory acceptGameData = abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
+        bytes memory acceptGameData =
+            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, acceptGameId, acceptGameData),
@@ -331,7 +352,8 @@ contract TicTacToeTest is Test {
         game.startGame(acceptGameId, acceptGameData, 0, 0);
 
         ICrossL2Inbox.Identifier memory movePlayId = ICrossL2Inbox.Identifier(address(game), 1, 0, 0, chainId);
-        bytes memory movePlayData = abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 1, 1));
+        bytes memory movePlayData =
+            abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 1, 1));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, movePlayId, movePlayData),
@@ -349,7 +371,8 @@ contract TicTacToeTest is Test {
         address player = address(this);
 
         ICrossL2Inbox.Identifier memory acceptGameId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
-        bytes memory acceptGameData = abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
+        bytes memory acceptGameData =
+            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, acceptGameId, acceptGameData),
@@ -361,8 +384,10 @@ contract TicTacToeTest is Test {
         Vm.Log[] memory logs;
         uint256 blockNum = acceptGameId.blockNumber + 1;
         for (uint8 i = 1; i < 3; i++) {
-            ICrossL2Inbox.Identifier memory movePlayId = ICrossL2Inbox.Identifier(address(game), blockNum, 0, 0, chainId);
-            bytes memory movePlayData = abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 2, i));
+            ICrossL2Inbox.Identifier memory movePlayId =
+                ICrossL2Inbox.Identifier(address(game), blockNum, 0, 0, chainId);
+            bytes memory movePlayData =
+                abi.encodePacked(TicTacToe.MovePlayed.selector, abi.encode(chainId, gameId, opponent, 2, i));
             vm.mockCall({
                 callee: Predeploys.CROSS_L2_INBOX,
                 data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, movePlayId, movePlayData),
