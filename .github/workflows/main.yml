@@ -94,8 +94,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build docker image
-        run: docker build --tag supersim:dev --platform ${{ matrix.platform }} .
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          tags: optimism/supersim:dev
+          platform: ${{ matrix.platform }}
 
       - name: Smoke test docker image
         run: docker run supersim:dev --help
