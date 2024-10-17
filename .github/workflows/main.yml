@@ -104,7 +104,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           platforms: ${{ matrix.platform }}
-          outputs: type=docker,supersim:dev
+          outputs: type=docker,optimism/supersim:dev
           cache-from: type=gha,scope=build-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}
 
