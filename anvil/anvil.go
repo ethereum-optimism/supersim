@@ -135,6 +135,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 		logFile = tempLogFile
 		// Clean up the temp log file
+		// TODO (https://github.com/ethereum-optimism/supersim/issues/205) This results in the temp file being deleted right away instead of after shutdown.
 		defer a.removeFile(logFile)
 	} else {
 		// Expand the path to the log file
