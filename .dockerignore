@@ -1,0 +1,13 @@
+# Git metafiles
+.git*
+
+# Editor metafiles
+.vscode
+
+# Docker metafiles
+Dockerfile
+
+# Project metafiles
+docs
+examples
+README.md
