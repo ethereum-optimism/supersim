@@ -104,7 +104,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           tags: optimism/supersim:dev
-          platform: ${{ matrix.platform }}
+          platforms: ${{ matrix.platform }}
 
       - name: Smoke test docker image
         run: docker run supersim:dev --help
