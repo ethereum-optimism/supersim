@@ -4,12 +4,12 @@ go 1.22.3
 
 require (
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/ethereum-optimism/optimism v1.9.4-0.20241007190022-6d874d5f543a
+	github.com/ethereum-optimism/optimism v1.9.4-0.20241017231226-27c12a132d32
 	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20241002103526-9083af857790
 	github.com/ethereum/go-ethereum v1.14.11
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.9.0
-	github.com/urfave/cli/v2 v2.27.4
+	github.com/urfave/cli/v2 v2.27.5
 )
 
 require (
@@ -33,7 +33,7 @@ require (
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/consensys/bavard v0.1.13 // indirect
 	github.com/consensys/gnark-crypto v0.12.1 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/crate-crypto/go-ipa v0.0.0-20240223125850-b1e8a79f509c // indirect
 	github.com/crate-crypto/go-kzg-4844 v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -58,7 +58,7 @@ require (
 	github.com/holiman/uint256 v1.3.1 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

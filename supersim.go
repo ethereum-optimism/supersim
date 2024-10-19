@@ -32,7 +32,7 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 		log.Info("generating fork configuration", "superchain", superchain.Superchain)
 
 		var err error
-		networkConfig, err = orchestrator.NetworkConfigFromForkCLIConfig(log, envPrefix, cliConfig.ForkConfig)
+		networkConfig, err = orchestrator.NetworkConfigFromForkCLIConfig(log, envPrefix, cliConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to construct fork configuration: %w", err)
 		}

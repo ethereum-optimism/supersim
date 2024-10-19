@@ -2,6 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+evm_version = "cancun"
 
 fs_permissions = [
   { access='read-write', path='../generated' },

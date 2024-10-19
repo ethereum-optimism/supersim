@@ -30,6 +30,7 @@ var interopPredeploys = []common.Address{
 	predeploys.L1BlockAddr,
 	predeploys.SuperchainWETHAddr,
 	predeploys.ETHLiquidityAddr,
+	predeploys.SuperchainTokenBridgeAddr,
 }
 
 type predeploy struct {

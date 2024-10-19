@@ -5,9 +5,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/deployer/pipeline"
-	"github.com/ethereum-optimism/optimism/op-chain-ops/deployer/state"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/foundry"
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/pipeline"
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
@@ -43,7 +43,11 @@ func worldgenMain(ctx *cli.Context) error {
 		logger.Info("monorepo artifacts download progress", "current", curr, "total", total)
 	}
 
-	monorepoArtifactsFS, monorepoArtifactsCleanup, err := pipeline.DownloadArtifacts(ctx.Context, (*state.ArtifactsURL)(cliConfig.MonorepoArtifactsURL), monorepoProgressor)
+	locator := &opcm.ArtifactsLocator{
+		URL: cliConfig.MonorepoArtifactsURL,
+	}
+
+	monorepoArtifactsFS, monorepoArtifactsCleanup, err := pipeline.DownloadArtifacts(ctx.Context, (*opcm.ArtifactsLocator)(locator), monorepoProgressor)
 	if err != nil {
 		return fmt.Errorf("failed to download monorepo artifacts: %w", err)
 	}
@@ -58,7 +62,11 @@ func worldgenMain(ctx *cli.Context) error {
 		logger.Info("monorepo artifacts download progress", "current", curr, "total", total)
 	}
 
-	peripheryArtifactsFS, peripheryArtifactsCleanup, err := pipeline.DownloadArtifacts(ctx.Context, (*state.ArtifactsURL)(cliConfig.PeripheryArtifactsURL), peripheryProgressor)
+	peripheryLocator := &opcm.ArtifactsLocator{
+		URL: cliConfig.PeripheryArtifactsURL,
+	}
+
+	peripheryArtifactsFS, peripheryArtifactsCleanup, err := pipeline.DownloadArtifacts(ctx.Context, (*opcm.ArtifactsLocator)(peripheryLocator), peripheryProgressor)
 	if err != nil {
 		return fmt.Errorf("failed to download periphery artifacts: %w", err)
 	}
