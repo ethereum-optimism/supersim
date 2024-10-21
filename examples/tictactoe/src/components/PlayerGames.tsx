@@ -20,12 +20,12 @@ const PlayerGames: React.FC<PlayerGamesProps> = ({ games, selectedGameKey, setSe
       <div style={styles.header}>
         <h3 style={styles.title}>My Games</h3>
       </div>
-      <div>
+      <div style={styles.gamesContainer}>
         {games.map((game, index) => {
           const gameKey = createGameKey(game.chainId, game.gameId, game.player)
           const isSelected = selectedGameKey === gameKey
           return (
-            <GameCard 
+            <GameCard
               key={index}
               game={game}
               isSelected={isSelected}
@@ -43,11 +43,13 @@ const styles = {
     marginBottom: '10px',
   },
   title: {
-    fontSize: '18px',
-    fontWeight: 'bold',
+    fontSize: '14px',
     marginBottom: '0px',
     display: 'flex',
     alignItems: 'center',
+  },
+  gamesContainer: {
+    overflowY: 'auto' as const,
   },
   dividerContainer: {
     margin: '5px -25px', // Negative margin to extend beyond padding

@@ -13,8 +13,8 @@ const AvailableGames: React.FC<AvailableGamesProps> = ({ games  }) => {
   const count = games.length
   return (
     <div>
-      <div 
-        style={styles.header} 
+      <div
+        style={styles.header}
         onClick={() => setIsExpanded(!isExpanded)}>
         <h3 style={styles.title}>Available Games <span style={styles.gamesCount}>{count}</span></h3>
         <span style={styles.dropdownIcon}>{isExpanded ? '▼' : '▶'}</span>
@@ -36,7 +36,7 @@ const styles = {
     marginBottom: '-5px',
   },
   title: {
-    fontSize: '18px',
+    fontSize: '14px',
     fontWeight: 'bold',
     display: 'flex',
     alignItems: 'center',
