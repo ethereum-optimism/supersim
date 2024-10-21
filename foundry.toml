@@ -1,12 +1,12 @@
 [profile.default]
-src = "src"
-out = "out"
-libs = ["lib"]
+src = "contracts/src"
+test = "contracts/test"
+script = "contracts/script"
+out = "contracts/out"
+libs = ["lib", "contracts/lib"]
 evm_version = "cancun"
 
-fs_permissions = [
-  { access='read-write', path='../generated' },
-]
+fs_permissions = []
 
 remappings = [
   "@contracts-bedrock/=lib/optimism/packages/contracts-bedrock/src/",
