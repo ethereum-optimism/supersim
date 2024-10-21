@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=../schema.json
+chainId: 900
+displayName: L1
+domainId: 900
+isTestnet: true
+name: l1
+nativeToken:
+  decimals: 18
+  name: Ether
+  symbol: ETH
+protocol: ethereum
+rpcUrls:
+  - http: http://localhost:8545
