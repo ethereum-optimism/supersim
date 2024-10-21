@@ -26,8 +26,6 @@ go.work.sum
 
 .DS_Store
 
-# vendored packages
-lib
 
 /main
 dist/
