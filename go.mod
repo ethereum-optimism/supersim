@@ -4,7 +4,7 @@ go 1.22.3
 
 require (
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/ethereum-optimism/optimism v1.9.4-0.20241017231226-27c12a132d32
+	github.com/ethereum-optimism/optimism v1.9.5-0.20241021150032-1e59d08322f8
 	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20241002103526-9083af857790
 	github.com/ethereum/go-ethereum v1.14.11
 	github.com/joho/godotenv v1.5.1
@@ -71,7 +71,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_golang v1.20.4 // indirect
+	github.com/prometheus/client_golang v1.20.5 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect

@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/tasks"
 	"github.com/ethereum-optimism/supersim/bindings"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -73,6 +72,18 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 				return fmt.Errorf("failed to subscribe to sent message events: %w", err)
 			}
 
+			transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(destinationChainID)))
+			if err != nil {
+				r.logger.Debug("failed to create	transactor", "err", err)
+				return fmt.Errorf("failed to create transactor: %w", err)
+			}
+
+			l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, client)
+			if err != nil {
+				r.logger.Debug("failed to create transactor", "err", err)
+				return fmt.Errorf("failed to create	transactor: %w", err)
+			}
+
 			for {
 				select {
 				case <-r.tasksCtx.Done():
@@ -80,36 +91,6 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 					close(sentMessageCh)
 					return nil
 				case sentMessage := <-sentMessageCh:
-					transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(destinationChainID)))
-					if err != nil {
-						r.logger.Debug("failed to create	transactor", "err", err)
-						return fmt.Errorf("failed to create transactor: %w", err)
-					}
-
-					l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, client)
-					if err != nil {
-						r.logger.Debug("failed to create transactor", "err", err)
-						return fmt.Errorf("failed to create	transactor: %w", err)
-					}
-
-					// For some reason gas estimation does not work properly for some messages so estimating and padding gas (https://github.com/ethereum-optimism/supersim/issues/143)
-					txData, err := bindings.L2ToL2CrossDomainMessengerParsedABI.Pack("relayMessage", *sentMessage.Identifier(), sentMessage.MessagePayload())
-					if err != nil {
-						r.logger.Debug("failed to create relay message calldata", "err", err)
-						return fmt.Errorf("failed to create relay message calldata: %w", err)
-					}
-					gasEstimate, err := client.EstimateGas(r.tasksCtx, ethereum.CallMsg{
-						From: transactor.From,
-						To:   &predeploys.L2toL2CrossDomainMessengerAddr,
-						Data: txData,
-					})
-					if err != nil {
-						r.logger.Debug("failed to estimate gas for relay message tx", "err", err)
-						return fmt.Errorf("failed to estimate gas for relay message tx: %w", err)
-					}
-					// Pad gas by 33%.
-					paddedGas := (gasEstimate / 3) + gasEstimate
-					transactor.GasLimit = paddedGas
 					if _, err := l2tol2CDM.RelayMessage(transactor, *sentMessage.Identifier(), sentMessage.MessagePayload()); err != nil {
 						r.logger.Debug("failed to relay message", "err", err)
 						return fmt.Errorf("failed to relay message: %w", err)
