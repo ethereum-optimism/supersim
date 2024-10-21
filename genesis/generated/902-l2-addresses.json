@@ -9,9 +9,9 @@
   "OptimismPortalProxy": "0x35e67bc631c327b60c6a39cff6b03a8adbb19c2d",
   "DisputeGameFactoryProxy": "0x94e2e1fcbfd1099b450b2d5ac1f1701327361163",
   "AnchorStateRegistryProxy": "0x9883f4e327051da515a177b11d8b9b6f6a5a9cfb",
-  "AnchorStateRegistryImpl": "0x995fb165763e30bd8d19dba2f7446a5a7c321b1c",
+  "AnchorStateRegistryImpl": "0x973da266292b2bb1f7f6de73da2e6e084b8d24c7",
   "FaultDisputeGame": "0x0000000000000000000000000000000000000000",
-  "PermissionedDisputeGame": "0x6bb6328f20179860be5ea852aeac9e6ff0f37270",
+  "PermissionedDisputeGame": "0x50fd7ef7a82605a2f8199a7f700e5277fbefa1d8",
   "DelayedWETHPermissionedGameProxy": "0xf6892a113c9dd542e6d9a652a560a1f1dac33c8e",
   "DelayedWETHPermissionlessGameProxy": "0x0000000000000000000000000000000000000000"
 }
