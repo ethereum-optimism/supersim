@@ -391,12 +391,12 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.
 			}
 
 			sourceClient := sourceChain.EthClient()
-			identifierBlock, err := sourceClient.BlockByNumber(ctx, identifier.BlockNumber)
+			identifierBlockHeader, err := sourceClient.HeaderByNumber(ctx, identifier.BlockNumber)
 			if err != nil {
 				return fmt.Errorf("failed to fetch executing message block: %w", err)
 			}
 
-			if identifier.Timestamp.Cmp(new(big.Int).SetUint64(identifierBlock.Time())) != 0 {
+			if identifier.Timestamp.Cmp(new(big.Int).SetUint64(identifierBlockHeader.Time)) != 0 {
 				return fmt.Errorf("executing message identifier does not match block timestamp: %w", err)
 			}
 

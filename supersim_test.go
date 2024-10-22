@@ -437,14 +437,14 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	// Create a bad executing message that will throw an error using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
 	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).Sub(new(big.Int).SetUint64(initiatingMessageBlock.Time()), big.NewInt(1)),
+		Timestamp:   new(big.Int).Sub(new(big.Int).SetUint64(initiatingMessageBlockHeader.Time), big.NewInt(1)),
 		ChainId:     testSuite.SourceChainID,
 	}
 	executeMessageCallData, err := bindings.CrossL2InboxParsedABI.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
@@ -497,14 +497,14 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 
 	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
 	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
 		ChainId:     testSuite.SourceChainID,
 	}
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
@@ -551,7 +551,7 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
@@ -559,7 +559,7 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(1), // Wrong index
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
 		ChainId:     testSuite.SourceChainID,
 	}
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
@@ -603,14 +603,14 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
 	wrongBlockNumber := new(big.Int).Add(initiatingMessageTxReceipt.BlockNumber, big.NewInt(1))
-	wrongMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), wrongBlockNumber)
+	wrongMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), wrongBlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
 	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: wrongBlockNumber,
 		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(wrongMessageBlock.Time()),
+		Timestamp:   new(big.Int).SetUint64(wrongMessageBlockHeader.Time),
 		ChainId:     testSuite.SourceChainID,
 	}
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
@@ -653,14 +653,14 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
 	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time() + 1),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time + 1),
 		ChainId:     testSuite.SourceChainID,
 	}
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
@@ -703,14 +703,14 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 
 	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
 	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
 		ChainId:     testSuite.SourceChainID,
 	}
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
