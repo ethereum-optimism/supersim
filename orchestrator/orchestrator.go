@@ -115,8 +115,12 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 				if err := interop.Configure(ctx, chain); err != nil {
 					errs[i] = fmt.Errorf("failed to configure interop for chain %s: %w", chain.Config().Name, err)
 				}
+				wg.Done()
 			}(i)
 		}
+
+		wg.Wait()
+
 		if err := errors.Join(errs...); err != nil {
 			return err
 		}
