@@ -820,6 +820,9 @@ func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	sourceSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
 
+	sourceSuperchainTokenBridge, err := bindings.NewSuperchainTokenBridge(predeploys.SuperchainTokenBridgeAddr, testSuite.SourceEthClient)
+	require.NoError(t, err)
+
 	destSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
 	valueToTransfer := big.NewInt(10_000_000)
@@ -838,7 +841,7 @@ func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	_, err = sourceSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
 	require.NoError(t, err)
 
-	tx, err := sourceSuperchainWETH.SendERC20(sourceTransactor, sourceTransactor.From, valueToTransfer, testSuite.DestChainID)
+	tx, err := sourceSuperchainTokenBridge.SendERC20(sourceTransactor, predeploys.SuperchainWETHAddr, sourceTransactor.From, valueToTransfer, testSuite.DestChainID)
 	require.NoError(t, err)
 
 	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
@@ -866,6 +869,9 @@ func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	sourceSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
 
+	sourceSuperchainTokenBridge, err := bindings.NewSuperchainTokenBridge(predeploys.SuperchainTokenBridgeAddr, testSuite.SourceEthClient)
+	require.NoError(t, err)
+
 	destSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
 	valueToTransfer := big.NewInt(10_000_000)
@@ -884,7 +890,7 @@ func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	_, err = sourceSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
 	require.NoError(t, err)
 
-	tx, err := sourceSuperchainWETH.SendERC20(sourceTransactor, sourceTransactor.From, valueToTransfer, testSuite.DestChainID)
+	tx, err := sourceSuperchainTokenBridge.SendERC20(sourceTransactor, predeploys.SuperchainWETHAddr, sourceTransactor.From, valueToTransfer, testSuite.DestChainID)
 	require.NoError(t, err)
 
 	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)

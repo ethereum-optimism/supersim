@@ -24,10 +24,14 @@ clean-lib:
 
 checkout-optimism-monorepo:
     cd lib/optimism && \
+    git fetch origin $(cat ../../monorepo-commit-hash) && \
     git checkout $(cat ../../monorepo-commit-hash)
 
 install-submodules:
-    git submodule update --init --recursive --progress --depth=1
+    cd $(git rev-parse --show-toplevel)
+    git add lib/optimism
+    git submodule update --init --recursive --progress --depth=1 && \
+    git reset lib/optimism
 
 calculate-artifact-url: 
     #!/usr/bin/env bash
