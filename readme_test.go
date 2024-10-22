@@ -1,6 +1,7 @@
 package supersim
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum-optimism/supersim/testutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,14 +40,17 @@ func TestL1ToL2Deposit(t *testing.T) {
 	_, err = runCmd(bridgeCmd)
 	assert.NoError(t, err, "Failed to bridge ETH")
 
-	// Wait for a few seconds to allow the bridge transaction to be processed
-	time.Sleep(5 * time.Second)
+	// Wait for bridge transaction to be processed
+	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+		finalBalanceCmd := "cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545"
+		finalBalance, err := runCmd(finalBalanceCmd)
+		if err != nil {
+			return false, err
+		}
 
-	// Check the final balance on L2
-	finalBalanceCmd := "cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545"
-	finalBalance, err := runCmd(finalBalanceCmd)
-	assert.NoError(t, err)
-	assert.Equal(t, "10000100000000000000000", finalBalance, "Final balance check failed")
+		return finalBalance == "10000100000000000000000", nil
+	})
+	assert.NoError(t, waitErr)
 }
 
 func TestL2ToL2Transfer(t *testing.T) {
@@ -71,12 +76,15 @@ func TestL2ToL2Transfer(t *testing.T) {
 	_, err = runCmd(sendCmd)
 	assert.NoError(t, err)
 
-	// Wait for the relayed message to be processed
-	time.Sleep(2 * time.Second)
-
 	// Check the final balance on chain 902
-	finalBalanceCmd := `cast balance --erc20 0x420beeF000000000000000000000000000000001 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546`
-	finalBalance, err := runCmd(finalBalanceCmd)
-	assert.NoError(t, err)
-	assert.Equal(t, "1000", finalBalance, "Final balance check failed")
+	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+		finalBalanceCmd := `cast balance --erc20 0x420beeF000000000000000000000000000000001 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546`
+		finalBalance, err := runCmd(finalBalanceCmd)
+		if err != nil {
+			return false, err
+		}
+
+		return finalBalance == "1000", nil
+	})
+	assert.NoError(t, waitErr)
 }
