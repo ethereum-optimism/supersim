@@ -42,7 +42,7 @@ const GameControls: React.FC<GameControlsProps> = ({ selectedGameKey, setSelecte
 const styles = {
   container: {
     display: 'flex',
-    flexDirection: 'column' as 'column',
+    flexDirection: 'column' as 'const',
     height: '100%',
   },
   newGameButton: {

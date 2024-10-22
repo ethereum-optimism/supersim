@@ -10,12 +10,14 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	opbindings "github.com/ethereum-optimism/optimism/op-e2e/bindings"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
+	"github.com/ethereum-optimism/supersim/testutils"
 	"github.com/joho/godotenv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -29,6 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -142,9 +145,6 @@ func createForkedInteropTestSuite(t *testing.T, testOptions ForkInteropTestSuite
 	destChainID := new(big.Int).SetUint64(destChainCfg.ChainID)
 	sourceChainID := new(big.Int).SetUint64(srcChainCfg.ChainID)
 
-	// TODO: fix when we add a wait for ready on the opsim
-	time.Sleep(3 * time.Second)
-
 	return &InteropTestSuite{
 		t:               t,
 		Cfg:             testSuite.Cfg,
@@ -168,9 +168,6 @@ func createInteropTestSuite(t *testing.T, cliConfig config.CLIConfig) *InteropTe
 	destEthClient, _ := ethclient.Dial(destURL)
 	defer destEthClient.Close()
 
-	// TODO: fix when we add a wait for ready on the opsim
-	time.Sleep(3 * time.Second)
-
 	return &InteropTestSuite{
 		t:               t,
 		Cfg:             testSuite.Cfg,
@@ -184,6 +181,8 @@ func createInteropTestSuite(t *testing.T, cliConfig config.CLIConfig) *InteropTe
 }
 
 func TestStartup(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	l2Chains := testSuite.Supersim.Orchestrator.L2Chains()
@@ -213,6 +212,8 @@ func TestStartup(t *testing.T) {
 }
 
 func TestL1GenesisState(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	l1Client := testSuite.Supersim.Orchestrator.L1Chain().EthClient()
@@ -232,6 +233,8 @@ func TestL1GenesisState(t *testing.T) {
 }
 
 func TestGenesisState(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
 		client, err := rpc.Dial(chain.Endpoint())
@@ -251,6 +254,8 @@ func TestGenesisState(t *testing.T) {
 }
 
 func TestAccountBalances(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	for _, l2Chain := range testSuite.Supersim.Orchestrator.L2Chains() {
@@ -267,6 +272,8 @@ func TestAccountBalances(t *testing.T) {
 }
 
 func TestDepositTxSimpleEthDeposit(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	l1Chain := testSuite.Supersim.Orchestrator.L1Chain()
@@ -304,9 +311,13 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 			require.True(t, txReceipt.Status == 1, "Deposit transaction failed")
 			require.NotEmpty(t, txReceipt.Logs, "Deposit transaction failed")
 
-			// wait for the deposit to be processed
-			time.Sleep(2 * time.Second)
-			postBalance, _ := l2EthClient.BalanceAt(context.Background(), senderAddress, nil)
+			postBalance, postBalanceCheckErr := wait.ForBalanceChange(
+				context.Background(),
+				l2EthClient,
+				senderAddress,
+				prevBalance,
+			)
+			require.NoError(t, postBalanceCheckErr)
 
 			// check that balance was increased
 			require.Equal(t, oneEth, postBalance.Sub(postBalance, prevBalance), "Recipient balance is incorrect")
@@ -317,6 +328,8 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 }
 
 func TestDependencySet(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
@@ -326,9 +339,6 @@ func TestDependencySet(t *testing.T) {
 
 		l1BlockInterop, err := bindings.NewL1BlockInterop(predeploys.L1BlockAddr, l2Client)
 		require.NoError(t, err)
-
-		// TODO: fix when we add a wait for ready on the opsim
-		time.Sleep(3 * time.Second)
 
 		depSetSize, err := l1BlockInterop.DependencySetSize(&bind.CallOpts{})
 		require.NoError(t, err)
@@ -347,6 +357,8 @@ func TestDependencySet(t *testing.T) {
 }
 
 func TestDeployContractsL1WithDevAccounts(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	l1Client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.L1Chain().Endpoint())
@@ -385,6 +397,8 @@ func TestDeployContractsL1WithDevAccounts(t *testing.T) {
 }
 
 func TestBatchJsonRpcRequests(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createTestSuite(t, &config.CLIConfig{})
 
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
@@ -405,6 +419,8 @@ func TestBatchJsonRpcRequests(t *testing.T) {
 }
 
 func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	gasLimit := uint64(30000000)
 	gasPrice := big.NewInt(10000000)
@@ -437,14 +453,14 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	// Create a bad executing message that will throw an error using CrossL2Inbox
 	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
 	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).Sub(new(big.Int).SetUint64(initiatingMessageBlock.Time()), big.NewInt(1)),
+		Timestamp:   new(big.Int).Sub(new(big.Int).SetUint64(initiatingMessageBlockHeader.Time), big.NewInt(1)),
 		ChainId:     testSuite.SourceChainID,
 	}
 	executeMessageCallData, err := bindings.CrossL2InboxParsedABI.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
@@ -467,6 +483,8 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 }
 
 func TestInteropInvariantCheckSucceeds(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -497,14 +515,14 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 
 	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
 	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
 		ChainId:     testSuite.SourceChainID,
 	}
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
@@ -520,6 +538,8 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 }
 
 func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -551,7 +571,7 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
@@ -559,7 +579,7 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(1), // Wrong index
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
 		ChainId:     testSuite.SourceChainID,
 	}
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
@@ -571,6 +591,8 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 }
 
 func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -603,14 +625,14 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
 	wrongBlockNumber := new(big.Int).Add(initiatingMessageTxReceipt.BlockNumber, big.NewInt(1))
-	wrongMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), wrongBlockNumber)
+	wrongMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), wrongBlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
 	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: wrongBlockNumber,
 		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(wrongMessageBlock.Time()),
+		Timestamp:   new(big.Int).SetUint64(wrongMessageBlockHeader.Time),
 		ChainId:     testSuite.SourceChainID,
 	}
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
@@ -622,6 +644,8 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 }
 
 func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -653,14 +677,14 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
 	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time() + 1),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time + 1),
 		ChainId:     testSuite.SourceChainID,
 	}
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
@@ -672,6 +696,8 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 }
 
 func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createForkedInteropTestSuite(t, ForkInteropTestSuiteOptions{interopAutoRelay: false})
 
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
@@ -703,14 +729,14 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 
 	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
-	initiatingMessageBlock, err := testSuite.SourceEthClient.BlockByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
 	identifier := bindings.ICrossL2InboxIdentifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlock.Time()),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
 		ChainId:     testSuite.SourceChainID,
 	}
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
@@ -726,6 +752,8 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 }
 
 func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -767,21 +795,21 @@ func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
-	time.Sleep(time.Second * 2)
+	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+		newVal, err := simpleStorage.Get(&bind.CallOpts{}, key)
+		require.NoError(t, err)
+		if err != nil {
+			return false, err
+		}
 
-	// progress forward one block before sending tx
-	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
-	require.NoError(t, err)
-	err = testSuite.SourceEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
-	require.NoError(t, err)
-
-	// message should have been auto-relayed by now
-	newVal, err := simpleStorage.Get(&bind.CallOpts{}, key)
-	require.NoError(t, err)
-	require.Equal(t, val, common.Hash(newVal), "SimpleStorage value is incorrect")
+		return newVal == common.Hash(newVal), nil
+	})
+	assert.NoError(t, waitErr)
 }
 
 func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
+	t.Parallel()
+
 	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -817,12 +845,13 @@ func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
-	time.Sleep(time.Second * 4)
-
-	destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
-	require.NoError(t, err)
-	diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
-	require.Equal(t, valueToTransfer, diff)
+	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+		destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+		require.NoError(t, err)
+		diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
+		return diff.Cmp(valueToTransfer) == 0, nil
+	})
+	assert.NoError(t, waitErr)
 }
 
 func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
@@ -862,10 +891,11 @@ func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
-	time.Sleep(time.Second * 4)
-
-	destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
-	require.NoError(t, err)
-	diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
-	require.Equal(t, valueToTransfer, diff)
+	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+		destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+		require.NoError(t, err)
+		diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
+		return diff.Cmp(valueToTransfer) == 0, nil
+	})
+	assert.NoError(t, waitErr)
 }
