@@ -26,11 +26,11 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     height: '100vh',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F2F3F8',
   },
   content: {
     display: 'flex',
-    flexDirection: 'column' as 'column',
+    flexDirection: 'column' as const,
     alignItems: 'center',
     padding: '40px',
     backgroundColor: 'white',
@@ -48,7 +48,7 @@ const styles = {
     margin: '10px 0 30px',
   },
   button: {
-    backgroundColor: '#FF5722',
+    backgroundColor: '#FF0420',
     color: 'white',
     border: 'none',
     borderRadius: '8px',

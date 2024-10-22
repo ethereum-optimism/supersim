@@ -78,11 +78,11 @@ const styles = {
   },
   container: {
     display: 'flex',
-    boxSizing: 'border-box' as 'border-box',
+    boxSizing: 'border-box' as const,
     width: '100%',
     height: '100%',
     padding: '30px 5% 60px',
-    flexDirection: 'column' as 'column',
+    flexDirection: 'column' as const,
   },
   header: {
     display: 'flex',
@@ -93,7 +93,7 @@ const styles = {
   },
   main: {
     display: 'flex',
-    boxSizing: 'border-box' as 'border-box',
+    boxSizing: 'border-box' as const,
     gap: '25px',
     flex: 1,
     paddingTop: '20px',
@@ -105,7 +105,8 @@ const styles = {
     padding: '25px',
     borderRadius: '20px',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    overflowY: 'auto' as 'auto',
+    overflowY: 'auto' as const,
+    minWidth: '175px',
   },
   rightContainer: {
     flex: 4,
@@ -113,11 +114,12 @@ const styles = {
     padding: '20px',
     borderRadius: '20px',
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-    overflowY: 'auto' as 'auto',
+    overflowY: 'auto' as const,
+    minWidth: '470px',
   },
   logo: {
     fontSize: '24px',
-    fontWeight: 'bold' as 'bold',
+    fontWeight: 'bold' as const,
     display: 'flex',
     alignItems: 'center',
   },
@@ -126,7 +128,7 @@ const styles = {
   },
   chainInfo: {
     display: 'flex',
-    flexDirection: 'column' as 'column',
+    flexDirection: 'column' as const,
     alignItems: 'flex-end',
   },
   disconnectButton: {
