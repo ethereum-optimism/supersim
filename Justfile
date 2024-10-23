@@ -19,6 +19,9 @@ test-go:
 start:
     go run ./...
 
+install-abigen:
+  go install github.com/ethereum/go-ethereum/cmd/abigen@$(jq -r .abigen < versions.json)
+
 force-install-monorepo-version:
     cd contracts/lib/optimism && \
     forge install ethereum-optimism/optimism@$(cat ../../../monorepo-commit-hash) --no-commit
@@ -29,7 +32,7 @@ calculate-artifact-url:
     checksum=$(bash scripts/ops/calculate-checksum.sh) && \
     echo "https://storage.googleapis.com/oplabs-contract-artifacts/artifacts-v1-$checksum.tar.gz"
 
-generate-monorepo-bindings:
+generate-monorepo-bindings: install-abigen
     ./scripts/generate-bindings.sh -u $(just calculate-artifact-url) -n CrossL2Inbox,L2ToL2CrossDomainMessenger,L1BlockInterop,SuperchainWETH,SuperchainERC20,SuperchainTokenBridge -o ./bindings
 
 generate-genesis: build-contracts
