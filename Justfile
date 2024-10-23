@@ -19,12 +19,32 @@ test-go:
 start:
     go run ./...
 
+version-monorepo-contracts:
+    cd contracts/lib/optimism && \
+    git rev-parse HEAD
+
+version-monorepo-go:
+    go list -m -f '{{"{{"}}.Version{{"}}"}}' github.com/ethereum-optimism/optimism
+
+check-monorepo-versions:
+    #!/usr/bin/env bash
+    ./scripts/check-versions.sh $(just version-monorepo-contracts) $(just version-monorepo-go)
+
+fetch-monorepo-contracts version:
+    cd contracts/lib/optimism && \
+    git fetch origin {{version}}
+
+install-monorepo-go version:
+    go get github.com/ethereum-optimism/optimism@{{version}}
+
+install-monorepo-contracts version: (fetch-monorepo-contracts version)
+    cd contracts && \
+    forge install ethereum-optimism/optimism@{{version}} --no-commit
+
+install-monorepo version: (install-monorepo-go version) (install-monorepo-contracts version)
+
 install-abigen:
   go install github.com/ethereum/go-ethereum/cmd/abigen@$(jq -r .abigen < versions.json)
-
-force-install-monorepo-version:
-    cd contracts/lib/optimism && \
-    forge install ethereum-optimism/optimism@$(cat ../../../monorepo-commit-hash) --no-commit
 
 calculate-artifact-url: 
     #!/usr/bin/env bash

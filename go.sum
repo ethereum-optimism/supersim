@@ -99,6 +99,14 @@ github.com/ethereum-optimism/op-geth v1.101411.1-rc.2 h1:nOeSTzcFWUCvJO1MJ5AyI26
 github.com/ethereum-optimism/op-geth v1.101411.1-rc.2/go.mod h1:7S4pp8KHBmEmKkRjL1BPOc6jY9hW+64YeMUjR3RVLw4=
 github.com/ethereum-optimism/optimism v1.9.5-0.20241022202907-85248727fe59 h1:BQU5WUL5PKATBL6B85kmR8Lv7NF5zFtuBOmdHDMPSKg=
 github.com/ethereum-optimism/optimism v1.9.5-0.20241022202907-85248727fe59/go.mod h1:pA+0LrOL45eGFQeOzkkPDojBPlSRVCXvpx6NsB5Am6M=
+github.com/ethereum-optimism/optimism v1.9.5-0.20241022232055-de795648c5d9 h1:1R4OpVoHxpEmsPQ7lQSb6koCGWFm9uAJ3scYVQkvMbg=
+github.com/ethereum-optimism/optimism v1.9.5-0.20241022232055-de795648c5d9/go.mod h1:pA+0LrOL45eGFQeOzkkPDojBPlSRVCXvpx6NsB5Am6M=
+github.com/ethereum-optimism/optimism v1.9.5-0.20241023075217-7c1ec6bc2898 h1:iVDDzfSzKv0bdRtbm0A5p/pLOHS4QBt0XDnXciXCe2Y=
+github.com/ethereum-optimism/optimism v1.9.5-0.20241023075217-7c1ec6bc2898/go.mod h1:pA+0LrOL45eGFQeOzkkPDojBPlSRVCXvpx6NsB5Am6M=
+github.com/ethereum-optimism/optimism v1.9.5-0.20241023083742-a82a3287dafa h1:ZRYDrrtD+qC8ywfbDJFBxM20E/9F9Y48o7E3fCmL1p0=
+github.com/ethereum-optimism/optimism v1.9.5-0.20241023083742-a82a3287dafa/go.mod h1:pA+0LrOL45eGFQeOzkkPDojBPlSRVCXvpx6NsB5Am6M=
+github.com/ethereum-optimism/optimism v1.9.5-0.20241023150946-2bbffdc432c3 h1:LBXYbA5gXRjMVNsQsTj0A9B1TrLGn7dHVVbNRNf97Cg=
+github.com/ethereum-optimism/optimism v1.9.5-0.20241023150946-2bbffdc432c3/go.mod h1:pA+0LrOL45eGFQeOzkkPDojBPlSRVCXvpx6NsB5Am6M=
 github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20241002103526-9083af857790 h1:yZlEBCdD0izqzTvmhET1roNSzMfXL50DhL+dALYlnXk=
 github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20241002103526-9083af857790/go.mod h1:XaVXL9jg8BcyOeugECgIUGa9Y3DjYJj71RHmb5qon6M=
 github.com/ethereum/c-kzg-4844 v1.0.0 h1:0X1LBXxaEtYD9xsyj9B9ctQEZIpnvVDeoBx8aHEwTNA=
