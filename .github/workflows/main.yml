@@ -20,6 +20,20 @@ env:
   FOUNDRY_PROFILE: ci
 
 jobs:
+  check-versions-monorepo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Check versions
+        run: just check-monorepo-versions
+
   contracts-tests:
     runs-on: ubuntu-latest
     steps:
