@@ -31,7 +31,7 @@ var (
 
 // L2NativeSuperchainERC20MetaData contains all meta data concerning the L2NativeSuperchainERC20 contract.
 var L2NativeSuperchainERC20MetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"function\",\"name\":\"DOMAIN_SEPARATOR\",\"inputs\":[],\"outputs\":[{\"name\":\"result\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"allowance\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"spender\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"result\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"approve\",\"inputs\":[{\"name\":\"spender\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"balanceOf\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"result\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"burn\",\"inputs\":[{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"crosschainBurn\",\"inputs\":[{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"crosschainMint\",\"inputs\":[{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"decimals\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"mint\",\"inputs\":[{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"name\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"nonces\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"result\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"permit\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"spender\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"deadline\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"v\",\"type\":\"uint8\",\"internalType\":\"uint8\"},{\"name\":\"r\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"s\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"symbol\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"totalSupply\",\"inputs\":[],\"outputs\":[{\"name\":\"result\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"transfer\",\"inputs\":[{\"name\":\"to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"transferFrom\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"version\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"Approval\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"spender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Burn\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CrosschainBurnt\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CrosschainMinted\",\"inputs\":[{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Mint\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Transfer\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"AllowanceOverflow\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"AllowanceUnderflow\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InsufficientAllowance\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InsufficientBalance\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InvalidPermit\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"PermitExpired\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"TotalSupplyOverflow\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"Unauthorized\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ZeroAddress\",\"inputs\":[]}]",
+	ABI: "[{\"type\":\"function\",\"name\":\"DOMAIN_SEPARATOR\",\"inputs\":[],\"outputs\":[{\"name\":\"result\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"allowance\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"spender\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"result\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"approve\",\"inputs\":[{\"name\":\"spender\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"balanceOf\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"result\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"burn\",\"inputs\":[{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"crosschainBurn\",\"inputs\":[{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"crosschainMint\",\"inputs\":[{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"decimals\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"mint\",\"inputs\":[{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"name\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"nonces\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"result\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"permit\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"spender\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"value\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"deadline\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"v\",\"type\":\"uint8\",\"internalType\":\"uint8\"},{\"name\":\"r\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"},{\"name\":\"s\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"symbol\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"totalSupply\",\"inputs\":[],\"outputs\":[{\"name\":\"result\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"transfer\",\"inputs\":[{\"name\":\"to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"transferFrom\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"version\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"Approval\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"spender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Burn\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CrosschainBurn\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CrosschainMint\",\"inputs\":[{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Mint\",\"inputs\":[{\"name\":\"account\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Transfer\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"AllowanceOverflow\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"AllowanceUnderflow\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InsufficientAllowance\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InsufficientBalance\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InvalidPermit\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"Permit2AllowanceIsFixedAtInfinity\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"PermitExpired\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"TotalSupplyOverflow\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"Unauthorized\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ZeroAddress\",\"inputs\":[]}]",
 }
 
 // L2NativeSuperchainERC20ABI is the input ABI used to generate the binding from.
@@ -926,9 +926,9 @@ func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) ParseBurn(log t
 	return event, nil
 }
 
-// L2NativeSuperchainERC20CrosschainBurntIterator is returned from FilterCrosschainBurnt and is used to iterate over the raw logs and unpacked data for CrosschainBurnt events raised by the L2NativeSuperchainERC20 contract.
-type L2NativeSuperchainERC20CrosschainBurntIterator struct {
-	Event *L2NativeSuperchainERC20CrosschainBurnt // Event containing the contract specifics and raw log
+// L2NativeSuperchainERC20CrosschainBurnIterator is returned from FilterCrosschainBurn and is used to iterate over the raw logs and unpacked data for CrosschainBurn events raised by the L2NativeSuperchainERC20 contract.
+type L2NativeSuperchainERC20CrosschainBurnIterator struct {
+	Event *L2NativeSuperchainERC20CrosschainBurn // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -942,7 +942,7 @@ type L2NativeSuperchainERC20CrosschainBurntIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *L2NativeSuperchainERC20CrosschainBurntIterator) Next() bool {
+func (it *L2NativeSuperchainERC20CrosschainBurnIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -951,7 +951,7 @@ func (it *L2NativeSuperchainERC20CrosschainBurntIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(L2NativeSuperchainERC20CrosschainBurnt)
+			it.Event = new(L2NativeSuperchainERC20CrosschainBurn)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -966,7 +966,7 @@ func (it *L2NativeSuperchainERC20CrosschainBurntIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(L2NativeSuperchainERC20CrosschainBurnt)
+		it.Event = new(L2NativeSuperchainERC20CrosschainBurn)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -982,52 +982,52 @@ func (it *L2NativeSuperchainERC20CrosschainBurntIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *L2NativeSuperchainERC20CrosschainBurntIterator) Error() error {
+func (it *L2NativeSuperchainERC20CrosschainBurnIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *L2NativeSuperchainERC20CrosschainBurntIterator) Close() error {
+func (it *L2NativeSuperchainERC20CrosschainBurnIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// L2NativeSuperchainERC20CrosschainBurnt represents a CrosschainBurnt event raised by the L2NativeSuperchainERC20 contract.
-type L2NativeSuperchainERC20CrosschainBurnt struct {
+// L2NativeSuperchainERC20CrosschainBurn represents a CrosschainBurn event raised by the L2NativeSuperchainERC20 contract.
+type L2NativeSuperchainERC20CrosschainBurn struct {
 	From   common.Address
 	Amount *big.Int
 	Raw    types.Log // Blockchain specific contextual infos
 }
 
-// FilterCrosschainBurnt is a free log retrieval operation binding the contract event 0x42bc6459057d74f6803939f81a66ca58f6945d62ede921af8b62bdacd5d34cfa.
+// FilterCrosschainBurn is a free log retrieval operation binding the contract event 0x017c33ab728c93e2be949ec7e4a35b76d607957c5fac4253f5d623b4a3b13036.
 //
-// Solidity: event CrosschainBurnt(address indexed from, uint256 amount)
-func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) FilterCrosschainBurnt(opts *bind.FilterOpts, from []common.Address) (*L2NativeSuperchainERC20CrosschainBurntIterator, error) {
+// Solidity: event CrosschainBurn(address indexed from, uint256 amount)
+func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) FilterCrosschainBurn(opts *bind.FilterOpts, from []common.Address) (*L2NativeSuperchainERC20CrosschainBurnIterator, error) {
 
 	var fromRule []interface{}
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
 
-	logs, sub, err := _L2NativeSuperchainERC20.contract.FilterLogs(opts, "CrosschainBurnt", fromRule)
+	logs, sub, err := _L2NativeSuperchainERC20.contract.FilterLogs(opts, "CrosschainBurn", fromRule)
 	if err != nil {
 		return nil, err
 	}
-	return &L2NativeSuperchainERC20CrosschainBurntIterator{contract: _L2NativeSuperchainERC20.contract, event: "CrosschainBurnt", logs: logs, sub: sub}, nil
+	return &L2NativeSuperchainERC20CrosschainBurnIterator{contract: _L2NativeSuperchainERC20.contract, event: "CrosschainBurn", logs: logs, sub: sub}, nil
 }
 
-// WatchCrosschainBurnt is a free log subscription operation binding the contract event 0x42bc6459057d74f6803939f81a66ca58f6945d62ede921af8b62bdacd5d34cfa.
+// WatchCrosschainBurn is a free log subscription operation binding the contract event 0x017c33ab728c93e2be949ec7e4a35b76d607957c5fac4253f5d623b4a3b13036.
 //
-// Solidity: event CrosschainBurnt(address indexed from, uint256 amount)
-func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) WatchCrosschainBurnt(opts *bind.WatchOpts, sink chan<- *L2NativeSuperchainERC20CrosschainBurnt, from []common.Address) (event.Subscription, error) {
+// Solidity: event CrosschainBurn(address indexed from, uint256 amount)
+func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) WatchCrosschainBurn(opts *bind.WatchOpts, sink chan<- *L2NativeSuperchainERC20CrosschainBurn, from []common.Address) (event.Subscription, error) {
 
 	var fromRule []interface{}
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
 
-	logs, sub, err := _L2NativeSuperchainERC20.contract.WatchLogs(opts, "CrosschainBurnt", fromRule)
+	logs, sub, err := _L2NativeSuperchainERC20.contract.WatchLogs(opts, "CrosschainBurn", fromRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1037,8 +1037,8 @@ func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) WatchCrosschain
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(L2NativeSuperchainERC20CrosschainBurnt)
-				if err := _L2NativeSuperchainERC20.contract.UnpackLog(event, "CrosschainBurnt", log); err != nil {
+				event := new(L2NativeSuperchainERC20CrosschainBurn)
+				if err := _L2NativeSuperchainERC20.contract.UnpackLog(event, "CrosschainBurn", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -1059,21 +1059,21 @@ func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) WatchCrosschain
 	}), nil
 }
 
-// ParseCrosschainBurnt is a log parse operation binding the contract event 0x42bc6459057d74f6803939f81a66ca58f6945d62ede921af8b62bdacd5d34cfa.
+// ParseCrosschainBurn is a log parse operation binding the contract event 0x017c33ab728c93e2be949ec7e4a35b76d607957c5fac4253f5d623b4a3b13036.
 //
-// Solidity: event CrosschainBurnt(address indexed from, uint256 amount)
-func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) ParseCrosschainBurnt(log types.Log) (*L2NativeSuperchainERC20CrosschainBurnt, error) {
-	event := new(L2NativeSuperchainERC20CrosschainBurnt)
-	if err := _L2NativeSuperchainERC20.contract.UnpackLog(event, "CrosschainBurnt", log); err != nil {
+// Solidity: event CrosschainBurn(address indexed from, uint256 amount)
+func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) ParseCrosschainBurn(log types.Log) (*L2NativeSuperchainERC20CrosschainBurn, error) {
+	event := new(L2NativeSuperchainERC20CrosschainBurn)
+	if err := _L2NativeSuperchainERC20.contract.UnpackLog(event, "CrosschainBurn", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// L2NativeSuperchainERC20CrosschainMintedIterator is returned from FilterCrosschainMinted and is used to iterate over the raw logs and unpacked data for CrosschainMinted events raised by the L2NativeSuperchainERC20 contract.
-type L2NativeSuperchainERC20CrosschainMintedIterator struct {
-	Event *L2NativeSuperchainERC20CrosschainMinted // Event containing the contract specifics and raw log
+// L2NativeSuperchainERC20CrosschainMintIterator is returned from FilterCrosschainMint and is used to iterate over the raw logs and unpacked data for CrosschainMint events raised by the L2NativeSuperchainERC20 contract.
+type L2NativeSuperchainERC20CrosschainMintIterator struct {
+	Event *L2NativeSuperchainERC20CrosschainMint // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -1087,7 +1087,7 @@ type L2NativeSuperchainERC20CrosschainMintedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *L2NativeSuperchainERC20CrosschainMintedIterator) Next() bool {
+func (it *L2NativeSuperchainERC20CrosschainMintIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -1096,7 +1096,7 @@ func (it *L2NativeSuperchainERC20CrosschainMintedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(L2NativeSuperchainERC20CrosschainMinted)
+			it.Event = new(L2NativeSuperchainERC20CrosschainMint)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -1111,7 +1111,7 @@ func (it *L2NativeSuperchainERC20CrosschainMintedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(L2NativeSuperchainERC20CrosschainMinted)
+		it.Event = new(L2NativeSuperchainERC20CrosschainMint)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -1127,52 +1127,52 @@ func (it *L2NativeSuperchainERC20CrosschainMintedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *L2NativeSuperchainERC20CrosschainMintedIterator) Error() error {
+func (it *L2NativeSuperchainERC20CrosschainMintIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *L2NativeSuperchainERC20CrosschainMintedIterator) Close() error {
+func (it *L2NativeSuperchainERC20CrosschainMintIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// L2NativeSuperchainERC20CrosschainMinted represents a CrosschainMinted event raised by the L2NativeSuperchainERC20 contract.
-type L2NativeSuperchainERC20CrosschainMinted struct {
+// L2NativeSuperchainERC20CrosschainMint represents a CrosschainMint event raised by the L2NativeSuperchainERC20 contract.
+type L2NativeSuperchainERC20CrosschainMint struct {
 	To     common.Address
 	Amount *big.Int
 	Raw    types.Log // Blockchain specific contextual infos
 }
 
-// FilterCrosschainMinted is a free log retrieval operation binding the contract event 0xfd9e93ea79c50872b16c8a46b0601df4cce15f00c77b81ce46e474f6ae0512dd.
+// FilterCrosschainMint is a free log retrieval operation binding the contract event 0x7ca16db12dad0e1c536f8062fd9e2e4fbb3d1a503b59df12a0cfa9f96abf1c59.
 //
-// Solidity: event CrosschainMinted(address indexed to, uint256 amount)
-func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) FilterCrosschainMinted(opts *bind.FilterOpts, to []common.Address) (*L2NativeSuperchainERC20CrosschainMintedIterator, error) {
+// Solidity: event CrosschainMint(address indexed to, uint256 amount)
+func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) FilterCrosschainMint(opts *bind.FilterOpts, to []common.Address) (*L2NativeSuperchainERC20CrosschainMintIterator, error) {
 
 	var toRule []interface{}
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
 
-	logs, sub, err := _L2NativeSuperchainERC20.contract.FilterLogs(opts, "CrosschainMinted", toRule)
+	logs, sub, err := _L2NativeSuperchainERC20.contract.FilterLogs(opts, "CrosschainMint", toRule)
 	if err != nil {
 		return nil, err
 	}
-	return &L2NativeSuperchainERC20CrosschainMintedIterator{contract: _L2NativeSuperchainERC20.contract, event: "CrosschainMinted", logs: logs, sub: sub}, nil
+	return &L2NativeSuperchainERC20CrosschainMintIterator{contract: _L2NativeSuperchainERC20.contract, event: "CrosschainMint", logs: logs, sub: sub}, nil
 }
 
-// WatchCrosschainMinted is a free log subscription operation binding the contract event 0xfd9e93ea79c50872b16c8a46b0601df4cce15f00c77b81ce46e474f6ae0512dd.
+// WatchCrosschainMint is a free log subscription operation binding the contract event 0x7ca16db12dad0e1c536f8062fd9e2e4fbb3d1a503b59df12a0cfa9f96abf1c59.
 //
-// Solidity: event CrosschainMinted(address indexed to, uint256 amount)
-func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) WatchCrosschainMinted(opts *bind.WatchOpts, sink chan<- *L2NativeSuperchainERC20CrosschainMinted, to []common.Address) (event.Subscription, error) {
+// Solidity: event CrosschainMint(address indexed to, uint256 amount)
+func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) WatchCrosschainMint(opts *bind.WatchOpts, sink chan<- *L2NativeSuperchainERC20CrosschainMint, to []common.Address) (event.Subscription, error) {
 
 	var toRule []interface{}
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
 
-	logs, sub, err := _L2NativeSuperchainERC20.contract.WatchLogs(opts, "CrosschainMinted", toRule)
+	logs, sub, err := _L2NativeSuperchainERC20.contract.WatchLogs(opts, "CrosschainMint", toRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1182,8 +1182,8 @@ func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) WatchCrosschain
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(L2NativeSuperchainERC20CrosschainMinted)
-				if err := _L2NativeSuperchainERC20.contract.UnpackLog(event, "CrosschainMinted", log); err != nil {
+				event := new(L2NativeSuperchainERC20CrosschainMint)
+				if err := _L2NativeSuperchainERC20.contract.UnpackLog(event, "CrosschainMint", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -1204,12 +1204,12 @@ func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) WatchCrosschain
 	}), nil
 }
 
-// ParseCrosschainMinted is a log parse operation binding the contract event 0xfd9e93ea79c50872b16c8a46b0601df4cce15f00c77b81ce46e474f6ae0512dd.
+// ParseCrosschainMint is a log parse operation binding the contract event 0x7ca16db12dad0e1c536f8062fd9e2e4fbb3d1a503b59df12a0cfa9f96abf1c59.
 //
-// Solidity: event CrosschainMinted(address indexed to, uint256 amount)
-func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) ParseCrosschainMinted(log types.Log) (*L2NativeSuperchainERC20CrosschainMinted, error) {
-	event := new(L2NativeSuperchainERC20CrosschainMinted)
-	if err := _L2NativeSuperchainERC20.contract.UnpackLog(event, "CrosschainMinted", log); err != nil {
+// Solidity: event CrosschainMint(address indexed to, uint256 amount)
+func (_L2NativeSuperchainERC20 *L2NativeSuperchainERC20Filterer) ParseCrosschainMint(log types.Log) (*L2NativeSuperchainERC20CrosschainMint, error) {
+	event := new(L2NativeSuperchainERC20CrosschainMint)
+	if err := _L2NativeSuperchainERC20.contract.UnpackLog(event, "CrosschainMint", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

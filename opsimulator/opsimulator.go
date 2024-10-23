@@ -174,14 +174,14 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			return fmt.Errorf("failed to create L2NativeSuperchainERC20 contract: %w", err)
 		}
 
-		mintEventChan := make(chan *bindings.L2NativeSuperchainERC20CrosschainMinted)
-		mintSub, err := superchainERC20.WatchCrosschainMinted(&bind.WatchOpts{Context: opSim.bgTasksCtx}, mintEventChan, nil)
+		mintEventChan := make(chan *bindings.L2NativeSuperchainERC20CrosschainMint)
+		mintSub, err := superchainERC20.WatchCrosschainMint(&bind.WatchOpts{Context: opSim.bgTasksCtx}, mintEventChan, nil)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to L2NativeSuperchainERC20#CrosschainMint: %w", err)
 		}
 
-		burnEventChan := make(chan *bindings.L2NativeSuperchainERC20CrosschainBurnt)
-		burnSub, err := superchainERC20.WatchCrosschainBurnt(&bind.WatchOpts{Context: opSim.bgTasksCtx}, burnEventChan, nil)
+		burnEventChan := make(chan *bindings.L2NativeSuperchainERC20CrosschainBurn)
+		burnSub, err := superchainERC20.WatchCrosschainBurn(&bind.WatchOpts{Context: opSim.bgTasksCtx}, burnEventChan, nil)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to L2NativeSuperchainERC20#CrosschainBurn: %w", err)
 		}
@@ -240,14 +240,14 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			return fmt.Errorf("failed to create SuperchainWETH contract: %w", err)
 		}
 
-		mintEventChan := make(chan *bindings.SuperchainWETHCrosschainMinted)
-		mintSub, err := superchainWETH.WatchCrosschainMinted(&bind.WatchOpts{Context: opSim.bgTasksCtx}, mintEventChan, nil)
+		mintEventChan := make(chan *bindings.SuperchainWETHCrosschainMint)
+		mintSub, err := superchainWETH.WatchCrosschainMint(&bind.WatchOpts{Context: opSim.bgTasksCtx}, mintEventChan, nil)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to SuperchainWETH#SendERC20: %w", err)
 		}
 
-		burnEventChan := make(chan *bindings.SuperchainWETHCrosschainBurnt)
-		burnSub, err := superchainWETH.WatchCrosschainBurnt(&bind.WatchOpts{Context: opSim.bgTasksCtx}, burnEventChan, nil)
+		burnEventChan := make(chan *bindings.SuperchainWETHCrosschainBurn)
+		burnSub, err := superchainWETH.WatchCrosschainBurn(&bind.WatchOpts{Context: opSim.bgTasksCtx}, burnEventChan, nil)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to SuperchainWETH#RelayERC20: %w", err)
 		}
