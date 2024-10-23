@@ -58,4 +58,4 @@ generate-monorepo-bindings: install-abigen
 generate-genesis: build-contracts
     go run ./genesis/cmd/main.go --monorepo-artifacts $(just calculate-artifact-url) --periphery-artifacts ./contracts/out --outdir ./genesis/generated
 
-generate-all: generate-genesis generate-monorepo-bindings
+generate-all version: (install-monorepo version) generate-genesis generate-monorepo-bindings

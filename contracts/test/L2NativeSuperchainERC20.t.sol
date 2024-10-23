@@ -84,7 +84,7 @@ contract L2NativeSuperchainERC20Test is Test {
 
         // Look for the emit of the `Mint` event
         vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit ICrosschainERC20.CrosschainMinted(_to, _amount);
+        emit ICrosschainERC20.CrosschainMint(_to, _amount);
 
         vm.prank(SUPERCHAIN_TOKEN_BRIDGE);
         superchainERC20.crosschainMint(_to, _amount);
@@ -106,7 +106,7 @@ contract L2NativeSuperchainERC20Test is Test {
         superchainERC20.crosschainBurn(_from, _amount);
     }
 
-    /// @notice Tests the `burn` burns the amount and emits the `CrosschainBurnt` event.
+    /// @notice Tests the `burn` burns the amount and emits the `CrosschainBurn` event.
     function testFuzz_crosschainBurn_succeeds(address _from, uint256 _amount) public {
         // Ensure `_from` is not the zero address
         vm.assume(_from != ZERO_ADDRESS);
@@ -123,10 +123,10 @@ contract L2NativeSuperchainERC20Test is Test {
         vm.expectEmit(address(superchainERC20));
         emit ERC20.Transfer(_from, ZERO_ADDRESS, _amount);
 
-        // Look for the emit of the `CrosschainBurnt` event
+        // Look for the emit of the `CrosschainBurn` event
         // vm.expectEmit(address(superchainERC20));
         vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit ICrosschainERC20.CrosschainBurnt(_from, _amount);
+        emit ICrosschainERC20.CrosschainBurn(_from, _amount);
 
         // Call the `burn` function with the bridge caller
         vm.prank(SUPERCHAIN_TOKEN_BRIDGE);

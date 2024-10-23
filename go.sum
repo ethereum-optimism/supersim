@@ -97,6 +97,8 @@ github.com/ethereum-optimism/go-ethereum-hdwallet v0.1.3 h1:RWHKLhCrQThMfch+QJ1Z
 github.com/ethereum-optimism/go-ethereum-hdwallet v0.1.3/go.mod h1:QziizLAiF0KqyLdNJYD7O5cpDlaFMNZzlxYNcWsJUxs=
 github.com/ethereum-optimism/op-geth v1.101411.1-rc.2 h1:nOeSTzcFWUCvJO1MJ5AyI26dqR1F7vYgz2jNNKuEtoE=
 github.com/ethereum-optimism/op-geth v1.101411.1-rc.2/go.mod h1:7S4pp8KHBmEmKkRjL1BPOc6jY9hW+64YeMUjR3RVLw4=
+github.com/ethereum-optimism/optimism v1.9.4 h1:u/UGeyLu9WgQKWHY6e+/JDLdcMTM2YDqjBaNcdimuz0=
+github.com/ethereum-optimism/optimism v1.9.4/go.mod h1:AWta6PYBofr4hxrGpXR5O46/qhov3FbEE6YOw0yDS7A=
 github.com/ethereum-optimism/optimism v1.9.5-0.20241022202907-85248727fe59 h1:BQU5WUL5PKATBL6B85kmR8Lv7NF5zFtuBOmdHDMPSKg=
 github.com/ethereum-optimism/optimism v1.9.5-0.20241022202907-85248727fe59/go.mod h1:pA+0LrOL45eGFQeOzkkPDojBPlSRVCXvpx6NsB5Am6M=
 github.com/ethereum-optimism/optimism v1.9.5-0.20241022232055-de795648c5d9 h1:1R4OpVoHxpEmsPQ7lQSb6koCGWFm9uAJ3scYVQkvMbg=
@@ -107,6 +109,8 @@ github.com/ethereum-optimism/optimism v1.9.5-0.20241023083742-a82a3287dafa h1:ZR
 github.com/ethereum-optimism/optimism v1.9.5-0.20241023083742-a82a3287dafa/go.mod h1:pA+0LrOL45eGFQeOzkkPDojBPlSRVCXvpx6NsB5Am6M=
 github.com/ethereum-optimism/optimism v1.9.5-0.20241023150946-2bbffdc432c3 h1:LBXYbA5gXRjMVNsQsTj0A9B1TrLGn7dHVVbNRNf97Cg=
 github.com/ethereum-optimism/optimism v1.9.5-0.20241023150946-2bbffdc432c3/go.mod h1:pA+0LrOL45eGFQeOzkkPDojBPlSRVCXvpx6NsB5Am6M=
+github.com/ethereum-optimism/optimism v1.9.5-0.20241023211601-7b119c533f22 h1:dAKFxNhWJWSua7nXw/LNHY9GY7AwTjXevbE2mHwKOi8=
+github.com/ethereum-optimism/optimism v1.9.5-0.20241023211601-7b119c533f22/go.mod h1:pA+0LrOL45eGFQeOzkkPDojBPlSRVCXvpx6NsB5Am6M=
 github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20241002103526-9083af857790 h1:yZlEBCdD0izqzTvmhET1roNSzMfXL50DhL+dALYlnXk=
 github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20241002103526-9083af857790/go.mod h1:XaVXL9jg8BcyOeugECgIUGa9Y3DjYJj71RHmb5qon6M=
 github.com/ethereum/c-kzg-4844 v1.0.0 h1:0X1LBXxaEtYD9xsyj9B9ctQEZIpnvVDeoBx8aHEwTNA=
