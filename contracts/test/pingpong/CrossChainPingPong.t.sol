@@ -8,7 +8,7 @@ import {
     CallerNotL2ToL2CrossDomainMessenger,
     InvalidCrossDomainSender,
     BallAlreadyServed
-} from "../src/CrossChainPingPong.sol";
+} from "../../src/pingpong/CrossChainPingPong.sol";
 import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
 
