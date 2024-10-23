@@ -26,7 +26,6 @@ var (
 	_ = common.Big1
 	_ = types.BloomLookup
 	_ = event.NewSubscription
-	_ = abi.ConvertType
 )
 
 // SuperchainERC20MetaData contains all meta data concerning the SuperchainERC20 contract.
@@ -135,11 +134,11 @@ func NewSuperchainERC20Filterer(address common.Address, filterer bind.ContractFi
 
 // bindSuperchainERC20 binds a generic wrapper to an already deployed contract.
 func bindSuperchainERC20(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := SuperchainERC20MetaData.GetAbi()
+	parsed, err := abi.JSON(strings.NewReader(SuperchainERC20ABI))
 	if err != nil {
 		return nil, err
 	}
-	return bind.NewBoundContract(address, *parsed, caller, transactor, filterer), nil
+	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
 }
 
 // Call invokes the (constant) contract method with params as input values and

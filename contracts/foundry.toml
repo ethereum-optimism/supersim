@@ -1,9 +1,9 @@
 [profile.default]
-src = "contracts/src"
-test = "contracts/test"
-script = "contracts/script"
-out = "contracts/out"
-libs = ["lib", "contracts/lib"]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
 evm_version = "cancun"
 
 fs_permissions = []
