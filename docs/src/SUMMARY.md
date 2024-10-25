@@ -26,8 +26,8 @@
   - [Viem to send and relay interop messages](./guides/interop/relay-using-viem.md)
   - [Manually relaying interop messages with cast](./guides/interop/manually-relaying-interop-messages-cast.md)
   - [Writing cross-chain contract using `L2ToL2CrossDomainMessenger`](./guides/interop/writing-contract-using-l2cdm.md)
+  - [Bridging SuperchainWETH](./guides/interop/bridging-superchain-weth.md)
   - [Calling a contract on destination chain]()
-  - [Bridging SuperchainWETH]()
 
 # Examples
 

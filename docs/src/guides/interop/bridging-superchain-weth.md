@@ -1,4 +1,4 @@
-# Crosschain ETH Transfer
+# Bridging SuperchainWETH
 
 Crosschain ETH transfers in the Superchain are facilitated through the SuperchainWETH contract. For more information on this checkout the spec for SuperchainWETH: https://specs.optimism.io/interop/superchain-weth.html.
 
