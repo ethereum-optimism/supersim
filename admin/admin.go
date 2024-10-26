@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -11,22 +12,23 @@ import (
 )
 
 type AdminServer struct {
+	log log.Logger
+
 	srv    *http.Server
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	log log.Logger
+	port uint64
 }
 
-func NewAdminServer(log log.Logger) *AdminServer {
-	return &AdminServer{log: log}
+func NewAdminServer(log log.Logger, port uint64) *AdminServer {
+	return &AdminServer{log: log, port: port}
 }
 
 func (s *AdminServer) Start(ctx context.Context) error {
 	router := setupRouter()
-
 	s.srv = &http.Server{
-		Addr:    ":8420",
+		Addr:    fmt.Sprintf(":%d", s.port),
 		Handler: router,
 	}
 
@@ -56,6 +58,10 @@ func (s *AdminServer) Stop(ctx context.Context) error {
 	}
 	s.wg.Wait()
 	return nil
+}
+
+func (s *AdminServer) Endpoint() string {
+	return fmt.Sprintf("http://127.0.0.1:%d", s.port)
 }
 
 func setupRouter() *gin.Engine {

@@ -14,6 +14,8 @@ import (
 const (
 	ForkCommandName = "fork"
 
+	AdminPortFlagName = "admin.port"
+
 	L1ForkHeightFlagName = "l1.fork.height"
 	L1PortFlagName       = "l1.port"
 
@@ -29,6 +31,12 @@ const (
 
 func BaseCLIFlags(envPrefix string) []cli.Flag {
 	return []cli.Flag{
+		&cli.Uint64Flag{
+			Name:    AdminPortFlagName,
+			Usage:   "Listening port for the admin server",
+			Value:   8420,
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "ADMIN_PORT"),
+		},
 		&cli.Uint64Flag{
 			Name:    L1PortFlagName,
 			Usage:   "Listening port for the L1 instance. `0` binds to any available port",
@@ -96,6 +104,8 @@ type ForkCLIConfig struct {
 }
 
 type CLIConfig struct {
+	AdminPort uint64
+
 	L1Port         uint64
 	L2StartingPort uint64
 
@@ -108,6 +118,8 @@ type CLIConfig struct {
 
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 	cfg := &CLIConfig{
+		AdminPort: ctx.Uint64(AdminPortFlagName),
+
 		L1Port:         ctx.Uint64(L1PortFlagName),
 		L2StartingPort: ctx.Uint64(L2StartingPortFlagName),
 
