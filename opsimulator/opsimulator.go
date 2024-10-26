@@ -71,7 +71,7 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain,
 	return &OpSimulator{
 		Chain: l2Chain,
 
-		log:          log,
+		log:          log.New("chain.id", l2Chain.Config().ChainID),
 		port:         port,
 		l1Chain:      l1Chain,
 		crossL2Inbox: crossL2Inbox,
@@ -157,7 +157,8 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 				if err := clnt.SendTransaction(opSim.bgTasksCtx, depTx); err != nil {
 					opSim.log.Error("failed to submit deposit tx to chain: %w", "chain.id", chainId, "err", err)
 				}
-				opSim.log.Debug("submitted deposit tx to chain", "chain.id", chainId, "hash", depTx.Hash().String())
+
+				opSim.log.Info("OptimismPortal#depositTransaction", "l2TxHash", depTx.Hash().String())
 
 			case <-opSim.bgTasksCtx.Done():
 				sub.Unsubscribe()
@@ -269,6 +270,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 
 func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		// setup an intermediate buffer so the request body is inspectable
 		var buf bytes.Buffer
 		body := io.TeeReader(r.Body, &buf)
@@ -303,10 +305,19 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 					batchRes[i] = msg.errorResponse(err)
 					continue
 				}
-				if err := opSim.checkInteropInvariants(ctx, tx); err != nil {
-					opSim.log.Error("interop invariants not met", "err", err)
-					batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: err.Error()})
+				txHash := tx.Hash()
+
+				// Simulate the tx. If this fails, we let it pass through with a warning
+				logs, err := opSim.SimulatedLogs(ctx, tx)
+				if err != nil {
+					opSim.log.Warn("failed to simulate transaction!!! filtering tx...", "err", err, "hash", txHash)
 					continue
+				} else {
+					if err := opSim.checkInteropInvariants(ctx, logs); err != nil {
+						opSim.log.Error("unable to statisfy interop invariants within transaction", "err", err, "hash", txHash)
+						batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: err.Error()})
+						continue
+					}
 				}
 			}
 
@@ -363,12 +374,7 @@ func forwardRPCRequest(ctx context.Context, rpcClient *rpc.Client, req *jsonRpcM
 	return &jsonRpcMessage{Version: vsn, Result: result, ID: req.ID}, nil
 }
 
-func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, tx *types.Transaction) error {
-	logs, err := opSim.SimulatedLogs(ctx, tx)
-	if err != nil {
-		return fmt.Errorf("failed to simulate transaction: %w", err)
-	}
-
+func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []types.Log) error {
 	var executingMessages []*bindings.CrossL2InboxExecutingMessage
 	for _, log := range logs {
 		if !interop.IsExecutingMessageLog(&log) {
