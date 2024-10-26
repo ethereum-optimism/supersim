@@ -8,13 +8,11 @@ contract DeployScript is Script {
     function setUp() public {}
 
     function run() public {
-        uint256[] memory allowedChains = new uint256[](2);
-        allowedChains[0] = 901;
-        allowedChains[1] = 902;
+        uint256 serverChainId = 901;
 
         vm.broadcast();
-        uint256 serverChainId = allowedChains[0];
-        CrossChainPingPong pingpong = new CrossChainPingPong{salt: "pingpong"}(allowedChains, serverChainId);
-        console.log("Deployed at: ", address(pingpong));
+
+        CrossChainPingPong game = new CrossChainPingPong{salt: "pingpong"}(serverChainId);
+        console.log("Deployed at: ", address(game));
     }
 }
