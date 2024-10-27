@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum-optimism/supersim/admin"
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
@@ -30,8 +29,6 @@ type Orchestrator struct {
 
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 	l2ToL2MsgRelayer *interop.L2ToL2MessageRelayer
-
-	adminServer *admin.AdminServer
 }
 
 func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig) (*Orchestrator, error) {
@@ -69,9 +66,6 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 			o.l2ToL2MsgRelayer = interop.NewL2ToL2MessageRelayer(log)
 		}
 	}
-
-	// Admin API server
-	o.adminServer = admin.NewAdminServer(log)
 
 	return &o, nil
 }
@@ -143,10 +137,6 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		}
 	}
 
-	if err := o.adminServer.Start(ctx); err != nil {
-		return fmt.Errorf("admin server failed to start: %w", err)
-	}
-
 	o.log.Debug("orchestrator is ready")
 	return nil
 }
@@ -154,11 +144,6 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 func (o *Orchestrator) Stop(ctx context.Context) error {
 	var errs []error
 	o.log.Debug("stopping orchestrator")
-
-	if err := o.adminServer.Stop(ctx); err != nil {
-		errs = append(errs, fmt.Errorf("admin server failed to stop: %w", err))
-	}
-
 	if o.config.InteropEnabled {
 		if o.l2ToL2MsgRelayer != nil {
 			o.log.Info("stopping L2ToL2CrossDomainMessenger autorelayer")
@@ -238,7 +223,7 @@ func (o *Orchestrator) ConfigAsString() string {
 	l1Cfg := o.l1Chain.Config()
 	fmt.Fprintf(&b, "L1: Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", l1Cfg.Name, l1Cfg.ChainID, o.l1Chain.Endpoint(), o.l1Chain.LogPath())
 
-	fmt.Fprintf(&b, "\nL2s: Predeploy Contracts Spec ( %s )\n", "https://specs.optimism.io/protocol/predeploys.html")
+	fmt.Fprintf(&b, "\nL2: Predeploy Contracts Spec ( %s )\n", "https://specs.optimism.io/protocol/predeploys.html")
 	opSims := make([]*opsimulator.OpSimulator, 0, len(o.l2OpSims))
 	for _, chain := range o.l2OpSims {
 		opSims = append(opSims, chain)

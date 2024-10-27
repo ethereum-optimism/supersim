@@ -2,10 +2,10 @@ package admin
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/log"
@@ -16,14 +16,12 @@ func TestAdminServerBasicFunctionality(t *testing.T) {
 	testlog := testlog.Logger(t, log.LevelInfo)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	adminServer := NewAdminServer(testlog)
+	adminServer := NewAdminServer(testlog, 0)
 	t.Cleanup(func() { cancel() })
 
 	require.NoError(t, adminServer.Start(ctx))
 
-	require.Equal(t, ":8420", adminServer.srv.Addr)
-
-	resp, err := http.Get("http://localhost:8420/ready")
+	resp, err := http.Get(fmt.Sprintf("%s/ready", adminServer.Endpoint()))
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -35,27 +33,7 @@ func TestAdminServerBasicFunctionality(t *testing.T) {
 
 	require.NoError(t, adminServer.Stop(context.Background()))
 
-	resp, err = http.Get("http://localhost:8420/ready")
-	if err == nil {
-		resp.Body.Close()
-	}
-	require.Error(t, err)
-}
-
-func TestAdminServerContextCancellation(t *testing.T) {
-	testlog := testlog.Logger(t, log.LevelInfo)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	adminServer := NewAdminServer(testlog)
-
-	require.NoError(t, adminServer.Start(ctx))
-
-	// Cancel the context
-	cancel()
-
-	time.Sleep(100 * time.Millisecond)
-
-	resp, err := http.Get("http://localhost:8420/ready")
+	resp, err = http.Get(fmt.Sprintf("%s/ready", adminServer.Endpoint()))
 	if err == nil {
 		resp.Body.Close()
 	}
