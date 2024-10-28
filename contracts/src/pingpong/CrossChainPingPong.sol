@@ -10,17 +10,11 @@ error CallerNotL2ToL2CrossDomainMessenger();
 /// @notice Thrown when the cross-domain sender is not this contract's address on another chain.
 error InvalidCrossDomainSender();
 
-/// @notice Thrown when attempting to serve the ball from a non-server chain.
-error UnauthorizedServer(uint256 callerChainId, uint256 serverChainId);
-
-/// @notice Thrown when attempting to serve the ball more than once.
-error BallAlreadyServed();
-
-/// @notice Thrown when attempting to hit the ball to an invalid destination chain.
-error InvalidDestinationChain(uint256 toChainId);
-
 /// @notice Thrown when attempting to hit the ball when it's not on the current chain.
 error BallNotPresent();
+
+/// @notice Thrown when attempting to hit to an invalid chain
+error InvalidDestination();
 
 /// @notice Represents the state of the ping-pong ball.
 /// @param rallyCount The number of times the ball has been hit.
@@ -41,138 +35,65 @@ struct PingPongBall {
  * @dev This contract relies on the L2ToL2CrossDomainMessenger for cross-chain communication.
  */
 contract CrossChainPingPong {
-    /// @notice Emitted when a ball is sent from one chain to another.
-    /// @param fromChainId The chain ID from which the ball is sent.
-    /// @param toChainId The chain ID to which the ball is sent.
-    /// @param ball The PingPongBall data structure containing rally count and hitter information.
+    /// @notice Emitted when a ball is sent
     event BallSent(uint256 indexed fromChainId, uint256 indexed toChainId, PingPongBall ball);
 
-    /// @notice Emitted when a ball is received on a chain.
-    /// @param fromChainId The chain ID from which the ball was sent.
-    /// @param toChainId The chain ID on which the ball was received.
-    /// @param ball The PingPongBall data structure containing rally count and hitter information.
+    /// @notice Emitted when a ball is received
     event BallReceived(uint256 indexed fromChainId, uint256 indexed toChainId, PingPongBall ball);
 
-    /// @dev Address of the L2 to L2 cross-domain messenger predeploy.
-    address internal constant MESSENGER = Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
+    /// @dev The L2 to L2 cross domain messenger predeploy to handle message passing
+    IL2ToL2CrossDomainMessenger internal messenger = IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
-    /// @notice Chain ID of the server (initial ball sender).
-    uint256 internal immutable SERVER_CHAIN_ID;
+    /// @dev Modifier to restrict a function to only be a cross-domain callback into this contract
+    modifier onlyCrossDomainCallback() {
+        if (msg.sender != address(messenger)) revert CallerNotL2ToL2CrossDomainMessenger();
+        if (messenger.crossDomainMessageSender() != address(this)) revert InvalidCrossDomainSender();
 
-    /// @dev Flag indicating if the server has already served the ball.
-    bool internal _hasServerAlreadyServed;
+        _;
+    }
 
-    /// @dev Mapping to track which chain IDs are allowed in the game.
-    mapping(uint256 => bool) internal _isChainIdAllowed;
-
-    /// @dev The current received ball on this chain.
-    PingPongBall internal _receivedBall;
-
-    /// @dev Tracks whether the ball is currently on this chain.
-    bool private _isBallPresent;
+    /// @dev The current ball on this chain, empty if not present
+    PingPongBall public ball;
 
     /**
-     * @notice Constructor initializes the contract with allowed chain IDs and the server chain ID.
-     * @param _allowedChainIds The list of chain IDs that are allowed to participate in the game.
-     * @param _serverChainId The chain ID that will act as the server for the first ball serve.
-     * @dev Ensures that the server chain ID is included in the list of allowed chain IDs.
+     * @notice Since CREATE2 includes initcode, the game address is deterministic with the the starting chain.
+     * @param _serverChainId The chain that starts with the ball.
      */
-    constructor(uint256[] memory _allowedChainIds, uint256 _serverChainId) {
-        for (uint256 i = 0; i < _allowedChainIds.length; i++) {
-            _isChainIdAllowed[_allowedChainIds[i]] = true;
+    constructor(uint256 _serverChainId) {
+        if (block.chainid == _serverChainId) {
+            ball = PingPongBall(1, block.chainid, msg.sender);
         }
-
-        if (!_isChainIdAllowed[_serverChainId]) {
-            revert InvalidDestinationChain(_serverChainId);
-        }
-
-        SERVER_CHAIN_ID = _serverChainId;
     }
 
     /**
-     * @notice Serve the ping-pong ball to a specified destination chain.
-     * @dev Can only be called once from the server chain, and this starts off the game.
-     * @param _toChainId The chain ID to which the ball is served.
-     */
-    function serveBallTo(uint256 _toChainId) external {
-        if (SERVER_CHAIN_ID != block.chainid) {
-            revert UnauthorizedServer(block.chainid, SERVER_CHAIN_ID);
-        }
-        if (_hasServerAlreadyServed) {
-            revert BallAlreadyServed();
-        }
-        if (!_isValidDestinationChain(_toChainId)) {
-            revert InvalidDestinationChain(_toChainId);
-        }
-        _hasServerAlreadyServed = true;
-
-        PingPongBall memory _newBall = PingPongBall(1, block.chainid, msg.sender);
-
-        _sendCrossDomainMessage(_newBall, _toChainId);
-
-        emit BallSent(block.chainid, _toChainId, _newBall);
-    }
-
-    /**
-     * @notice Hit the received ping-pong ball to a specified destination chain.
-     * @dev Can only be called when the ball is on the current chain.
-     * @param _toChainId The chain ID to which the ball is hit.
+     * @notice Hit the ball to a specified destination chain.
+     * @param _toChainId The chain id of the destination
      */
     function hitBallTo(uint256 _toChainId) public {
-        if (!_isBallPresent) {
-            revert BallNotPresent();
-        }
-        if (!_isValidDestinationChain(_toChainId)) {
-            revert InvalidDestinationChain(_toChainId);
-        }
+        if (ball.lastHitterAddress == address(0)) revert BallNotPresent();
+        if (_toChainId == block.chainid) revert InvalidDestination();
 
-        PingPongBall memory _newBall = PingPongBall(_receivedBall.rallyCount + 1, block.chainid, msg.sender);
+        // Construct a new ball
+        PingPongBall memory newBall = PingPongBall(ball.rallyCount + 1, block.chainid, msg.sender);
 
-        delete _receivedBall;
-        _isBallPresent = false;
+        // Delete the reference
+        delete ball;
 
-        _sendCrossDomainMessage(_newBall, _toChainId);
+        // Send to the destination
+        messenger.sendMessage(_toChainId, address(this), abi.encodeCall(this.receiveBall, (newBall)));
 
-        emit BallSent(block.chainid, _toChainId, _newBall);
+        emit BallSent(block.chainid, _toChainId, newBall);
     }
 
     /**
      * @notice Receives the ping-pong ball from another chain.
-     * @dev Only callable by the L2 to L2 cross-domain messenger.
-     * @param _ball The PingPongBall data received from another chain.
+     * @dev Only callable by the L2ToL2CrossDomainMessenger.
+     * @param _ball The PingPongBall received from the other chain.
      */
-    function receiveBall(PingPongBall memory _ball) external {
-        if (msg.sender != MESSENGER) {
-            revert CallerNotL2ToL2CrossDomainMessenger();
-        }
+    function receiveBall(PingPongBall memory _ball) onlyCrossDomainCallback() external {
+        // Hold reference to the ball
+        ball = _ball;
 
-        if (IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageSender() != address(this)) {
-            revert InvalidCrossDomainSender();
-        }
-
-        _receivedBall = _ball;
-        _isBallPresent = true;
-
-        emit BallReceived(IL2ToL2CrossDomainMessenger(MESSENGER).crossDomainMessageSource(), block.chainid, _ball);
-    }
-
-    /**
-     * @notice Internal function to send the ping-pong ball to another chain.
-     * @dev Uses the L2ToL2CrossDomainMessenger to send the message.
-     * @param _ball The PingPongBall data to send.
-     * @param _toChainId The chain ID to which the ball is sent.
-     */
-    function _sendCrossDomainMessage(PingPongBall memory _ball, uint256 _toChainId) internal {
-        bytes memory _message = abi.encodeCall(this.receiveBall, (_ball));
-        IL2ToL2CrossDomainMessenger(MESSENGER).sendMessage(_toChainId, address(this), _message);
-    }
-
-    /**
-     * @notice Checks if a destination chain ID is valid.
-     * @param _toChainId The destination chain ID to validate.
-     * @return True if the destination chain ID is allowed and different from the current chain.
-     */
-    function _isValidDestinationChain(uint256 _toChainId) internal view returns (bool) {
-        return _isChainIdAllowed[_toChainId] && _toChainId != block.chainid;
+        emit BallReceived(messenger.crossDomainMessageSource(), block.chainid, _ball);
     }
 }
