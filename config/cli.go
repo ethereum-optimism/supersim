@@ -63,6 +63,12 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Value:   "",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "LOGS_DIRECTORY"),
 		},
+		&cli.BoolFlag{
+			Name:    DocsFlagName,
+			Usage:   "Display available docs links",
+			Value:   false,
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "DOCS"),
+		},
 	}
 }
 
