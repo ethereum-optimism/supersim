@@ -12,6 +12,10 @@
 
 For **detailed instructions** and **usage guides**, refer to the [**📚 Supersim docs**](https://supersim.pages.dev).
 
+For **getting up to speed with supersim**, watch the [**🎥 Supersim 101 Training Session video**](https://www.youtube.com/live/Kh4fNshcl5Y?t=30s)
+
+[![Supersim 101 training video cover](docs/src/supersim-training-sessions-video-cover.png)](https://www.youtube.com/live/Kh4fNshcl5Y?t=30s)
+
 ## 🚀 Getting Started
 
 ### 1. Install prerequisites: `foundry`
