@@ -63,7 +63,7 @@ L2s: Predeploy Contracts Spec ( https://specs.optimism.io/protocol/predeploys.ht
 
 For **getting up to speed with supersim**, watch the [**🎥 Supersim 101 Training Session video**](https://www.youtube.com/live/Kh4fNshcl5Y?t=30s)
 
-[<img src="docs/src/supersim-training-sessions-video-cover.png" height="200"  />](https://www.youtube.com/live/Kh4fNshcl5Y?t=30s)
+[<img src="docs/src/supersim-training-sessions-video-cover.png"  />](https://www.youtube.com/live/Kh4fNshcl5Y?t=30s)
 
 More examples below!
 
