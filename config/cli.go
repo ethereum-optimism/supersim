@@ -27,6 +27,8 @@ const (
 
 	InteropEnabledFlagName   = "interop.enabled"
 	InteropAutoRelayFlagName = "interop.autorelay"
+
+	DocsFlagName = "docs"
 )
 
 func BaseCLIFlags(envPrefix string) []cli.Flag {
