@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
@@ -136,6 +137,11 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 	}
 
+	if ctx.Bool(DocsFlagName) {
+		printDocLinks()
+		os.Exit(0)
+	}
+
 	if ctx.Command.Name == ForkCommandName {
 		cfg.ForkConfig = &ForkCLIConfig{
 			L1ForkHeight: ctx.Uint64(L1ForkHeightFlagName),
@@ -174,4 +180,21 @@ func (c *CLIConfig) Check() error {
 	}
 
 	return nil
+}
+
+func printDocLinks() {
+	links := []struct {
+		url  string
+		text string
+	}{
+		{"https://specs.optimism.io/interop/overview.html", "Superchain Interop Specs"},
+		{"https://docs.optimism.io/", "Optimism Documentation"},
+		{"https://supersim.pages.dev/", "Supersim Documentation"},
+	}
+
+	fmt.Printf("Here are the available documentation links:\n\n")
+
+	for _, link := range links {
+		fmt.Printf("\033]8;;%s\033\\%s\033]8;;\033\\\n", link.url, link.text)
+	}
 }
