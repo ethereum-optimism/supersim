@@ -117,7 +117,8 @@ func (i *L2ToL2MessageIndexer) processEventLog(ctx context.Context, backend ethe
 	sentMessageEventId := bindings.L2ToL2CrossDomainMessengerParsedABI.Events["SentMessage"].ID
 	failedRelayedMessageEventId := bindings.L2ToL2CrossDomainMessengerParsedABI.Events["FailedRelayedMessage"].ID
 
-	if log.Topics[0] == sentMessageEventId {
+	switch log.Topics[0] {
+	case sentMessageEventId:
 		identifier, err := getIdentifier(ctx, backend, chainID, log)
 		if err != nil {
 			return fmt.Errorf("failed to get log identifier: %w", err)
@@ -128,40 +129,35 @@ func (i *L2ToL2MessageIndexer) processEventLog(ctx context.Context, backend ethe
 			return fmt.Errorf("failed to handle SentMessage event: %w", err)
 		}
 
-		i.logMessageEvent("SentMessage", entry)
-
+		i.logMessageEvent("SentMessage", entry, log)
 		i.eb.Publish(sentMessageFromSourceKey(entry.message.Source), entry)
 		i.eb.Publish(sentMessageToDestinationKey(entry.message.Destination), entry)
-
-	} else if log.Topics[0] == relayedMessageEventId {
+	case relayedMessageEventId:
 		entry, err := i.storeManager.HandleRelayedEvent(log)
 		if err != nil {
 			return fmt.Errorf("failed to handle RelayedMessage event: %w", err)
 		}
 
-		i.logMessageEvent("RelayedMessage", entry)
-
+		i.logMessageEvent("RelayedMessage", entry, log)
 		i.eb.Publish(relayedMessageToDestinationKey(entry.message.Destination), entry)
-	} else if log.Topics[0] == failedRelayedMessageEventId {
+	case failedRelayedMessageEventId:
 		entry, err := i.storeManager.HandleFailedRelayedEvent(log)
 		if err != nil {
 			return fmt.Errorf("failed to handle FailedRelayedMessage event: %w", err)
 		}
 
-		i.logMessageEvent("FailedRelayedMessage", entry)
-
+		i.logMessageEvent("FailedRelayedMessage", entry, log)
 		i.eb.Publish(failedRelayedMessageToDestinationKey(entry.message.Destination), entry)
-
-	} else {
+	default:
 		return fmt.Errorf("unexpected event type: %x", log.Topics[0])
 	}
 
 	return nil
 }
 
-func (i *L2ToL2MessageIndexer) logMessageEvent(eventName string, entry *L2ToL2MessageStoreEntry) {
+func (i *L2ToL2MessageIndexer) logMessageEvent(eventName string, entry *L2ToL2MessageStoreEntry, log *types.Log) {
 	msg := entry.Message()
-	i.log.Info(fmt.Sprintf("L2ToL2CrossChainMessenger#%s", eventName), "sourceChainID", msg.Source, "destinationChainID", msg.Destination, "nonce", msg.Nonce, "sender", msg.Sender, "target", msg.Target)
+	i.log.Info(fmt.Sprintf("L2ToL2CrossChainMessenger#%s", eventName), "sourceChainID", msg.Source, "destinationChainID", msg.Destination, "nonce", msg.Nonce, "sender", msg.Sender, "target", msg.Target, "txHash", log.TxHash.String())
 }
 
 func (i *L2ToL2MessageIndexer) createSubscription(key string, messageChan chan<- *L2ToL2MessageStoreEntry) (func(), error) {

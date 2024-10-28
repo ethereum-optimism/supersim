@@ -68,13 +68,13 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 			unsubscribe, err := r.l2ToL2MessageIndexer.SubscribeSentMessageToDestination(destinationChainID, sentMessageCh)
 
 			if err != nil {
-				r.logger.Debug("failed to create	transactor", "err", err)
+				r.logger.Debug("failed to create transactor", "err", err)
 				return fmt.Errorf("failed to subscribe to sent message events: %w", err)
 			}
 
 			transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(destinationChainID)))
 			if err != nil {
-				r.logger.Debug("failed to create	transactor", "err", err)
+				r.logger.Debug("failed to create transactor", "err", err)
 				return fmt.Errorf("failed to create transactor: %w", err)
 			}
 
