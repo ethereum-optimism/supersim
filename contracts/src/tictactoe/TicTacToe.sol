@@ -131,7 +131,7 @@ contract TicTacToe {
         if (selector != AcceptedGame.selector) revert DataNotAcceptedGame();
 
         (uint256 chainId, uint256 gameId, address player, address opponent) = // player, opponent swapped in local view
-         abi.decode(_acceptedGameData[32:], (uint256, uint256, address, address));
+            abi.decode(_acceptedGameData[32:], (uint256, uint256, address, address));
 
         // The accepted game was started from this chain, from the sender
         if (chainId != block.chainid) revert GameChainMismatch();
