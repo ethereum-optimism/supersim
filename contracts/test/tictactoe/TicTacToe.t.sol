@@ -36,6 +36,8 @@ contract TicTacToeTest is Test {
     }
 
     function testFuzz_acceptGame_succeeds(uint256 chainId, uint256 gameId, address opponent) public {
+        vm.assume(opponent != address(this));
+
         TicTacToe game = new TicTacToe();
         ICrossL2Inbox.Identifier memory newGameId = ICrossL2Inbox.Identifier(address(game), 0, 0, 0, chainId);
         bytes memory newGameData = abi.encodePacked(TicTacToe.NewGame.selector, abi.encode(chainId, gameId, opponent));
