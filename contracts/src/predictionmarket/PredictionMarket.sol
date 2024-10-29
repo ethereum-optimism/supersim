@@ -23,9 +23,10 @@ struct Market {
 }
 
 // @notice A very basic implementation of a prediction market.
-//         1. We only support placing a bets on yes/no outcome.
+//         1. We only support markets with a yes or no outcome.
 //         2. Once a bet is placed, we do not allow swapping out of a position with the market directly.
-//         3. No incentive to provide liquidity since swap fees are not collected.
+//         3. No incentive to provide liquidity since swap fees are not collected. LP tokens can only be redeemed
+//            when the market has resolved.
 //
 //         Open to Pull Requests! This is simply reference :)
 contract PredictionMarket {
@@ -96,11 +97,6 @@ contract PredictionMarket {
 
         Market storage market = markets[_resolver];
         require(market.status == MarketStatus.OPEN);
-        require(market.outcome == MarketStatus.UNDECIDED);
-
-        // Create equal amount of each outcome
-        market.yesToken.mint(msg.sender, ethAmount);
-        market.noToken.mint(msg.sender, ethAmount);
 
         uint256 lpAmount;
         uint256 yesAmount;
@@ -144,7 +140,6 @@ contract PredictionMarket {
         // Market must be tradeable
         Market storage market = markets[_resolver];
         require(market.status == MarketStatus.OPEN);
-        require(market.outcome == MarketStatus.UNDECIDED);
         require(market.ethBalance > 0);
 
         uint256 amountIn = msg.value;
@@ -199,6 +194,7 @@ contract PredictionMarket {
     // @param _resolver contract identifying the outcome for an open market
     function redeemLP(address _resolver) public {
         Market storage market = markets[_resolver];
+        require(market.status == MarketStatus.CLOSED);
 
         uint256 lpSupply = market.lpToken.totalSupply();
         uint256 lpBalance = market.lpToken.balanceOf(msg.sender);
