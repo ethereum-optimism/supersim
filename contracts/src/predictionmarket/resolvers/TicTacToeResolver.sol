@@ -23,13 +23,13 @@ contract TicTacToePredictionMarketFactory {
         (uint256 chainId, uint256 gameId, address opponent, address player) =
             abi.decode(_data[32:], (uint256, uint256, address, address));
 
-        // Create the resolver for this game
+        // TODO: Create the resolver for this game & create market
 
     }
 }
 
 contract TicTacToeGameResolver is IMarketResolver {
-    address private gameAddress;
+    address public gameAddress;
 
     MarketOutcome public outcome;
 
@@ -44,7 +44,7 @@ contract TicTacToeGameResolver is IMarketResolver {
         require(_id.origin == gameAddress);
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_data));
 
-        // Event must either be GameWon or GameDrawn
+        // TODO: Event must either be GameWon or GameDrawn
     }
 }
 
