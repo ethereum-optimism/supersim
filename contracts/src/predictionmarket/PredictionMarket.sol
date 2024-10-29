@@ -31,32 +31,32 @@ struct Market {
 //         Open to Pull Requests! This is simply reference :)
 contract PredictionMarket {
     // @notice created markets, addressed by their resolver
-    mapping(address => Market) public markets;
+    mapping(IMarketResolver => Market) public markets;
 
     // @notice emitted when a new market has been created
-    event NewMarket(IMarketResolver resolver, address yesToken, address noToken, address lpToken);
+    event NewMarket(IMarketResolver _resolver, address yesToken, address noToken, address lpToken);
 
     // @notice emitted when a market has been resolved
-    event MarketResolved(IMarketResolver resolver, MarketOutcome outcome);
+    event MarketResolved(IMarketResolver _resolver, MarketOutcome outcome);
 
     // @notice emitted when liquidity has been added to a market
-    event LiquidityAdded(address resolver, address provider, uint256 ethAmount);
+    event LiquidityAdded(IMarketResolver resolver, address provider, uint256 ethAmount);
 
     // @notice emitted when liquidity has been redeemed from a market
-    event LiquidityRedeemed(address resolver, address redeemer, uint256 yesAmount, uint256 noAmount);
+    event LiquidityRedeemed(IMarketResolver resolver, address redeemer, uint256 yesAmount, uint256 noAmount);
 
     // @notice emitted when a bet has been placed on a market
-    event BetPlaced(address resolver, address bettor, MarketOutcome outcome, uint256 amountIn, uint256 amountOut);
+    event BetPlaced(IMarketResolver resolver, address bettor, MarketOutcome outcome, uint256 amountIn, uint256 amountOut);
 
     // @notice emitted when an outcome token has been redeemed
-    event OutcomeRedeemed(address resolver, address redeemer, MarketOutcome outcome, uint256 amount);
+    event OutcomeRedeemed(IMarketResolver resolver, address redeemer, MarketOutcome outcome, uint256 amount);
 
     // @notice create and seed a new prediction market with liquidity
     // @param _resolver contract identifying the outcome for an open market
     function newMarket(IMarketResolver _resolver) public payable {
         require(_resolver.outcome() == MarketOutcome.UNDECIDED);
 
-        Market storage market = markets[address(_resolver)];
+        Market storage market = markets[_resolver];
         market.status = MarketStatus.OPEN;
         market.outcome = MarketOutcome.UNDECIDED;
 
@@ -65,7 +65,7 @@ contract PredictionMarket {
         market.lpToken = new MintableBurnableERC20("LP", "LP");
 
         if (msg.value > 0) {
-            addLiquidity(address(_resolver));
+            addLiquidity(_resolver);
         }
 
         emit NewMarket(_resolver, address(market.yesToken), address(market.noToken), address(market.lpToken));
@@ -73,13 +73,13 @@ contract PredictionMarket {
 
     // @notice resolve the market
     // @param _resolver contract identifying the outcome for an open market
-    function resolveMarket(address _resolver) public {
+    function resolveMarket(IMarketResolver _resolver) public {
         Market storage market = markets[_resolver];
         require(market.status == MarketStatus.OPEN);
 
         // Market must be resolvable
-        MarketOutcome outcome = market.resolver.outcome();
-        require(outcome != MarketStatus.UNDECIDED);
+        MarketOutcome outcome = _resolver.outcome();
+        require(outcome != MarketOutcome.UNDECIDED);
 
         // Resolve this market
         market.status = MarketStatus.CLOSED;
@@ -91,7 +91,7 @@ contract PredictionMarket {
 
     // @notice Entry point for adding liquidity into the specified market
     // @param _resolver contract identifying the outcome for an open market
-    function addLiquidity(address _resolver) public payable {
+    function addLiquidity(IMarketResolver _resolver) public payable {
         require(msg.value > 0);
         uint256 ethAmount = msg.value;
 
@@ -133,7 +133,7 @@ contract PredictionMarket {
     // @notice buy an outcome token
     // @param _resolver contract identifying the outcome for an open market
     // @param _outcome the outcome to buy
-    function buyOutcome(address _resolver, MarketOutcome _outcome) public payable {
+    function buyOutcome(IMarketResolver _resolver, MarketOutcome _outcome) public payable {
         require(msg.value > 0);
         require(_outcome == MarketOutcome.YES || _outcome == MarketOutcome.NO);
 
@@ -169,7 +169,7 @@ contract PredictionMarket {
 
     // @notice redeem outcome tokens for ETH
     // @param _resolver contract identifying the outcome for an open market
-    function redeem(address _resolver) public {
+    function redeem(IMarketResolver _resolver) public {
         Market storage market = markets[_resolver];
         require(market.status == MarketStatus.CLOSED);
 
@@ -192,7 +192,7 @@ contract PredictionMarket {
 
     // @notice remove liquidity from the specified market (outcome tokens only)
     // @param _resolver contract identifying the outcome for an open market
-    function redeemLP(address _resolver) public {
+    function redeemLP(IMarketResolver _resolver) public {
         Market storage market = markets[_resolver];
         require(market.status == MarketStatus.CLOSED);
 
@@ -203,7 +203,8 @@ contract PredictionMarket {
         uint256 noBalance = market.noToken.balanceOf(address(this));
 
         // Burn LP tokens
-        market.lpToken.burn(msg.sender, lpBalance);
+        market.lpToken.transferFrom(msg.sender, address(this),lpBalance);
+        market.lpToken.burn(lpBalance);
 
         // Return appropriate share of both outcomes. We don't differentiate
         // between if the market is resolved or not since the losing outcome
