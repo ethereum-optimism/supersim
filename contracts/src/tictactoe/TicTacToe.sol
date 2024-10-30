@@ -13,13 +13,13 @@ error IdChainMismatch();
 /// @notice Thrown when a player tries to play themselves;
 error SenderIsOpponent();
 
-/// @notice Thrown when the exepcted event is not NewGame
+/// @notice Thrown when the expected event is not NewGame
 error DataNotNewGame();
 
-/// @notice Thrown when the exepcted event is not AcceptedGame
+/// @notice Thrown when the expected event is not AcceptedGame
 error DataNotAcceptedGame();
 
-/// @notice Thrown when the exepcted event is not MovePlayed
+/// @notice Thrown when the expected event is not MovePlayed
 error DataNotMovePlayed();
 
 /// @notice Thrown when the caller is not allowed to act
@@ -40,13 +40,13 @@ error MoveInvalid();
 /// @notice Thrown when the consumed event is not forward progressing the game.
 error MoveNotForwardProgressing();
 
-/// @notice Thrown when the player make a move that's already been played
+/// @notice Thrown when the player makes a move that's already been played
 error MoveTaken();
 
 /// @title TicTacToe
-/// @notice TicTacToe is a Superchain interoprable implementation of TicTacToe where players
-///         can play each other from any two chains in each others interopable dependency sets
-///         without needing to pass messages between themselves. Since a chain is be default in
+/// @notice TicTacToe is a Superchain interoperable implementation of TicTacToe where players
+///         can play each other from any two chains in each others interoperable dependency sets
+///         without needing to pass messages between themselves. Since a chain is by default in
 ///         its own dependency set, players on the same chain can also play each other :)
 contract TicTacToe {
     uint256 public nextGameId;
@@ -65,7 +65,7 @@ contract TicTacToe {
         ICrossL2Inbox.Identifier lastOpponentId;
     }
 
-    /// @notice A game is identifed from the (chainId, gameId) tuple from the chain it was initiated on
+    /// @notice A game is identified from the (chainId, gameId) tuple from the chain it was initiated on
     ///         Since players on the same chain can play each other, we need to subspace by address as well.
     mapping(uint256 => mapping(uint256 => mapping(address => Game))) games;
 
