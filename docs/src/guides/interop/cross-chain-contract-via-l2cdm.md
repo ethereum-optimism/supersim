@@ -128,7 +128,7 @@ function hitBallTo(uint256 _toChainId) public {
     ...
 }
 ```
-- The `ball` contract variable is populated on the chain, indicating it's presence
+- The `ball` contract variable is populated on the chain, indicating its presence
 - The destination must be a different chain
 
 #### 2. Define The Receiving Handler
