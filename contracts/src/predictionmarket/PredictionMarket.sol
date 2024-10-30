@@ -130,6 +130,17 @@ contract PredictionMarket {
         emit LiquidityAdded(_resolver, msg.sender, ethAmount);
     }
 
+    function calcOutcomeOut(IMarketResolver _resolver, MarketOutcome _outcome, uint256 ethAmountIn) public view returns (uint256) {
+        Market memory market = markets[_resolver];
+        uint256 yesBalance = market.yesToken.balanceOf(address(this));
+        uint256 noBalance = market.noToken.balanceOf(address(this));
+        if (_outcome == MarketOutcome.YES) {
+            return (ethAmountIn * yesBalance) / (ethAmountIn + noBalance);
+        } else {
+            return (ethAmountIn * noBalance) / (ethAmountIn + yesBalance);
+        }
+    }
+
     // @notice buy an outcome token
     // @param _resolver contract identifying the outcome for an open market
     // @param _outcome the outcome to buy
@@ -137,29 +148,16 @@ contract PredictionMarket {
         require(msg.value > 0);
         require(_outcome == MarketOutcome.YES || _outcome == MarketOutcome.NO);
 
-        // Market must be tradeable
+        uint256 amountIn = msg.value;
+
+        // Market must be tradeable & liquid with the amount eth in
         Market storage market = markets[_resolver];
         require(market.status == MarketStatus.OPEN);
-        require(market.ethBalance > 0);
-
-        uint256 amountIn = msg.value;
-        uint256 yesBalance = market.yesToken.balanceOf(address(this));
-        uint256 noBalance = market.noToken.balanceOf(address(this));
-
-        // TODO:
-        // - Handle insufficient liquidity to perform this swap
-        // - Verify invariant calculation
+        require(market.ethBalance > amountIn);
 
         // Compute trade amounts
-        uint256 amountOut;
-        MintableBurnableERC20 outcomeToken;
-        if (_outcome == MarketOutcome.YES) {
-            outcomeToken = market.yesToken;
-            amountOut = (amountIn * yesBalance) / (amountIn + noBalance);
-        } else {
-            outcomeToken = market.noToken;
-            amountOut = (amountIn * noBalance) / (amountIn + yesBalance);
-        }
+        uint256 amountOut = calcOutcomeOut(_resolver, _outcome, amountIn);
+        MintableBurnableERC20 outcomeToken = _outcome == MarketOutcome.YES ? market.yesToken : market.noToken; 
 
         // Perform swap
         market.ethBalance += amountIn;
@@ -176,11 +174,11 @@ contract PredictionMarket {
         MintableBurnableERC20 outcomeToken = market.outcome == MarketOutcome.YES ? market.yesToken : market.noToken;
         uint256 amount = outcomeToken.balanceOf(msg.sender);
 
-        // Transfer & burn tokens
+        // Transfer & burn the winning outcome tokens
         outcomeToken.transfer(msg.sender, amount);
         outcomeToken.burn(amount);
 
-        // Payout is directly proportional to the amount of liquidity provided
+        // Payout is directly proportional to the amount of tokens
         require(amount <= market.ethBalance);
         market.ethBalance -= amount;
 
@@ -218,5 +216,7 @@ contract PredictionMarket {
 
         market.yesToken.transfer(msg.sender, yesAmount);
         market.noToken.transfer(msg.sender, noAmount);
+
+        emit LiquidityRedeemed(_resolver, msg.sender, yesAmount, noAmount);
     }
 }
