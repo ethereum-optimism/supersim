@@ -18,7 +18,7 @@ import {ISuperchainWETH} from "@contracts-bedrock/L2/interfaces/ISuperchainWETH.
 /**
  * @notice Thrown when the relay of SuperchainWETH has not succeeded.
  * @dev This error is triggered if the SuperchainWETH relay through the L2ToL2CrossDomainMessenger
- *      has not completed successfully successful.
+ *      has not completed successfully.
  */
 error RelaySuperchainWETHNotSuccessful();
 
