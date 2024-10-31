@@ -103,7 +103,7 @@ topics: [
 ...
 ```
 
-### 5. Retrive the block timestamp the log was emitted in
+### 5. Retrieve the block timestamp the log was emitted in
 
 Since the message identifier requires the block timestamp, fetch the block info to get the timestamp.
 
