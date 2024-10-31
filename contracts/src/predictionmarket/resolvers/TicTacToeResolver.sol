@@ -10,7 +10,7 @@ import { PredictionMarket } from "../PredictionMarket.sol";
 import { TicTacToe } from "../../tictactoe/TicTacToe.sol";
 
 contract TicTacToeGameResolver is IMarketResolver {
-    // @notice TicTacToe contract address
+    // @notice TicTacToe contract
     TicTacToe public game;
 
     // @notice Current outcome of the game

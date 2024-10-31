@@ -11,10 +11,10 @@ import { TicTacToeGameResolver } from "../resolvers/TicTacToeResolver.sol";
 import { TicTacToe } from "../../tictactoe/TicTacToe.sol";
 
 contract TicTacToePredictionMarketFactory {
-    // @notice TicTacToe contract address
+    // @notice TicTacToe contract
     TicTacToe public game;
 
-    // @notice PredictionMarket contract address
+    // @notice PredictionMarket contract
     PredictionMarket public predictionMarket;
 
     // @notice Emitted when a new market for tictactoe is created

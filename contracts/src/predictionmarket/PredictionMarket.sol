@@ -22,6 +22,15 @@ struct Market {
     uint256 ethBalance;
 }
 
+// @notice emitted when a resolver has decided the outcome for a market
+error ResolverOutcomeDecided();
+
+// @notice emitted when no value is sent to a payable function
+error NoValue();
+
+// @notice emitted when there is insufficient liquidity in the market
+error InsufficientLiquidity();
+
 // @notice A very basic implementation of a prediction market.
 //         1. We only support markets with a yes or no outcome.
 //         2. Once a bet is placed, we do not allow swapping out of a position with the market directly.
@@ -54,7 +63,7 @@ contract PredictionMarket {
     // @notice create and seed a new prediction market with liquidity
     // @param _resolver contract identifying the outcome for an open market
     function newMarket(IMarketResolver _resolver) public payable {
-        require(_resolver.outcome() == MarketOutcome.UNDECIDED);
+        if (_resolver.outcome() != MarketOutcome.UNDECIDED) revert ResolverOutcomeDecided();
 
         Market storage market = markets[_resolver];
         market.status = MarketStatus.OPEN;
@@ -75,7 +84,7 @@ contract PredictionMarket {
     // @param _resolver contract identifying the outcome for an open market
     function resolveMarket(IMarketResolver _resolver) public {
         Market storage market = markets[_resolver];
-        require(market.status == MarketStatus.OPEN);
+        if (market.status == MarketStatus.CLOSED) revert ResolverOutcomeDecided();
 
         // Market must be resolvable
         MarketOutcome outcome = _resolver.outcome();
@@ -92,32 +101,30 @@ contract PredictionMarket {
     // @notice Entry point for adding liquidity into the specified market
     // @param _resolver contract identifying the outcome for an open market
     function addLiquidity(IMarketResolver _resolver) public payable {
-        require(msg.value > 0);
+        if (msg.value == 0) revert NoValue();
         uint256 ethAmount = msg.value;
 
         Market storage market = markets[_resolver];
-        require(market.status == MarketStatus.OPEN);
+        if (market.status == MarketStatus.CLOSED) revert ResolverOutcomeDecided();
 
-        uint256 lpAmount;
+        uint256 lpAmount = ethAmount;
+
         uint256 yesAmount;
         uint256 noAmount;
 
         if (market.lpToken.totalSupply() == 0) {
             // Initial liquidity
-            lpAmount = ethAmount;
             yesAmount = ethAmount;
             noAmount = ethAmount;
         } else {
             // Add liquidity according to the current ratios of the market
             uint256 yesBalance = market.yesToken.balanceOf(address(this));
             uint256 noBalance = market.noToken.balanceOf(address(this));
+            uint256 lpSupply = market.lpToken.totalSupply();
             
             // Calculate tokens to mint based on current pool ratios
-            yesAmount = (ethAmount * yesBalance) / market.ethBalance;
-            noAmount = (ethAmount * noBalance) / market.ethBalance;
-            
-            // LP tokens are minted proportionally to ETH contribution
-            lpAmount = (ethAmount * market.lpToken.totalSupply()) / market.ethBalance;
+            yesAmount = (ethAmount * yesBalance) / lpSupply;
+            noAmount = (ethAmount * noBalance) / lpSupply;
         }
 
         // Hold pool assets
@@ -130,6 +137,12 @@ contract PredictionMarket {
         emit LiquidityAdded(_resolver, msg.sender, ethAmount);
     }
 
+    // @notice calculate the amount of outcome tokens to receive for a given amount of ETH
+    // @param _resolver contract identifying the outcome for an open market
+    // @param _outcome the outcome to buy
+    // @param ethAmountIn the amount of ETH to buy
+    // @dev Held Invariant: `yes_balance * no_balance = K` Where K is the total amount of liquidity. The outcome tokens
+    //      are backed 1:1 with eth which allows eth to always be the input for the swap for either outcome token.
     function calcOutcomeOut(IMarketResolver _resolver, MarketOutcome _outcome, uint256 ethAmountIn) public view returns (uint256) {
         Market memory market = markets[_resolver];
         uint256 yesBalance = market.yesToken.balanceOf(address(this));
@@ -145,23 +158,23 @@ contract PredictionMarket {
     // @param _resolver contract identifying the outcome for an open market
     // @param _outcome the outcome to buy
     function buyOutcome(IMarketResolver _resolver, MarketOutcome _outcome) public payable {
-        require(msg.value > 0);
+        if (msg.value == 0) revert NoValue();
         require(_outcome == MarketOutcome.YES || _outcome == MarketOutcome.NO);
 
         uint256 amountIn = msg.value;
 
         // Market must be tradeable & liquid with the amount eth in
         Market storage market = markets[_resolver];
-        require(market.status == MarketStatus.OPEN);
-        require(market.ethBalance > amountIn);
+        if (market.status == MarketStatus.CLOSED) revert ResolverOutcomeDecided();
 
         // Compute trade amounts
         uint256 amountOut = calcOutcomeOut(_resolver, _outcome, amountIn);
         MintableBurnableERC20 outcomeToken = _outcome == MarketOutcome.YES ? market.yesToken : market.noToken; 
+        if (amountOut > outcomeToken.balanceOf(address(this))) revert InsufficientLiquidity();
 
         // Perform swap
         market.ethBalance += amountIn;
-        outcomeToken.transfer(address(this), amountOut);
+        outcomeToken.transfer(msg.sender, amountOut);
         emit BetPlaced(_resolver, msg.sender, _outcome, amountIn, amountOut);
     }
 
