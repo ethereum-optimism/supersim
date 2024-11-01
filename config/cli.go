@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
@@ -14,6 +13,7 @@ import (
 
 const (
 	ForkCommandName = "fork"
+	DocsCommandName = "docs"
 
 	AdminPortFlagName = "admin.port"
 
@@ -28,9 +28,16 @@ const (
 
 	InteropEnabledFlagName   = "interop.enabled"
 	InteropAutoRelayFlagName = "interop.autorelay"
-
-	DocsFlagName = "docs"
 )
+
+var documentationLinks = []struct {
+	url  string
+	text string
+}{
+	{"https://specs.optimism.io/interop/overview.html", "Superchain Interop Specs"},
+	{"https://docs.optimism.io/", "Optimism Documentation"},
+	{"https://supersim.pages.dev/", "Supersim Documentation"},
+}
 
 func BaseCLIFlags(envPrefix string) []cli.Flag {
 	return []cli.Flag{
@@ -63,12 +70,6 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "Directory to store logs",
 			Value:   "",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "LOGS_DIRECTORY"),
-		},
-		&cli.BoolFlag{
-			Name:    DocsFlagName,
-			Usage:   "Display available docs links",
-			Value:   false,
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "DOCS"),
 		},
 	}
 }
@@ -137,11 +138,6 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 	}
 
-	if ctx.Bool(DocsFlagName) {
-		printDocLinks()
-		os.Exit(0)
-	}
-
 	if ctx.Command.Name == ForkCommandName {
 		cfg.ForkConfig = &ForkCLIConfig{
 			L1ForkHeight: ctx.Uint64(L1ForkHeightFlagName),
@@ -182,19 +178,10 @@ func (c *CLIConfig) Check() error {
 	return nil
 }
 
-func printDocLinks() {
-	links := []struct {
-		url  string
-		text string
-	}{
-		{"https://specs.optimism.io/interop/overview.html", "Superchain Interop Specs"},
-		{"https://docs.optimism.io/", "Optimism Documentation"},
-		{"https://supersim.pages.dev/", "Supersim Documentation"},
-	}
-
+func PrintDocLinks() {
 	fmt.Printf("Here are the available documentation links:\n\n")
 
-	for _, link := range links {
+	for _, link := range documentationLinks {
 		fmt.Printf("\033]8;;%s\033\\%s\033]8;;\033\\\n", link.url, link.text)
 	}
 }
