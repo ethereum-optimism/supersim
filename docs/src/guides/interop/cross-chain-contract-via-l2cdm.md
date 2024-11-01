@@ -8,8 +8,8 @@ This guide walks through the `CrossChainPingPong.sol` contract, focusing on high
   - [Flow](#flow)
     - [1. Contract Deployment](#1-contract-deployment)
     - [2. Hit the Ball (Starting Move)](#2-hit-the-ball-starting-move)
-    - [3. Receive on Desintation Chain](#3-receive-on-destination-chain)
-    - [4. Contiue Game (Hit)](#4-continue-game-hit)
+    - [3. Receive on Destination Chain](#3-receive-on-destination-chain)
+    - [4. Continue Game (Hit)](#4-continue-game-hit)
 - [Walkthrough](#walkthrough)
   - [Initializing contract state](#initializing-contract-state)
     - [Constructor Setup](#constructor-setup)
@@ -128,7 +128,7 @@ function hitBallTo(uint256 _toChainId) public {
     ...
 }
 ```
-- The `ball` contract variable is populated on the chain, indicating it's presence
+- The `ball` contract variable is populated on the chain, indicating its presence
 - The destination must be a different chain
 
 #### 2. Define The Receiving Handler
