@@ -14,12 +14,13 @@ Grab the balance of the sender account on L2:
 cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545
 ```
 
-**2. Call `bridgeETH` function on the `L1StandardBridgeProxy` contract on the L1 (chain 900)**
+**2. Send Ether to `OptimismPortal` contract of the respective L1 (on chain 900)**
 
-Initiate a bridge transaction on the L1:
+Initiate a bridge transaction on the L1:<br>
+*In the case of the chain 901 the contract is `0x37a418800d0c812A9dE83Bc80e993A6b76511B57`* 
 
 ```sh
-cast send 0xa01ae68902e205B420FD164435F299E07b0C778b "bridgeETH(uint32 _minGasLimit, bytes calldata _extraData)" 50000 0x --value 0.1ether --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+cast send 0x37a418800d0c812A9dE83Bc80e993A6b76511B57 --value 0.1ether --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
 
 **3. Check the balance on the L2 (chain 901)**
