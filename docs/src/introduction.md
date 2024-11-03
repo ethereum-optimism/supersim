@@ -2,7 +2,7 @@
 
 Supersim is a lightweight tool to simulate the Superchain (with a single L1 and multiple OP-Stack L2s).
 
-Run multiple local nodes with one command, and coordinate message passing between these chains.
+Run multiple local nodes with one command, and coordinate messages passing between these chains.
 
 It does not require a complicated devnet setup and is run using cli commands with configuration options that fall back to sensible defaults if they are not specified. Each chain is an instance of [anvil](https://book.getfoundry.sh/reference/anvil/), though future versions may support other local testing tools.
 
