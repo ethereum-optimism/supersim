@@ -1,7 +1,7 @@
 <!-- omit in toc -->
 # Included contracts
 
-The chain environment includes contracts already deployed to help replicate the Superchain environment. You can see an example of contract addresses for a L2 system [here](/docs/src/chain-environment/network-details/op-chain-a.md).
+The chain environment includes contracts already deployed to help replicate the Superchain environment. You can see an example of contract addresses for an L2 system [here](/docs/src/chain-environment/network-details/op-chain-a.md).
 
 - [OP Stack system contracts (L1)](#op-stack-system-contracts-l1)
 - [OP Stack L2 contracts (L2)](#op-stack-l2-contracts-l2)
