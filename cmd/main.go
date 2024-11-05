@@ -66,6 +66,11 @@ func main() {
 			Flags:  append(config.ForkCLIFlags(envVarPrefix), baseFlags...),
 			Action: cliapp.LifecycleCmd(SupersimMain),
 		},
+		{
+			Name:   config.DocsCommandName,
+			Usage:  "Display available docs links",
+			Action: cliapp.LifecycleCmd(SupersimMain),
+		},
 	}
 
 	ctx := ctxinterrupt.WithSignalWaiterMain(context.Background())
@@ -87,6 +92,12 @@ func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Li
 	cfg, err := config.ReadCLIConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("invalid cli config: %w", err)
+	}
+
+	if ctx.Command.Name == config.DocsCommandName {
+		config.PrintDocLinks()
+		closeApp(nil)
+		os.Exit(0)
 	}
 
 	// use config and setup supersim
