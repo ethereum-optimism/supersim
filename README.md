@@ -244,7 +244,7 @@ Supersim enables fast, local iteration on cross-chain features, with a simple de
 
 ## 😎 Awesome Supersim
 
-Below a list of all kinds of interesting projects built with Supersim - If you have a project built with Supersim and want to list it here, just open a PR to this readme and add it here below! 
+Below, find a list of all kinds of interesting projects built with Supersim - If you have a project built with Supersim and want to list it here, just open a PR to this readme and add it here! 
 
 - [Hyperlane DevX Demo](https://github.com/ethereum-optimism/supersim/tree/main/integrations/hyperlane) - A demo for the developer experience  when using Hyperlane as a wrapper over OP's Native Interop
 - [Infinity Pets](https://github.com/karlfloersch/infinity-pets) - An example of horizontally scalable smart contract system and frontend application
