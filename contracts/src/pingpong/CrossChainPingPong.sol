@@ -65,6 +65,10 @@ contract CrossChainPingPong {
         }
     }
 
+    function setMessenger(address _messenger) public {
+        messenger = IL2ToL2CrossDomainMessenger(_messenger);
+    }
+
     /**
      * @notice Hit the ball to a specified destination chain.
      * @param _toChainId The chain id of the destination
