@@ -1,0 +1,12 @@
+import { Address } from 'viem';
+
+// Prediction Market
+export const PREDICTION_MARKET_ADDRESS: Address = '0xB56c594E63057461812Ea3aFAE68dBFbf0cdF12a'
+
+// Factories
+export const BLOCKHASHMARKET_FACTORY_ADDRESS: Address = '0x00eb107E788E020B07304e8a713252133ae07614'
+export const TICTACTOE_FACTORY_ADDRESS: Address = '0x849883427425582fe0af41c082C7793E0B3a26fD'
+
+// Market Related Contracts
+export const BLOCKHASH_EMITTER: Address = '0x5209d6eFE46e89212b2f53162b78D787DA14D02D'
+export const TICTACTOE_ADDRESS: Address = '0x823E35A4eAB40A75EF05C5c7746EA47e9ceD252c'
