@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { MintableBurnableERC20 } from "../../src/predictionmarket/utils/MintableBurnableERC20.sol";
-import { MarketOutcome } from "../../src/predictionmarket/MarketResolver.sol";
+import {MintableBurnableERC20} from "../../src/predictionmarket/utils/MintableBurnableERC20.sol";
+import {MarketOutcome} from "../../src/predictionmarket/MarketResolver.sol";
+import {MockResolver} from "../../src/predictionmarket/resolvers/MockResolver.sol";
 import {
     Market,
     MarketStatus,
@@ -12,8 +13,6 @@ import {
     ResolverOutcomeDecided,
     PredictionMarket
 } from "../../src/predictionmarket/PredictionMarket.sol";
-
-import { TestResolver } from "./TestResolver.sol";
 
 contract PredictionMarketTest is Test {
     PredictionMarket public predictionMarket;
@@ -23,7 +22,7 @@ contract PredictionMarketTest is Test {
     }
 
     function test_newMarket_succeeds() public {
-        TestResolver testResolver = new TestResolver();
+        MockResolver testResolver = new MockResolver();
         predictionMarket.newMarket(testResolver);
 
         (MarketStatus status, MarketOutcome outcome, , , , ) = predictionMarket.markets(testResolver);
@@ -32,7 +31,7 @@ contract PredictionMarketTest is Test {
     }
 
     function test_newMarket_addLiquidityWithValue_succeeds() public {
-        TestResolver testResolver = new TestResolver();
+        MockResolver testResolver = new MockResolver();
         predictionMarket.newMarket{ value: 1 ether }(testResolver);
 
         (, , MintableBurnableERC20 yesToken, MintableBurnableERC20 noToken, MintableBurnableERC20 lpToken, uint256 liquidity) =
@@ -48,7 +47,7 @@ contract PredictionMarketTest is Test {
     }
 
     function test_newMarket_decidedOutcome_reverts() public {
-        TestResolver testResolver = new TestResolver();
+        MockResolver testResolver = new MockResolver();
         testResolver.setOutcome(MarketOutcome.YES);
 
         vm.expectRevert(ResolverOutcomeDecided.selector);
@@ -57,7 +56,7 @@ contract PredictionMarketTest is Test {
 
     function test_buyOutcome_succeeds() public {
         // seed some liquidity
-        TestResolver testResolver = new TestResolver();
+        MockResolver testResolver = new MockResolver();
         predictionMarket.newMarket{ value: 1 ether }(testResolver);
 
         (, , MintableBurnableERC20 yesToken, , ,) = predictionMarket.markets(testResolver);
@@ -74,7 +73,7 @@ contract PredictionMarketTest is Test {
     }
 
     function test_addLiquidity_succeeds() public {
-        TestResolver testResolver = new TestResolver();
+        MockResolver testResolver = new MockResolver();
         predictionMarket.newMarket{ value: 1 ether }(testResolver);
 
         // double the liquidity
@@ -92,7 +91,7 @@ contract PredictionMarketTest is Test {
     }
 
     function test_addLiquidity_noValue_reverts() public {
-        TestResolver testResolver = new TestResolver();
+        MockResolver testResolver = new MockResolver();
         predictionMarket.newMarket(testResolver);
 
         vm.expectRevert(NoValue.selector);
@@ -100,7 +99,7 @@ contract PredictionMarketTest is Test {
     }
 
     function test_addLiquidity_atFairOdds_succeeds() public {
-        TestResolver testResolver = new TestResolver();
+        MockResolver testResolver = new MockResolver();
         predictionMarket.newMarket{ value: 1 ether }(testResolver);
 
         (, , MintableBurnableERC20 yesToken, MintableBurnableERC20 noToken, MintableBurnableERC20 lpToken, ) =

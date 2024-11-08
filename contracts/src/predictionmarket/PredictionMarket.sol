@@ -46,19 +46,19 @@ contract PredictionMarket {
     event NewMarket(IMarketResolver _resolver, address yesToken, address noToken, address lpToken);
 
     // @notice emitted when a market has been resolved
-    event MarketResolved(IMarketResolver _resolver, MarketOutcome outcome);
+    event MarketResolved(IMarketResolver indexed _resolver, MarketOutcome outcome);
 
     // @notice emitted when liquidity has been added to a market
-    event LiquidityAdded(IMarketResolver resolver, address provider, uint256 ethAmount);
+    event LiquidityAdded(IMarketResolver indexed resolver, address provider, uint256 ethAmount);
 
     // @notice emitted when liquidity has been redeemed from a market
-    event LiquidityRedeemed(IMarketResolver resolver, address redeemer, uint256 yesAmount, uint256 noAmount);
+    event LiquidityRedeemed(IMarketResolver indexed resolver, address redeemer, uint256 yesAmount, uint256 noAmount);
 
     // @notice emitted when a bet has been placed on a market
-    event BetPlaced(IMarketResolver resolver, address bettor, MarketOutcome outcome, uint256 amountIn, uint256 amountOut);
+    event BetPlaced(IMarketResolver indexed resolver, address bettor, MarketOutcome outcome, uint256 amountIn, uint256 amountOut);
 
     // @notice emitted when an outcome token has been redeemed
-    event OutcomeRedeemed(IMarketResolver resolver, address redeemer, MarketOutcome outcome, uint256 amount);
+    event OutcomeRedeemed(IMarketResolver indexed resolver, address redeemer, MarketOutcome outcome, uint256 amount);
 
     // @notice create and seed a new prediction market with liquidity
     // @param _resolver contract identifying the outcome for an open market

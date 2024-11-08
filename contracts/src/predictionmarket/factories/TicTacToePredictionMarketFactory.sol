@@ -20,6 +20,9 @@ contract TicTacToePredictionMarketFactory {
     // @notice Emitted when a new market for tictactoe is created
     event TicTacToeMarketCreated(IMarketResolver resolver);
 
+    // @notice indiciator if a resolver originated from this factory
+    mapping(IMarketResolver => bool) public fromFactory;
+
     // @notice create a new factory instantiating prediction markets based
     //         on the outcome of the TicTacToe games
     // @param _gameAddress TicTacToe contract address
@@ -47,6 +50,8 @@ contract TicTacToePredictionMarketFactory {
         // Create resolver for the game & market
         IMarketResolver resolver = new TicTacToeGameResolver(game, chainId, gameId, opponent);
         predictionMarket.newMarket(resolver);
+
+        fromFactory[resolver] = true;
         
         emit TicTacToeMarketCreated(resolver);
     }
