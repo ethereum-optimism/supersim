@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum/go-ethereum/log"
@@ -32,6 +33,9 @@ func TestAdminServerBasicFunctionality(t *testing.T) {
 	require.Equal(t, "OK", string(body))
 
 	require.NoError(t, adminServer.Stop(context.Background()))
+
+	// Add a small delay to ensure the server has fully stopped
+	time.Sleep(100 * time.Millisecond)
 
 	resp, err = http.Get(fmt.Sprintf("%s/ready", adminServer.Endpoint()))
 	if err == nil {
