@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/event"
 )
 
 const (
@@ -173,7 +174,11 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 		"L2NativeSuperchainERC20",
 		common.HexToAddress(l2NativeSuperchainERC20Addr),
 		func(client *ethclient.Client) (CrosschainEventWatcher, error) {
-			return bindings.NewL2NativeSuperchainERC20(common.HexToAddress(l2NativeSuperchainERC20Addr), client)
+			contract, err := bindings.NewL2NativeSuperchainERC20(common.HexToAddress(l2NativeSuperchainERC20Addr), client)
+			if err != nil {
+				return nil, err
+			}
+			return &L2NativeSuperchainERC20Wrapper{contract}, nil
 		},
 	)
 
@@ -181,7 +186,11 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 		"SuperchainWETH",
 		predeploys.SuperchainWETHAddr,
 		func(client *ethclient.Client) (CrosschainEventWatcher, error) {
-			return bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, client)
+			contract, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, client)
+			if err != nil {
+				return nil, err
+			}
+			return &SuperchainWETHWrapper{contract}, nil
 		},
 	)
 
@@ -221,8 +230,73 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 
 // CrosschainEventWatcher interface defines the methods needed for watching crosschain events
 type CrosschainEventWatcher interface {
-	WatchCrosschainMint(opts *bind.WatchOpts, sink interface{}, arg0 []common.Address) (event.Subscription, error)
-	WatchCrosschainBurn(opts *bind.WatchOpts, sink interface{}, arg0 []common.Address) (event.Subscription, error)
+	WatchCrosschainMint(opts *bind.WatchOpts, sink chan<- interface{}, arg0 []common.Address) (event.Subscription, error)
+	WatchCrosschainBurn(opts *bind.WatchOpts, sink chan<- interface{}, arg0 []common.Address) (event.Subscription, error)
+}
+
+// Create wrapper types that implement the interface
+type L2NativeSuperchainERC20Wrapper struct {
+	*bindings.L2NativeSuperchainERC20
+}
+
+func (w *L2NativeSuperchainERC20Wrapper) WatchCrosschainMint(opts *bind.WatchOpts, sink chan<- interface{}, arg0 []common.Address) (event.Subscription, error) {
+	typedSink := make(chan *bindings.L2NativeSuperchainERC20CrosschainMint)
+	sub, err := w.L2NativeSuperchainERC20.WatchCrosschainMint(opts, typedSink, arg0)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		for event := range typedSink {
+			sink <- event
+		}
+	}()
+	return sub, nil
+}
+
+func (w *L2NativeSuperchainERC20Wrapper) WatchCrosschainBurn(opts *bind.WatchOpts, sink chan<- interface{}, arg0 []common.Address) (event.Subscription, error) {
+	typedSink := make(chan *bindings.L2NativeSuperchainERC20CrosschainBurn)
+	sub, err := w.L2NativeSuperchainERC20.WatchCrosschainBurn(opts, typedSink, arg0)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		for event := range typedSink {
+			sink <- event
+		}
+	}()
+	return sub, nil
+}
+
+type SuperchainWETHWrapper struct {
+	*bindings.SuperchainWETH
+}
+
+func (w *SuperchainWETHWrapper) WatchCrosschainMint(opts *bind.WatchOpts, sink chan<- interface{}, arg0 []common.Address) (event.Subscription, error) {
+	typedSink := make(chan *bindings.SuperchainWETHCrosschainMint)
+	sub, err := w.SuperchainWETH.WatchCrosschainMint(opts, typedSink, arg0)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		for event := range typedSink {
+			sink <- event
+		}
+	}()
+	return sub, nil
+}
+
+func (w *SuperchainWETHWrapper) WatchCrosschainBurn(opts *bind.WatchOpts, sink chan<- interface{}, arg0 []common.Address) (event.Subscription, error) {
+	typedSink := make(chan *bindings.SuperchainWETHCrosschainBurn)
+	sub, err := w.SuperchainWETH.WatchCrosschainBurn(opts, typedSink, arg0)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		for event := range typedSink {
+			sink <- event
+		}
+	}()
+	return sub, nil
 }
 
 func (opSim *OpSimulator) watchCrosschainEvents(contractName string, addr common.Address, newWatcher func(*ethclient.Client) (CrosschainEventWatcher, error)) {
