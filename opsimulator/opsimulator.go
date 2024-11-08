@@ -168,37 +168,48 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 		}
 	})
 
-	// Log L2NativeSuperchainERC20 events
 	opSim.bgTasks.Go(func() error {
-		superchainERC20, err := bindings.NewL2NativeSuperchainERC20(common.HexToAddress(l2NativeSuperchainERC20Addr), opSim.Chain.EthClient())
-		if err != nil {
-			return fmt.Errorf("failed to create L2NativeSuperchainERC20 contract: %w", err)
+		contracts := []struct {
+			name    string
+			address common.Address
+		}{
+			{"SuperchainWETH", predeploys.SuperchainWETHAddr},
+			{"L2NativeSuperchainERC20", common.HexToAddress(l2NativeSuperchainERC20Addr)},
 		}
 
-		mintEventChan := make(chan *bindings.L2NativeSuperchainERC20CrosschainMint)
-		mintSub, err := superchainERC20.WatchCrosschainMint(&bind.WatchOpts{Context: opSim.bgTasksCtx}, mintEventChan, nil)
-		if err != nil {
-			return fmt.Errorf("failed to subscribe to L2NativeSuperchainERC20#CrosschainMint: %w", err)
-		}
+		for _, c := range contracts {
+			contract, err := bindings.NewSuperchainERC20(c.address, opSim.Chain.EthClient())
+			if err != nil {
+				return fmt.Errorf("failed to create %s contract: %w", c.name, err)
+			}
 
-		burnEventChan := make(chan *bindings.L2NativeSuperchainERC20CrosschainBurn)
-		burnSub, err := superchainERC20.WatchCrosschainBurn(&bind.WatchOpts{Context: opSim.bgTasksCtx}, burnEventChan, nil)
-		if err != nil {
-			return fmt.Errorf("failed to subscribe to L2NativeSuperchainERC20#CrosschainBurn: %w", err)
-		}
+			mintEventChan := make(chan *bindings.SuperchainERC20CrosschainMint)
+			burnEventChan := make(chan *bindings.SuperchainERC20CrosschainBurn)
 
-		for {
-			select {
-			case event := <-mintEventChan:
-				opSim.log.Info("L2NativeSuperchainERC20#CrosschainMint", "to", event.To, "amount", event.Amount)
-			case event := <-burnEventChan:
-				opSim.log.Info("L2NativeSuperchainERC20#CrosschainBurn", "from", event.From, "amount", event.Amount)
-			case <-opSim.bgTasksCtx.Done():
-				mintSub.Unsubscribe()
-				burnSub.Unsubscribe()
-				return nil
+			mintSub, err := contract.WatchCrosschainMint(&bind.WatchOpts{Context: opSim.bgTasksCtx}, mintEventChan, nil)
+			if err != nil {
+				return fmt.Errorf("failed to subscribe to %s#CrosschainMint: %w", c.name, err)
+			}
+
+			burnSub, err := contract.WatchCrosschainBurn(&bind.WatchOpts{Context: opSim.bgTasksCtx}, burnEventChan, nil)
+			if err != nil {
+				return fmt.Errorf("failed to subscribe to %s#CrosschainBurn: %w", c.name, err)
+			}
+
+			for {
+				select {
+				case event := <-mintEventChan:
+					opSim.log.Info(c.name+"#CrosschainMint", "to", event.To, "amount", event.Amount)
+				case event := <-burnEventChan:
+					opSim.log.Info(c.name+"#CrosschainBurn", "from", event.From, "amount", event.Amount)
+				case <-opSim.bgTasksCtx.Done():
+					mintSub.Unsubscribe()
+					burnSub.Unsubscribe()
+					return nil
+				}
 			}
 		}
+		return nil
 	})
 
 	// Log SuperchainTokenBridge events
@@ -229,39 +240,6 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			case <-opSim.bgTasksCtx.Done():
 				sendSub.Unsubscribe()
 				relaySub.Unsubscribe()
-				return nil
-			}
-		}
-	})
-
-	// Log SuperchainWETH events
-	opSim.bgTasks.Go(func() error {
-		superchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, opSim.Chain.EthClient())
-		if err != nil {
-			return fmt.Errorf("failed to create SuperchainWETH contract: %w", err)
-		}
-
-		mintEventChan := make(chan *bindings.SuperchainWETHCrosschainMint)
-		mintSub, err := superchainWETH.WatchCrosschainMint(&bind.WatchOpts{Context: opSim.bgTasksCtx}, mintEventChan, nil)
-		if err != nil {
-			return fmt.Errorf("failed to subscribe to SuperchainWETH#SendERC20: %w", err)
-		}
-
-		burnEventChan := make(chan *bindings.SuperchainWETHCrosschainBurn)
-		burnSub, err := superchainWETH.WatchCrosschainBurn(&bind.WatchOpts{Context: opSim.bgTasksCtx}, burnEventChan, nil)
-		if err != nil {
-			return fmt.Errorf("failed to subscribe to SuperchainWETH#RelayERC20: %w", err)
-		}
-
-		for {
-			select {
-			case event := <-mintEventChan:
-				opSim.log.Info("SuperchainWETH#CrosschainMint", "to", event.To, "amount", event.Amount)
-			case event := <-burnEventChan:
-				opSim.log.Info("SuperchainWETH#CrosschainBurn", "from", event.From, "amount", event.Amount)
-			case <-opSim.bgTasksCtx.Done():
-				mintSub.Unsubscribe()
-				burnSub.Unsubscribe()
 				return nil
 			}
 		}
