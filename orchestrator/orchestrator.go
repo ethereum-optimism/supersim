@@ -65,6 +65,9 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		if networkConfig.InteropAutoRelay {
 			o.l2ToL2MsgRelayer = interop.NewL2ToL2MessageRelayer(log)
 		}
+		if networkConfig.InteropInclusionDelay {
+			o.l2ToL2MsgIndexer.SetInteropDelay(true)
+		}
 	}
 
 	return &o, nil

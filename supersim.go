@@ -59,6 +59,7 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 
 	// Forward interop config
 	networkConfig.InteropAutoRelay = cliConfig.InteropAutoRelay
+	networkConfig.InteropInclusionDelay = cliConfig.InteropInclusionDelay
 
 	o, err := orchestrator.NewOrchestrator(log, closeApp, &networkConfig)
 	if err != nil {

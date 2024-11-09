@@ -26,8 +26,9 @@ const (
 
 	LogsDirectoryFlagName = "logs.directory"
 
-	InteropEnabledFlagName   = "interop.enabled"
-	InteropAutoRelayFlagName = "interop.autorelay"
+	InteropEnabledFlagName        = "interop.enabled"
+	InteropAutoRelayFlagName      = "interop.autorelay"
+	InteropInclusionDelayFlagName = "interop.inclusiondelay"
 )
 
 var documentationLinks = []struct {
@@ -102,6 +103,12 @@ func ForkCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "enable interop predeploy and functionality",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_ENABLED"),
 		},
+		&cli.BoolFlag{
+			Name:    InteropInclusionDelayFlagName,
+			Value:   false, // enabled by default
+			Usage:   "enable interop inclusion delay functionality",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_INCLUSION_DELAY"),
+		},
 	}
 }
 
@@ -110,7 +117,8 @@ type ForkCLIConfig struct {
 	Network      string
 	Chains       []string
 
-	InteropEnabled bool
+	InteropEnabled        bool
+	InteropInclusionDelay bool
 }
 
 type CLIConfig struct {
@@ -119,7 +127,8 @@ type CLIConfig struct {
 	L1Port         uint64
 	L2StartingPort uint64
 
-	InteropAutoRelay bool
+	InteropAutoRelay      bool
+	InteropInclusionDelay bool
 
 	LogsDirectory string
 
@@ -133,7 +142,8 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		L1Port:         ctx.Uint64(L1PortFlagName),
 		L2StartingPort: ctx.Uint64(L2StartingPortFlagName),
 
-		InteropAutoRelay: ctx.Bool(InteropAutoRelayFlagName),
+		InteropAutoRelay:      ctx.Bool(InteropAutoRelayFlagName),
+		InteropInclusionDelay: ctx.Bool(InteropInclusionDelayFlagName),
 
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 	}
@@ -144,7 +154,8 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 			Network:      ctx.String(NetworkFlagName),
 			Chains:       ctx.StringSlice(ChainsFlagName),
 
-			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
+			InteropEnabled:        ctx.Bool(InteropEnabledFlagName),
+			InteropInclusionDelay: ctx.Bool(InteropInclusionDelayFlagName),
 		}
 	}
 
