@@ -16,12 +16,14 @@ abstract contract SuperOwnable is Ownable, ISemver {
     error IdOriginNotSuperOwnable();
     error DataNotCrosschainOwnershipTransfer();
     error OwnershipNotInSync();
+    error NoOwnershipChange();
 
     // =============================================================
     // Events
     // =============================================================
 
-    event CrosschainOwnershipTransfer(address indexed previousOwner, address indexed newOwner);
+    event InitiateCrosschainOwnershipTransfer(address indexed previousOwner, address indexed newOwner);
+    event CrosschainOwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     // =============================================================
     // External Functions
@@ -33,17 +35,25 @@ abstract contract SuperOwnable is Ownable, ISemver {
         return "1.0.0-beta.1";
     }
 
-    function updateOwner(ICrossL2Inbox.Identifier calldata _identifier, bytes calldata _data) external {
+    /**
+     * @notice Updates the owner of the contract.
+     * @param _identifier The identifier of the cross-chain message.
+     * @param _data The data of the cross-chain message.
+     */
+    function updateCrosschainOwner(ICrossL2Inbox.Identifier calldata _identifier, bytes calldata _data) external virtual {
         if (_identifier.origin != address(this)) revert IdOriginNotSuperOwnable();
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_identifier, keccak256(_data));
 
         // Decode `CrosschainOwnershipTransfer` event
         bytes32 selector = abi.decode(_data[:32], (bytes32));
-        if (selector != CrosschainOwnershipTransfer.selector) revert DataNotCrosschainOwnershipTransfer();
+        if (selector != InitiateCrosschainOwnershipTransfer.selector) revert DataNotCrosschainOwnershipTransfer();
         (address previousOwner, address newOwner) = abi.decode(_data[32:], (address, address));
         if (previousOwner != owner()) revert OwnershipNotInSync();
+        if (newOwner == owner()) revert NoOwnershipChange();
 
         _setOwner(newOwner);
+
+        emit CrosschainOwnershipTransferred(previousOwner, newOwner);
     }
 
     // =============================================================
@@ -52,10 +62,11 @@ abstract contract SuperOwnable is Ownable, ISemver {
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * emits an extra event to notify the cross-chain contract of the ownership change.
      * Internal function without access restriction.
      */
     function _setOwner(address newOwner) internal override {
-        emit CrosschainOwnershipTransfer(owner(), newOwner);
+        emit InitiateCrosschainOwnershipTransfer(owner(), newOwner);
         super._setOwner(newOwner);
     }
 }
