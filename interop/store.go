@@ -38,6 +38,7 @@ func (s *L2ToL2MessageLifecycle) WithRelayedTxHash(hash common.Hash) *L2ToL2Mess
 		RelayedTxHash:  hash,
 	}
 }
+
 func (s *L2ToL2MessageLifecycle) Status() L2ToL2MessageState {
 	if s.RelayedTxHash != (common.Hash{}) {
 		return Relayed
@@ -46,12 +47,6 @@ func (s *L2ToL2MessageLifecycle) Status() L2ToL2MessageState {
 		return FailedRelay
 	}
 	return Sent
-
-}
-
-type L2ToL2MessageSentEvent struct {
-	Message *L2ToL2Message
-	TxHash  common.Hash
 }
 
 type L2ToL2MessageStoreEntry struct {
@@ -59,6 +54,8 @@ type L2ToL2MessageStoreEntry struct {
 	identifier *bindings.ICrossL2InboxIdentifier
 	log        *types.Log
 	lifecycle  *L2ToL2MessageLifecycle
+	payload    []byte // Cache message payload
+	mu         sync.RWMutex
 }
 
 func (e *L2ToL2MessageStoreEntry) Message() *L2ToL2Message {
@@ -70,7 +67,13 @@ func (e *L2ToL2MessageStoreEntry) Identifier() *bindings.ICrossL2InboxIdentifier
 }
 
 func (e *L2ToL2MessageStoreEntry) MessagePayload() []byte {
-	return ExecutingMessagePayloadBytes(e.log)
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	
+	if e.payload == nil {
+		e.payload = ExecutingMessagePayloadBytes(e.log)
+	}
+	return e.payload
 }
 
 func (e *L2ToL2MessageStoreEntry) Lifecycle() *L2ToL2MessageLifecycle {
@@ -124,12 +127,14 @@ func (s *L2ToL2MessageStore) UpdateLifecycle(msgHash common.Hash, updater Update
 	}
 
 	newEntry := &L2ToL2MessageStoreEntry{
-		message:   entry.message,
-		lifecycle: newLifecycle,
+		message:    entry.message,
+		identifier: entry.identifier,
+		log:        entry.log,
+		lifecycle:  newLifecycle,
+		payload:    entry.payload,  // Preserve cached payload
 	}
 
 	s.entryByHash[msgHash] = newEntry
-
 	return newEntry, nil
 }
 
@@ -143,8 +148,8 @@ func NewL2ToL2MessageStoreManager() *L2ToL2MessageStoreManager {
 	}
 }
 
-func (s *L2ToL2MessageStoreManager) Get(msgHash common.Hash) (*L2ToL2MessageStoreEntry, error) {
-	return s.store.Get(msgHash)
+func (m *L2ToL2MessageStoreManager) Get(msgHash common.Hash) (*L2ToL2MessageStoreEntry, error) {
+	return m.store.Get(msgHash)
 }
 
 func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log, identifier *bindings.ICrossL2InboxIdentifier) (*L2ToL2MessageStoreEntry, error) {
@@ -158,15 +163,11 @@ func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log, identifier *
 		return nil, fmt.Errorf("failed to calculate message hash: %w", err)
 	}
 
-	lifecycle := &L2ToL2MessageLifecycle{
-		SentTxHash: log.TxHash,
-	}
-
 	entry := &L2ToL2MessageStoreEntry{
 		message:    msg,
 		identifier: identifier,
-		lifecycle:  lifecycle,
 		log:        log,
+		lifecycle:  &L2ToL2MessageLifecycle{SentTxHash: log.TxHash},
 	}
 
 	if err := m.store.Set(msgHash, entry); err != nil {
@@ -179,18 +180,12 @@ func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log, identifier *
 func (m *L2ToL2MessageStoreManager) HandleRelayedEvent(log *types.Log) (*L2ToL2MessageStoreEntry, error) {
 	msgHash := log.Topics[3]
 
-	updatedEntry, err := m.store.UpdateLifecycle(msgHash, func(lifecycle *L2ToL2MessageLifecycle) (*L2ToL2MessageLifecycle, error) {
+	return m.store.UpdateLifecycle(msgHash, func(lifecycle *L2ToL2MessageLifecycle) (*L2ToL2MessageLifecycle, error) {
 		if lifecycle.RelayedTxHash != (common.Hash{}) {
 			return nil, fmt.Errorf("message already relayed")
 		}
-
 		return lifecycle.WithRelayedTxHash(log.TxHash), nil
 	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to update lifecycle for relayed event: %w", err)
-	}
-
-	return updatedEntry, nil
 }
 
 func (m *L2ToL2MessageStoreManager) HandleFailedRelayedEvent(log *types.Log) (*L2ToL2MessageStoreEntry, error) {
@@ -200,16 +195,10 @@ func (m *L2ToL2MessageStoreManager) HandleFailedRelayedEvent(log *types.Log) (*L
 
 	msgHash := log.Topics[3]
 
-	updatedEntry, err := m.store.UpdateLifecycle(msgHash, func(lifecycle *L2ToL2MessageLifecycle) (*L2ToL2MessageLifecycle, error) {
+	return m.store.UpdateLifecycle(msgHash, func(lifecycle *L2ToL2MessageLifecycle) (*L2ToL2MessageLifecycle, error) {
 		if lifecycle.RelayedTxHash != (common.Hash{}) {
 			return nil, fmt.Errorf("message already relayed")
 		}
-
 		return lifecycle.WithFailedTxHash(log.TxHash), nil
 	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to update lifecycle for failed relayed event: %w", err)
-	}
-	return updatedEntry, nil
 }
