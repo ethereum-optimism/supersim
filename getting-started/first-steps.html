@@ -163,10 +163,23 @@
 <p>Grab the balance of the sender account on L2:</p>
 <pre><code class="language-sh">cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545
 </code></pre>
-<p><strong>2. Call <code>bridgeETH</code> function on the <code>L1StandardBridgeProxy</code> contract on the L1 (chain 900)</strong></p>
-<p>Initiate a bridge transaction on the L1:</p>
-<pre><code class="language-sh">cast send 0xa01ae68902e205B420FD164435F299E07b0C778b "bridgeETH(uint32 _minGasLimit, bytes calldata _extraData)" 50000 0x --value 0.1ether --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+<br>
+<p><strong>2. Send the Ether</strong>
+<br />
+It exists two  different methods to do this action</p>
+<h3 id="first-method---optimismportal"><a class="header" href="#first-method---optimismportal">First method - <code>OptimismPortal</code></a></h3>
+<p>Send the Ether to <code>OptimismPortal</code> contract of the respective L2 (on chain 900)**</p>
+<p>Initiate a bridge transaction on the L1:<br>
+<em>In the case of the chain 901 the contract is <code>0x37a418800d0c812A9dE83Bc80e993A6b76511B57</code></em></p>
+<pre><code class="language-sh">cast send 0x37a418800d0c812A9dE83Bc80e993A6b76511B57 --value 0.1ether --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
+<h3 id="second-method---l1standardbridge"><a class="header" href="#second-method---l1standardbridge">Second method - <code>L1StandardBridge</code></a></h3>
+<p><strong>Call <code>bridgeETH</code> function on the <code>L1StandardBridgeProxy</code> / <code>L1StandardBridge</code> contract of the respective L2 on L1 (chain 900)</strong>
+<em>In the case of the chain 901 the contract is <code>0x8d515eb0e5F293B16B6bBCA8275c060bAe0056B0</code></em></p>
+<p>Initiate a bridge transaction on the L1:</p>
+<pre><code class="language-sh">cast send 0x8d515eb0e5F293B16B6bBCA8275c060bAe0056B0 "bridgeETH(uint32 _minGasLimit, bytes calldata _extraData)" 50000 0x --value 0.1ether --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+</code></pre>
+<br>
 <p><strong>3. Check the balance on the L2 (chain 901)</strong></p>
 <p>Verify that the ETH balance of the sender has increased on the L2:</p>
 <pre><code class="language-sh">cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545
