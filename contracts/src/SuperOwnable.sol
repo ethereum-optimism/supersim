@@ -17,22 +17,55 @@ abstract contract SuperOwnable is Ownable, ISemver {
     error DataNotCrosschainOwnershipTransfer();
     error OwnershipNotInSync();
     error NoOwnershipChange();
-
+    error ChainNotSuperAdmin();
+    
     // =============================================================
     // Events
     // =============================================================
 
     event InitiateCrosschainOwnershipTransfer(address indexed previousOwner, address indexed newOwner);
     event CrosschainOwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event SuperAdminChainIdUpdated(uint64 indexed superAdminChainId);
+    event InitiateCrosschainSuperAdminChainIdUpdate(uint64 indexed superAdminChainId, uint64 indexed newSuperAdminChainId);
+    
+    // =============================================================
+    // State Variables
+    // =============================================================
 
+    uint64 superAdminChainId;
+    
     // =============================================================
     // External Functions
     // =============================================================
 
+    function _initializeSuperOwner(uint64 newSuperAdminchainId, address newOwner) internal virtual {
+        _setOwner(newOwner);
+        _setSuperAdminChainId(newSuperAdminchainId);
+    }
+        
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.1
     function version() external view virtual returns (string memory) {
         return "1.0.0-beta.1";
+    }
+
+    function _setSuperAdminChainId(uint64 newSuperAdminChainId) internal virtual {
+        superAdminChainId = newSuperAdminChainId;
+        emit SuperAdminChainIdUpdated(superAdminChainId);
+    }
+
+    function updateCrosschainSuperAdminChainId(ICrossL2Inbox.Identifier calldata _identifier, bytes calldata _data) external virtual {
+        if (_identifier.origin != address(this)) revert IdOriginNotSuperOwnable();
+        ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_identifier, keccak256(_data));
+
+        (uint64 newSuperAdminChainId) = abi.decode(_data, (uint64));
+        _setSuperAdminChainId(newSuperAdminChainId);
+    }
+
+    function updateSuperAdminChainId(uint64 newSuperAdminChainId) external virtual onlyOwner {
+        if (block.chainid != superAdminChainId) revert ChainNotSuperAdmin();
+        _setSuperAdminChainId(newSuperAdminChainId);
+        emit InitiateCrosschainSuperAdminChainIdUpdate(superAdminChainId, newSuperAdminChainId);
     }
 
     /**
