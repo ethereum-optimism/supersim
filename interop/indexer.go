@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ethereum/go-ethereum/log"
 
@@ -26,7 +25,6 @@ type L2ToL2MessageIndexer struct {
 	tasks        tasks.Group
 	tasksCtx     context.Context
 	tasksCancel  context.CancelFunc
-	interopDelay bool
 }
 
 func NewL2ToL2MessageIndexer(log log.Logger) *L2ToL2MessageIndexer {
@@ -131,10 +129,6 @@ func (i *L2ToL2MessageIndexer) processEventLog(ctx context.Context, backend ethe
 			return fmt.Errorf("failed to handle SentMessage event: %w", err)
 		}
 
-		if i.interopDelay {
-			time.Sleep(5 * time.Second)
-		}
-
 		i.logMessageEvent("SentMessage", entry, log)
 		i.eb.Publish(sentMessageFromSourceKey(entry.message.Source), entry)
 		i.eb.Publish(sentMessageToDestinationKey(entry.message.Destination), entry)
@@ -192,8 +186,4 @@ func getIdentifier(ctx context.Context, backend ethereum.ChainReader, chainID ui
 		Timestamp:   big.NewInt(int64(blockHeader.Time)),
 		ChainId:     big.NewInt(int64(chainID)),
 	}, nil
-}
-
-func (i *L2ToL2MessageIndexer) SetInteropDelay(delay bool) {
-	i.interopDelay = delay
 }
