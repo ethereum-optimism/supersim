@@ -13,6 +13,7 @@ import (
 
 const (
 	ForkCommandName = "fork"
+	DocsCommandName = "docs"
 
 	AdminPortFlagName = "admin.port"
 
@@ -28,6 +29,15 @@ const (
 	InteropEnabledFlagName   = "interop.enabled"
 	InteropAutoRelayFlagName = "interop.autorelay"
 )
+
+var documentationLinks = []struct {
+	url  string
+	text string
+}{
+	{"https://specs.optimism.io/interop/overview.html", "Superchain Interop Specs"},
+	{"https://docs.optimism.io/", "Optimism Documentation"},
+	{"https://supersim.pages.dev/", "Supersim Documentation"},
+}
 
 func BaseCLIFlags(envPrefix string) []cli.Flag {
 	return []cli.Flag{
@@ -166,4 +176,12 @@ func (c *CLIConfig) Check() error {
 	}
 
 	return nil
+}
+
+func PrintDocLinks() {
+	fmt.Printf("Here are the available documentation links:\n\n")
+
+	for _, link := range documentationLinks {
+		fmt.Printf("\033]8;;%s\033\\%s\033]8;;\033\\\n", link.url, link.text)
+	}
 }
