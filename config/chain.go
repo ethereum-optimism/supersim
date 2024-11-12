@@ -72,9 +72,9 @@ type NetworkConfig struct {
 
 	// Signaled higher up as a way to generally
 	// check if Interop is enabled
-	InteropEnabled        bool
-	InteropAutoRelay      bool
-	InteropInclusionDelay bool
+	InteropEnabled   bool
+	InteropAutoRelay bool
+	InteropDelay     uint64
 }
 
 type Chain interface {

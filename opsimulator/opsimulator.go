@@ -44,8 +44,7 @@ type OpSimulator struct {
 
 	l1Chain config.Chain
 
-	interopDelayEnabled bool
-	interopDelayTime    uint64
+	interopDelay uint64
 
 	// Long running tasks
 	bgTasks       tasks.Group
@@ -63,7 +62,7 @@ type OpSimulator struct {
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
-func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelayEnabled bool) *OpSimulator {
+func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, l2Chain.EthClient())
@@ -74,12 +73,11 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain,
 	return &OpSimulator{
 		Chain: l2Chain,
 
-		log:                 log.New("chain.id", l2Chain.Config().ChainID),
-		port:                port,
-		l1Chain:             l1Chain,
-		crossL2Inbox:        crossL2Inbox,
-		interopDelayEnabled: interopDelayEnabled,
-		interopDelayTime:    5,
+		log:          log.New("chain.id", l2Chain.Config().ChainID),
+		port:         port,
+		l1Chain:      l1Chain,
+		crossL2Inbox: crossL2Inbox,
+		interopDelay: interopDelay,
 
 		bgTasksCtx:    bgTasksCtx,
 		bgTasksCancel: bgTasksCancel,
@@ -417,7 +415,7 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 				return fmt.Errorf("executing and initiating message fields are not equal")
 			}
 
-			if opSim.interopDelayEnabled {
+			if opSim.interopDelay != 0 {
 				// Add time check after getting the initiating message block header
 				executingBlockHeader, err := opSim.ethClient.HeaderByNumber(ctx, nil)
 				if err != nil {
@@ -425,7 +423,7 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 				}
 
 				// Check if at least 5 seconds have passed
-				if executingBlockHeader.Time < identifierBlockHeader.Time+opSim.interopDelayTime {
+				if executingBlockHeader.Time < identifierBlockHeader.Time+opSim.interopDelay {
 					return fmt.Errorf("not enough time has passed since initiating message (need 5s, got %ds)",
 						executingBlockHeader.Time-identifierBlockHeader.Time)
 				}

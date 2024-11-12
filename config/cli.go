@@ -28,7 +28,7 @@ const (
 
 	InteropEnabledFlagName        = "interop.enabled"
 	InteropAutoRelayFlagName      = "interop.autorelay"
-	InteropInclusionDelayFlagName = "interop.inclusiondelay"
+	InteropInclusionDelayFlagName = "interop.delay"
 )
 
 var documentationLinks = []struct {
@@ -118,7 +118,7 @@ type ForkCLIConfig struct {
 	Chains       []string
 
 	InteropEnabled        bool
-	InteropInclusionDelay bool
+	InteropInclusionDelay uint64
 }
 
 type CLIConfig struct {
@@ -128,7 +128,7 @@ type CLIConfig struct {
 	L2StartingPort uint64
 
 	InteropAutoRelay      bool
-	InteropInclusionDelay bool
+	InteropInclusionDelay uint64
 
 	LogsDirectory string
 
@@ -143,7 +143,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		L2StartingPort: ctx.Uint64(L2StartingPortFlagName),
 
 		InteropAutoRelay:      ctx.Bool(InteropAutoRelayFlagName),
-		InteropInclusionDelay: ctx.Bool(InteropInclusionDelayFlagName),
+		InteropInclusionDelay: ctx.Uint64(InteropInclusionDelayFlagName),
 
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 	}
@@ -155,7 +155,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 			Chains:       ctx.StringSlice(ChainsFlagName),
 
 			InteropEnabled:        ctx.Bool(InteropEnabledFlagName),
-			InteropInclusionDelay: ctx.Bool(InteropInclusionDelayFlagName),
+			InteropInclusionDelay: ctx.Uint64(InteropInclusionDelayFlagName),
 		}
 	}
 
