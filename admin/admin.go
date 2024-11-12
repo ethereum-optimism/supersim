@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strconv"
+	"strings"
 	"sync"
-	"time"
 
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,7 +23,13 @@ type AdminServer struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
+	rpcServer *rpc.Server // New field for the RPC server
+
 	port uint64
+}
+
+type RPCMethods struct {
+	Log log.Logger
 }
 
 func NewAdminServer(log log.Logger, port uint64) *AdminServer {
@@ -44,6 +50,16 @@ func (s *AdminServer) Start(ctx context.Context) error {
 	s.port = uint64(addr.Port)
 	s.log.Debug("admin server listening", "port", s.port)
 
+	// Set up RPC server
+	rpcServer := rpc.NewServer()
+	rpcMethods := &RPCMethods{Log: s.log}
+
+	if err := rpcServer.RegisterName("Admin", rpcMethods); err != nil {
+		return fmt.Errorf("failed to register RPC methods: %w", err)
+	}
+
+	s.log.Debug("admin HTTP server listening", "port", s.port)
+
 	ctx, s.cancel = context.WithCancel(ctx)
 
 	s.wg.Add(1)
@@ -52,6 +68,22 @@ func (s *AdminServer) Start(ctx context.Context) error {
 		if err := s.srv.Serve(listener); err != nil && err != http.ErrServerClosed {
 			s.log.Error("failed to serve", "error", err)
 		}
+	}()
+
+	// Start RPC server in a goroutine
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+
+		http.Handle("/", rpcServer)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", s.port+1), nil)
+
+		if err != nil {
+			s.log.Error("failed to listen to RPC connection", "error", err)
+			return
+		}
+
+		s.log.Debug("admin RPC server listening", "port", s.port+1)
 	}()
 
 	go func() {
@@ -77,6 +109,18 @@ func (s *AdminServer) Endpoint() string {
 	return fmt.Sprintf("http://127.0.0.1:%d", s.port)
 }
 
+func (s *AdminServer) RPCEndpoint() string {
+	return fmt.Sprintf("http://127.0.0.1:%d", s.port+1)
+}
+
+func (s *AdminServer) ConfigAsString() string {
+	var b strings.Builder
+	fmt.Fprintln(&b, "Admin Config")
+	fmt.Fprintln(&b, "-----------------------")
+	fmt.Fprintf(&b, "Admin Server: %s\n\n", s.RPCEndpoint())
+	return b.String()
+}
+
 func filterByPort(chains []*config.ChainConfig, port uint64) *config.ChainConfig {
 	for _, chain := range chains {
 		if chain.ChainID == port {
@@ -95,41 +139,11 @@ func setupRouter() *gin.Engine {
 		c.String(http.StatusOK, "OK")
 	})
 
-	router.GET("/getL1Addresses/:chainID", func(c *gin.Context) {
-		cliConfig := &config.CLIConfig{
-			L1Port:         8545,
-			L2StartingPort: 9545,
-		}
-		networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()), cliConfig.LogsDirectory)
-
-		chainIDStr := c.Param("chainID")
-
-		chainID, err := strconv.ParseUint(chainIDStr, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chainID format. Must be a positive integer."})
-			return
-		}
-
-		l2Configs := make([]*config.ChainConfig, len(networkConfig.L2Configs))
-		for i := range networkConfig.L2Configs {
-			l2Configs[i] = &networkConfig.L2Configs[i]
-		}
-
-		filteredChain := filterByPort(l2Configs, chainID)
-
-		if filteredChain == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid chainID."})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"L1 Address": gin.H{
-				"OptimismPortal":         filteredChain.L2Config.L1Addresses.OptimismPortalProxy,
-				"L1CrossDomainMessenger": filteredChain.L2Config.L1Addresses.L1CrossDomainMessengerProxy,
-				"L1StandardBridge":       filteredChain.L2Config.L1Addresses.L1StandardBridgeProxy,
-			},
-		})
-	})
-
 	return router
+}
+
+func (m *RPCMethods) Ready(args *struct{}, reply *string) error {
+	*reply = "RPC Server is Ready"
+	m.Log.Info("Ready method called via RPC")
+	return nil
 }
