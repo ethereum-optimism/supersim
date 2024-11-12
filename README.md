@@ -165,7 +165,7 @@ For more **detailed instructions** and **usage guides**, refer to the [**📚 Su
 
 ## 🌐 Fork mode
 
-If you're relying on contracts already deployed on testnet / mainnet chains, use fork mode to simulate and interact with the state of the chain without needing to re-deploy or modify the contracts.
+If you're relying on contracts already deployed on testnet/mainnet chains, use fork mode to simulate and interact with the state of the chain without needing to re-deploy or modify the contracts.
 
 Locally fork any of the available chains in a superchain network of the [superchain registry](https://github.com/ethereum-optimism/superchain-registry), default `mainnet` versions. 
 
