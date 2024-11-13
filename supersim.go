@@ -65,15 +65,16 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 		return nil, fmt.Errorf("failed to create orchestrator")
 	}
 
-	adminServer := admin.NewAdminServer(log, cliConfig.AdminPort)
+	adminServer := admin.NewAdminServer(log, cliConfig.AdminPort, &networkConfig)
+
 	return &Supersim{log, cliConfig, &networkConfig, o, adminServer}, nil
 }
 
 func (s *Supersim) Start(ctx context.Context) error {
 	s.log.Info("starting supersim")
-	if err := s.Orchestrator.Start(ctx); err != nil {
-		return fmt.Errorf("orchestrator failed to start: %w", err)
-	}
+	// if err := s.Orchestrator.Start(ctx); err != nil {
+	// 	return fmt.Errorf("orchestrator failed to start: %w", err)
+	// }
 	if err := s.adminServer.Start(ctx); err != nil {
 		return fmt.Errorf("admin server failed to start: %w", err)
 	}
@@ -86,9 +87,9 @@ func (s *Supersim) Start(ctx context.Context) error {
 func (s *Supersim) Stop(ctx context.Context) error {
 	var errs []error
 	s.log.Info("stopping supersim")
-	if err := s.Orchestrator.Stop(ctx); err != nil {
-		errs = append(errs, fmt.Errorf("orchestrator failed to stop: %w", err))
-	}
+	// if err := s.Orchestrator.Stop(ctx); err != nil {
+	// 	errs = append(errs, fmt.Errorf("orchestrator failed to stop: %w", err))
+	// }
 	if err := s.adminServer.Stop(ctx); err != nil {
 		errs = append(errs, fmt.Errorf("admin server failed to stop: %w", err))
 	}
@@ -109,6 +110,7 @@ func (s *Supersim) ConfigAsString() string {
 	fmt.Fprintln(&b, "Supersim Config")
 	fmt.Fprintln(&b, "-----------------------")
 	fmt.Fprintf(&b, "Admin Server: %s\n\n", s.adminServer.Endpoint())
+	fmt.Fprintf(&b, s.adminServer.ConfigAsString())
 
 	fmt.Fprintln(&b, "Chain Configuration")
 	fmt.Fprintln(&b, "-----------------------")

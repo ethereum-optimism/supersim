@@ -14,8 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var networkConfig *config.NetworkConfig
-
 type AdminServer struct {
 	log log.Logger
 
@@ -23,17 +21,19 @@ type AdminServer struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	rpcServer *rpc.Server // New field for the RPC server
+	rpcServer     *rpc.Server // New field for the RPC server
+	networkConfig *config.NetworkConfig
 
 	port uint64
 }
 
 type RPCMethods struct {
-	Log log.Logger
+	Log           log.Logger
+	networkConfig *config.NetworkConfig
 }
 
-func NewAdminServer(log log.Logger, port uint64) *AdminServer {
-	return &AdminServer{log: log, port: port}
+func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig) *AdminServer {
+	return &AdminServer{log: log, port: port, networkConfig: networkConfig}
 }
 
 func (s *AdminServer) Start(ctx context.Context) error {
@@ -52,7 +52,7 @@ func (s *AdminServer) Start(ctx context.Context) error {
 
 	// Set up RPC server
 	rpcServer := rpc.NewServer()
-	rpcMethods := &RPCMethods{Log: s.log}
+	rpcMethods := &RPCMethods{Log: s.log, networkConfig: s.networkConfig}
 
 	if err := rpcServer.RegisterName("Admin", rpcMethods); err != nil {
 		return fmt.Errorf("failed to register RPC methods: %w", err)
