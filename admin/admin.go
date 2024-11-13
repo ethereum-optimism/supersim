@@ -131,7 +131,7 @@ func (m *RPCMethods) GetConfig(args *struct{}) *config.NetworkConfig {
 func (m *RPCMethods) GetL1Addresses(args *uint64) *map[string]string {
 	chain := filterByChainID(m.NetworkConfig.L2Configs, *args)
 	if chain == nil {
-		m.Log.Debug("chain not found")
+		m.Log.Error("chain not found", "chainID", *args)
 		return nil
 	}
 
