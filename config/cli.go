@@ -26,9 +26,9 @@ const (
 
 	LogsDirectoryFlagName = "logs.directory"
 
-	InteropEnabledFlagName        = "interop.enabled"
-	InteropAutoRelayFlagName      = "interop.autorelay"
-	InteropInclusionDelayFlagName = "interop.delay"
+	InteropEnabledFlagName   = "interop.enabled"
+	InteropAutoRelayFlagName = "interop.autorelay"
+	InteropDelayFlagName     = "interop.delay"
 )
 
 var documentationLinks = []struct {
@@ -104,7 +104,7 @@ func ForkCLIFlags(envPrefix string) []cli.Flag {
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_ENABLED"),
 		},
 		&cli.BoolFlag{
-			Name:    InteropInclusionDelayFlagName,
+			Name:    InteropDelayFlagName,
 			Value:   false, // enabled by default
 			Usage:   "enable interop inclusion delay functionality",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_INCLUSION_DELAY"),
@@ -117,8 +117,8 @@ type ForkCLIConfig struct {
 	Network      string
 	Chains       []string
 
-	InteropEnabled        bool
-	InteropInclusionDelay uint64
+	InteropEnabled bool
+	InteropDelay   uint64
 }
 
 type CLIConfig struct {
@@ -127,8 +127,8 @@ type CLIConfig struct {
 	L1Port         uint64
 	L2StartingPort uint64
 
-	InteropAutoRelay      bool
-	InteropInclusionDelay uint64
+	InteropAutoRelay bool
+	InteropDelay     uint64
 
 	LogsDirectory string
 
@@ -142,8 +142,8 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		L1Port:         ctx.Uint64(L1PortFlagName),
 		L2StartingPort: ctx.Uint64(L2StartingPortFlagName),
 
-		InteropAutoRelay:      ctx.Bool(InteropAutoRelayFlagName),
-		InteropInclusionDelay: ctx.Uint64(InteropInclusionDelayFlagName),
+		InteropAutoRelay: ctx.Bool(InteropAutoRelayFlagName),
+		InteropDelay:     ctx.Uint64(InteropDelayFlagName),
 
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 	}
@@ -154,8 +154,8 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 			Network:      ctx.String(NetworkFlagName),
 			Chains:       ctx.StringSlice(ChainsFlagName),
 
-			InteropEnabled:        ctx.Bool(InteropEnabledFlagName),
-			InteropInclusionDelay: ctx.Uint64(InteropInclusionDelayFlagName),
+			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
+			InteropDelay:   ctx.Uint64(InteropDelayFlagName),
 		}
 	}
 
