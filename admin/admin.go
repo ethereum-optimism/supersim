@@ -29,7 +29,7 @@ type AdminServer struct {
 
 type RPCMethods struct {
 	Log           log.Logger
-	networkConfig *config.NetworkConfig
+	NetworkConfig *config.NetworkConfig
 }
 
 func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig) *AdminServer {
@@ -52,7 +52,10 @@ func (s *AdminServer) Start(ctx context.Context) error {
 
 	// Set up RPC server
 	rpcServer := rpc.NewServer()
-	rpcMethods := &RPCMethods{Log: s.log, networkConfig: s.networkConfig}
+	rpcMethods := &RPCMethods{
+		Log:           s.log,
+		NetworkConfig: s.networkConfig, // Ensure this is correctly set
+	}
 
 	if err := rpcServer.RegisterName("Admin", rpcMethods); err != nil {
 		return fmt.Errorf("failed to register RPC methods: %w", err)
@@ -121,10 +124,10 @@ func (s *AdminServer) ConfigAsString() string {
 	return b.String()
 }
 
-func filterByPort(chains []*config.ChainConfig, port uint64) *config.ChainConfig {
+func filterByChainID(chains []config.ChainConfig, chainId uint64) *config.ChainConfig {
 	for _, chain := range chains {
-		if chain.ChainID == port {
-			return chain
+		if chain.ChainID == chainId {
+			return &chain
 		}
 	}
 	return nil
@@ -142,8 +145,27 @@ func setupRouter() *gin.Engine {
 	return router
 }
 
-func (m *RPCMethods) Ready(args *struct{}, reply *string) error {
-	*reply = "RPC Server is Ready"
+func (m *RPCMethods) Ready(args *struct{}) string {
 	m.Log.Info("Ready method called via RPC")
-	return nil
+	return "RPC Server is Ready"
+}
+
+func (m *RPCMethods) GetConfig(args *struct{}) *config.NetworkConfig {
+
+	m.Log.Info("GetConfig called")
+	return m.NetworkConfig
+}
+
+func (m *RPCMethods) GetL1Addresses(args *uint64) *map[string]string {
+	chain := filterByChainID(m.NetworkConfig.L2Configs, *args)
+	if chain == nil {
+		m.Log.Info("chain not found")
+		return nil
+	}
+	reply := map[string]string{
+		"L2CrossDomainMessenger": chain.L2Config.L1Addresses.L1CrossDomainMessengerProxy.String(),
+		"L2StandardBridge":       chain.L2Config.L1Addresses.L1StandardBridgeProxy.String(),
+	}
+	m.Log.Info("GetL2Addresses called", "chainId", *args)
+	return &reply
 }
