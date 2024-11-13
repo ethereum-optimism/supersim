@@ -20,7 +20,6 @@ type AdminServer struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	rpcServer     *rpc.Server
 	networkConfig *config.NetworkConfig
 
 	port uint64

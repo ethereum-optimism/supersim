@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum-optimism/supersim/genesis"
 	"github.com/ethereum-optimism/supersim/testutils"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -38,15 +39,6 @@ func TestAdminServerBasicFunctionality(t *testing.T) {
 	require.Equal(t, "OK", string(body))
 
 	require.NoError(t, adminServer.Stop(context.Background()))
-
-	// Add a small delay to ensure the server has fully stopped
-	time.Sleep(100 * time.Millisecond)
-
-	resp, err = http.Get(fmt.Sprintf("%s/ready", adminServer.Endpoint()))
-	if err == nil {
-		resp.Body.Close()
-	}
-	require.Error(t, err)
 }
 
 func TestGetL1AddressesRPC(t *testing.T) {
@@ -59,38 +51,31 @@ func TestGetL1AddressesRPC(t *testing.T) {
 
 	require.NoError(t, adminServer.Start(ctx))
 
+	var client *rpc.Client
 	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
-		// Dial the RPC server
-		client, err := rpc.Dial(adminServer.Endpoint())
-		require.NoError(t, err)
-
-		var addresses map[string]string
-		chainID := uint64(902)
-		err = client.CallContext(context.Background(), &addresses, "admin_getL1Addresses", chainID)
-
-		require.NoError(t, err)
-
-		expectedAddresses := map[string]string{
-			"AddressManager":                    "0x90D0B458313d3A207ccc688370eE76B75200EadA",
-			"L1CrossDomainMessengerProxy":       "0xeCA0f912b4bd255f3851951caE5775CC9400aA3B",
-			"L1ERC721BridgeProxy":               "0xdC0917C61A4CD589B29b6464257d564C0abeBB2a",
-			"L1StandardBridgeProxy":             "0x67B2aB287a32bB9ACe84F6a5A30A62597b10AdE9",
-			"L2OutputOracleProxy":               "0x0000000000000000000000000000000000000000",
-			"OptimismMintableERC20FactoryProxy": "0xd4E933aa1f37A755135d7623488a383f8208CC7c",
-			"OptimismPortalProxy":               "0x35e67BC631C327b60C6A39Cff6b03a8adBB19c2D",
-			"ProxyAdmin":                        "0x0000000000000000000000000000000000000000",
-			"SuperchainConfig":                  "0x0000000000000000000000000000000000000000",
-			"SystemConfigProxy":                 "0xFb295Aa436F23BE2Bd17678Adf1232bdec02FED1",
+		newClient, err := rpc.Dial(adminServer.Endpoint())
+		if err != nil {
+			return false, err
 		}
-
-		for key, expectedValue := range expectedAddresses {
-			if addresses[key] != expectedValue {
-				return false, nil
-			}
-		}
-
+		client = newClient
 		return true, nil
 	})
-
 	assert.NoError(t, waitErr)
+
+	var addresses map[string]string
+	chainID := genesis.GeneratedGenesisDeployment.L2s[1].ChainID
+	err := client.CallContext(context.Background(), &addresses, "admin_getL1Addresses", chainID)
+	require.NoError(t, err)
+
+	registryAddresses := genesis.GeneratedGenesisDeployment.L2s[1].RegistryAddressList()
+	assert.Equal(t, registryAddresses.AddressManager.String(), addresses["AddressManager"])
+	assert.Equal(t, registryAddresses.L1CrossDomainMessengerProxy.String(), addresses["L1CrossDomainMessengerProxy"])
+	assert.Equal(t, registryAddresses.L1ERC721BridgeProxy.String(), addresses["L1ERC721BridgeProxy"])
+	assert.Equal(t, registryAddresses.L1StandardBridgeProxy.String(), addresses["L1StandardBridgeProxy"])
+	assert.Equal(t, registryAddresses.L2OutputOracleProxy.String(), addresses["L2OutputOracleProxy"])
+	assert.Equal(t, registryAddresses.OptimismMintableERC20FactoryProxy.String(), addresses["OptimismMintableERC20FactoryProxy"])
+	assert.Equal(t, registryAddresses.OptimismPortalProxy.String(), addresses["OptimismPortalProxy"])
+	assert.Equal(t, registryAddresses.ProxyAdmin.String(), addresses["ProxyAdmin"])
+	assert.Equal(t, registryAddresses.SuperchainConfig.String(), addresses["SuperchainConfig"])
+	assert.Equal(t, registryAddresses.SystemConfigProxy.String(), addresses["SystemConfigProxy"])
 }

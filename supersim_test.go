@@ -810,7 +810,6 @@ func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 }
 
 func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
-	t.Parallel()
 
 	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
@@ -909,8 +908,6 @@ func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 }
 
 func TestInteropInvariantSucceedsWithDelay(t *testing.T) {
-	t.Parallel()
-
 	testSuite := createInteropTestSuite(t, config.CLIConfig{
 		InteropDelay: 2, // 2 second delay
 	})
@@ -969,14 +966,11 @@ func TestInteropInvariantSucceedsWithDelay(t *testing.T) {
 }
 
 func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
-	t.Parallel()
-
 	testSuite := createInteropTestSuite(t, config.CLIConfig{
 		InteropDelay: 5,
 	})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
 	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
@@ -996,9 +990,6 @@ func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
-	// Try to execute immediately without waiting for delay time
-	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
@@ -1012,8 +1003,12 @@ func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
 	require.NoError(t, err)
 
+	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
+	require.NoError(t, err)
+
+	_, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
+
 	// Should fail because the delay time hasn't passed
-	_, err = crossL2Inbox.ExecuteMessage(transactor, identifier, fromAddress, initiatingMessageLog.Data)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "delay time not passed")
+	require.Contains(t, err.Error(), "not enough time has passed since initiating message")
 }

@@ -110,7 +110,7 @@ func (s *Supersim) ConfigAsString() string {
 
 	fmt.Fprintln(&b, "Supersim Config")
 	fmt.Fprintln(&b, "-----------------------")
-	fmt.Fprintf(&b, s.adminServer.ConfigAsString())
+	fmt.Fprintln(&b, s.adminServer.ConfigAsString())
 
 	fmt.Fprintln(&b, "Chain Configuration")
 	fmt.Fprintln(&b, "-----------------------")
