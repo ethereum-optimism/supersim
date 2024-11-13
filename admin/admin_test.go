@@ -39,6 +39,9 @@ func TestAdminServerBasicFunctionality(t *testing.T) {
 
 	require.NoError(t, adminServer.Stop(context.Background()))
 
+	// Add a small delay to ensure the server has fully stopped
+	time.Sleep(100 * time.Millisecond)
+
 	resp, err = http.Get(fmt.Sprintf("%s/ready", adminServer.Endpoint()))
 	if err == nil {
 		resp.Body.Close()
