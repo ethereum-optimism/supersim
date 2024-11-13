@@ -36,7 +36,7 @@ func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkCo
 }
 
 func (s *AdminServer) Start(ctx context.Context) error {
-	router := setupRouter(s)
+	router := s.setupRouter()
 
 	s.srv = &http.Server{Handler: router}
 
@@ -96,12 +96,11 @@ func filterByChainID(chains []config.ChainConfig, chainId uint64) *config.ChainC
 	return nil
 }
 
-func setupRouter(s *AdminServer) *gin.Engine {
+func (s *AdminServer) setupRouter() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(gin.Recovery())
 
-	// Set up RPC server
 	rpcServer := rpc.NewServer()
 	rpcMethods := &RPCMethods{
 		Log:           s.log,
