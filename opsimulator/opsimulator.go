@@ -44,6 +44,8 @@ type OpSimulator struct {
 
 	l1Chain config.Chain
 
+	interopDelay uint64
+
 	// Long running tasks
 	bgTasks       tasks.Group
 	bgTasksCtx    context.Context
@@ -60,7 +62,7 @@ type OpSimulator struct {
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
-func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain) *OpSimulator {
+func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, l2Chain.EthClient())
@@ -75,6 +77,7 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain,
 		port:         port,
 		l1Chain:      l1Chain,
 		crossL2Inbox: crossL2Inbox,
+		interopDelay: interopDelay,
 
 		bgTasksCtx:    bgTasksCtx,
 		bgTasksCancel: bgTasksCancel,
@@ -410,6 +413,20 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 			initiatingMsgPayloadHash := crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(&initiatingMessageLogs[0]))
 			if common.BytesToHash(executingMessage.MsgHash[:]).Cmp(initiatingMsgPayloadHash) != 0 {
 				return fmt.Errorf("executing and initiating message fields are not equal")
+			}
+
+			if opSim.interopDelay != 0 {
+				// Add time check after getting the initiating message block header
+				header, err := opSim.ethClient.HeaderByNumber(ctx, nil)
+				if err != nil {
+					return fmt.Errorf("failed to fetch executing block header: %w", err)
+				}
+
+				// Check if at least 5 seconds have passed
+				if header.Time < identifierBlockHeader.Time+opSim.interopDelay {
+					return fmt.Errorf("not enough time has passed since initiating message (need 5s, got %ds)",
+						header.Time-identifierBlockHeader.Time)
+				}
 			}
 		}
 	}
