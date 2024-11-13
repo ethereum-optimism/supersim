@@ -72,6 +72,12 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Value:   "",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "LOGS_DIRECTORY"),
 		},
+		&cli.Uint64Flag{
+			Name:    InteropDelayFlagName,
+			Value:   0, // enabled by default
+			Usage:   "Delay before relaying messages sent to the L2ToL2CrossDomainMessenger",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_DELAY"),
+		},
 	}
 }
 
@@ -103,12 +109,6 @@ func ForkCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "enable interop predeploy and functionality",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_ENABLED"),
 		},
-		&cli.BoolFlag{
-			Name:    InteropDelayFlagName,
-			Value:   false, // enabled by default
-			Usage:   "enable interop inclusion delay functionality",
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_INCLUSION_DELAY"),
-		},
 	}
 }
 
@@ -118,7 +118,6 @@ type ForkCLIConfig struct {
 	Chains       []string
 
 	InteropEnabled bool
-	InteropDelay   uint64
 }
 
 type CLIConfig struct {
@@ -155,7 +154,6 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 			Chains:       ctx.StringSlice(ChainsFlagName),
 
 			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
-			InteropDelay:   ctx.Uint64(InteropDelayFlagName),
 		}
 	}
 
