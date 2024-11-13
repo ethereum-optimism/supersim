@@ -417,15 +417,15 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 
 			if opSim.interopDelay != 0 {
 				// Add time check after getting the initiating message block header
-				executingBlockHeader, err := opSim.ethClient.HeaderByNumber(ctx, nil)
+				header, err := opSim.ethClient.HeaderByNumber(ctx, nil)
 				if err != nil {
 					return fmt.Errorf("failed to fetch executing block header: %w", err)
 				}
 
 				// Check if at least 5 seconds have passed
-				if executingBlockHeader.Time < identifierBlockHeader.Time+opSim.interopDelay {
+				if header.Time < identifierBlockHeader.Time+opSim.interopDelay {
 					return fmt.Errorf("not enough time has passed since initiating message (need 5s, got %ds)",
-						executingBlockHeader.Time-identifierBlockHeader.Time)
+						header.Time-identifierBlockHeader.Time)
 				}
 			}
 		}
