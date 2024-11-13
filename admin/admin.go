@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/ethereum-optimism/supersim/config"
@@ -21,7 +20,7 @@ type AdminServer struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	rpcServer     *rpc.Server // New field for the RPC server
+	rpcServer     *rpc.Server
 	networkConfig *config.NetworkConfig
 
 	port uint64
@@ -37,21 +36,7 @@ func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkCo
 }
 
 func (s *AdminServer) Start(ctx context.Context) error {
-	router := setupRouter()
-
-	// Set up RPC server
-	rpcServer := rpc.NewServer()
-	rpcMethods := &RPCMethods{
-		Log:           s.log,
-		NetworkConfig: s.networkConfig, // Ensure this is correctly set
-	}
-
-	if err := rpcServer.RegisterName("admin", rpcMethods); err != nil {
-		return fmt.Errorf("failed to register RPC methods: %w", err)
-	}
-
-	// Mount the RPC server on the root path `/` to handle all RPC requests
-	router.Any("/", gin.WrapH(rpcServer))
+	router := setupRouter(s)
 
 	s.srv = &http.Server{Handler: router}
 
@@ -63,7 +48,7 @@ func (s *AdminServer) Start(ctx context.Context) error {
 	addr := listener.Addr().(*net.TCPAddr)
 
 	s.port = uint64(addr.Port)
-	s.log.Debug("Admin server and RPC server listening on the same port", "port", s.port)
+	s.log.Debug("admin server listening", "port", s.port)
 
 	ctx, s.cancel = context.WithCancel(ctx)
 
@@ -99,9 +84,7 @@ func (s *AdminServer) Endpoint() string {
 }
 
 func (s *AdminServer) ConfigAsString() string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "Admin Server: %s\n\n", s.Endpoint())
-	return b.String()
+	return fmt.Sprintf("Admin Server: %s\n\n", s.Endpoint())
 }
 
 func filterByChainID(chains []config.ChainConfig, chainId uint64) *config.ChainConfig {
@@ -113,34 +96,57 @@ func filterByChainID(chains []config.ChainConfig, chainId uint64) *config.ChainC
 	return nil
 }
 
-func setupRouter() *gin.Engine {
+func setupRouter(s *AdminServer) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(gin.Recovery())
 
+	// Set up RPC server
+	rpcServer := rpc.NewServer()
+	rpcMethods := &RPCMethods{
+		Log:           s.log,
+		NetworkConfig: s.networkConfig,
+	}
+
+	if err := rpcServer.RegisterName("admin", rpcMethods); err != nil {
+		s.log.Error("failed to register RPC methods:", "error", err)
+		return nil
+	}
+
 	router.GET("/ready", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
 	})
+
+	router.POST("/", gin.WrapH(rpcServer))
 
 	return router
 }
 
 func (m *RPCMethods) GetConfig(args *struct{}) *config.NetworkConfig {
 
-	m.Log.Info("GetConfig called")
+	m.Log.Debug("admin_getConfig")
 	return m.NetworkConfig
 }
 
 func (m *RPCMethods) GetL1Addresses(args *uint64) *map[string]string {
 	chain := filterByChainID(m.NetworkConfig.L2Configs, *args)
 	if chain == nil {
-		m.Log.Info("chain not found")
+		m.Log.Debug("chain not found")
 		return nil
 	}
+
 	reply := map[string]string{
-		"L2CrossDomainMessenger": chain.L2Config.L1Addresses.L1CrossDomainMessengerProxy.String(),
-		"L2StandardBridge":       chain.L2Config.L1Addresses.L1StandardBridgeProxy.String(),
+		"AddressManager":                    chain.L2Config.L1Addresses.AddressManager.String(),
+		"L1CrossDomainMessengerProxy":       chain.L2Config.L1Addresses.L1CrossDomainMessengerProxy.String(),
+		"L1ERC721BridgeProxy":               chain.L2Config.L1Addresses.L1ERC721BridgeProxy.String(),
+		"L1StandardBridgeProxy":             chain.L2Config.L1Addresses.L1StandardBridgeProxy.String(),
+		"L2OutputOracleProxy":               chain.L2Config.L1Addresses.L2OutputOracleProxy.String(),
+		"OptimismMintableERC20FactoryProxy": chain.L2Config.L1Addresses.OptimismMintableERC20FactoryProxy.String(),
+		"OptimismPortalProxy":               chain.L2Config.L1Addresses.OptimismPortalProxy.String(),
+		"SystemConfigProxy":                 chain.L2Config.L1Addresses.SystemConfigProxy.String(),
+		"ProxyAdmin":                        chain.L2Config.L1Addresses.ProxyAdmin.String(),
+		"SuperchainConfig":                  chain.L2Config.L1Addresses.SuperchainConfig.String(),
 	}
-	m.Log.Info("GetL2Addresses called", "chainId", *args)
+	m.Log.Debug("admin_getL2Addresses")
 	return &reply
 }
