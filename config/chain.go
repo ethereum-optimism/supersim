@@ -45,6 +45,7 @@ type L2Config struct {
 
 type ChainConfig struct {
 	Name    string
+	Host    string  
 	Port    uint64
 	ChainID uint64
 
@@ -67,6 +68,7 @@ type ChainConfig struct {
 type NetworkConfig struct {
 	L1Config ChainConfig
 
+	L2Host         string 
 	L2StartingPort uint64
 	L2Configs      []ChainConfig
 

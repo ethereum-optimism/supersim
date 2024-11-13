@@ -57,7 +57,13 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 	networkConfig.L1Config.Port = cliConfig.L1Port
 	networkConfig.L2StartingPort = cliConfig.L2StartingPort
 
-	// Forward interop config
+	// Forward host config
+	networkConfig.L1Config.Host = cliConfig.L1Host
+	for i := range networkConfig.L2Configs {
+		networkConfig.L2Configs[i].Host = cliConfig.L2Host
+	}
+
+	// Forward interop config     
 	networkConfig.InteropAutoRelay = cliConfig.InteropAutoRelay
 
 	o, err := orchestrator.NewOrchestrator(log, closeApp, &networkConfig)
