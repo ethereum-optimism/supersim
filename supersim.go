@@ -72,9 +72,9 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 
 func (s *Supersim) Start(ctx context.Context) error {
 	s.log.Info("starting supersim")
-	// if err := s.Orchestrator.Start(ctx); err != nil {
-	// 	return fmt.Errorf("orchestrator failed to start: %w", err)
-	// }
+	if err := s.Orchestrator.Start(ctx); err != nil {
+		return fmt.Errorf("orchestrator failed to start: %w", err)
+	}
 	if err := s.adminServer.Start(ctx); err != nil {
 		return fmt.Errorf("admin server failed to start: %w", err)
 	}
@@ -87,9 +87,9 @@ func (s *Supersim) Start(ctx context.Context) error {
 func (s *Supersim) Stop(ctx context.Context) error {
 	var errs []error
 	s.log.Info("stopping supersim")
-	// if err := s.Orchestrator.Stop(ctx); err != nil {
-	// 	errs = append(errs, fmt.Errorf("orchestrator failed to stop: %w", err))
-	// }
+	if err := s.Orchestrator.Stop(ctx); err != nil {
+		errs = append(errs, fmt.Errorf("orchestrator failed to stop: %w", err))
+	}
 	if err := s.adminServer.Stop(ctx); err != nil {
 		errs = append(errs, fmt.Errorf("admin server failed to stop: %w", err))
 	}
