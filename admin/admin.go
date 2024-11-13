@@ -38,6 +38,21 @@ func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkCo
 
 func (s *AdminServer) Start(ctx context.Context) error {
 	router := setupRouter()
+
+	// Set up RPC server
+	rpcServer := rpc.NewServer()
+	rpcMethods := &RPCMethods{
+		Log:           s.log,
+		NetworkConfig: s.networkConfig, // Ensure this is correctly set
+	}
+
+	if err := rpcServer.RegisterName("admin", rpcMethods); err != nil {
+		return fmt.Errorf("failed to register RPC methods: %w", err)
+	}
+
+	// Mount the RPC server on the root path `/` to handle all RPC requests
+	router.Any("/", gin.WrapH(rpcServer))
+
 	s.srv = &http.Server{Handler: router}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.port))
@@ -48,20 +63,7 @@ func (s *AdminServer) Start(ctx context.Context) error {
 	addr := listener.Addr().(*net.TCPAddr)
 
 	s.port = uint64(addr.Port)
-	s.log.Debug("admin server listening", "port", s.port)
-
-	// Set up RPC server
-	rpcServer := rpc.NewServer()
-	rpcMethods := &RPCMethods{
-		Log:           s.log,
-		NetworkConfig: s.networkConfig, // Ensure this is correctly set
-	}
-
-	if err := rpcServer.RegisterName("Admin", rpcMethods); err != nil {
-		return fmt.Errorf("failed to register RPC methods: %w", err)
-	}
-
-	s.log.Debug("admin HTTP server listening", "port", s.port)
+	s.log.Debug("Admin server and RPC server listening on the same port", "port", s.port)
 
 	ctx, s.cancel = context.WithCancel(ctx)
 
@@ -71,22 +73,6 @@ func (s *AdminServer) Start(ctx context.Context) error {
 		if err := s.srv.Serve(listener); err != nil && err != http.ErrServerClosed {
 			s.log.Error("failed to serve", "error", err)
 		}
-	}()
-
-	// Start RPC server in a goroutine
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-
-		http.Handle("/", rpcServer)
-		err := http.ListenAndServe(fmt.Sprintf(":%d", s.port+1), nil)
-
-		if err != nil {
-			s.log.Error("failed to listen to RPC connection", "error", err)
-			return
-		}
-
-		s.log.Debug("admin RPC server listening", "port", s.port+1)
 	}()
 
 	go func() {
@@ -112,15 +98,9 @@ func (s *AdminServer) Endpoint() string {
 	return fmt.Sprintf("http://127.0.0.1:%d", s.port)
 }
 
-func (s *AdminServer) RPCEndpoint() string {
-	return fmt.Sprintf("http://127.0.0.1:%d", s.port+1)
-}
-
 func (s *AdminServer) ConfigAsString() string {
 	var b strings.Builder
-	fmt.Fprintln(&b, "Admin Config")
-	fmt.Fprintln(&b, "-----------------------")
-	fmt.Fprintf(&b, "Admin Server: %s\n\n", s.RPCEndpoint())
+	fmt.Fprintf(&b, "Admin Server: %s\n\n", s.Endpoint())
 	return b.String()
 }
 
@@ -143,11 +123,6 @@ func setupRouter() *gin.Engine {
 	})
 
 	return router
-}
-
-func (m *RPCMethods) Ready(args *struct{}) string {
-	m.Log.Info("Ready method called via RPC")
-	return "RPC Server is Ready"
 }
 
 func (m *RPCMethods) GetConfig(args *struct{}) *config.NetworkConfig {
