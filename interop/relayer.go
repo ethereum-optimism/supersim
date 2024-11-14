@@ -92,8 +92,8 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 					close(sentMessageCh)
 					return nil
 				case sentMessage := <-sentMessageCh:
-					if err := r.relayMessageWithRetry(l2tol2CDM, transactor, sentMessage, 5); err != nil {
-						r.logger.Debug("failed to relay message after retries", "err", err)
+					if err := r.relayMessageWithRetry(l2tol2CDM, transactor, sentMessage, 1); err != nil {
+						r.logger.Error("failed to relay message after retries", "err", err)
 						return err
 					}
 				}
