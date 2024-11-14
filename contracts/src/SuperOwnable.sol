@@ -9,39 +9,44 @@ import {ISemver} from "@contracts-bedrock/universal/interfaces/ISemver.sol";
 import {ICrossL2Inbox} from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
 
 abstract contract SuperOwnable is Ownable, ISemver {
-    // =============================================================
-    // Errors
-    // =============================================================
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                       CUSTOM ERRORS                        */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     error IdOriginNotSuperOwnable();
     error DataNotCrosschainOwnershipTransfer();
+    error DataNotCrosschainSuperAdminChainIdUpdate();
     error OwnershipNotInSync();
     error NoOwnershipChange();
     error ChainNotSuperAdmin();
-    
-    // =============================================================
-    // Events
-    // =============================================================
+
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                           EVENTS                           */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     event InitiateCrosschainOwnershipTransfer(address indexed previousOwner, address indexed newOwner);
     event CrosschainOwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event SuperAdminChainIdUpdated(uint64 indexed superAdminChainId);
     event InitiateCrosschainSuperAdminChainIdUpdate(uint64 indexed superAdminChainId, uint64 indexed newSuperAdminChainId);
     
-    // =============================================================
-    // State Variables
-    // =============================================================
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                       STATE VARIABLES                      */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     uint64 superAdminChainId;
     
-    // =============================================================
-    // External Functions
-    // =============================================================
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                           MODIFIERS                        */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    function _initializeSuperOwner(uint64 newSuperAdminchainId, address newOwner) internal virtual {
-        _setOwner(newOwner);
-        _setSuperAdminChainId(newSuperAdminchainId);
+    modifier onlySuperAdmin() {
+        if (block.chainid != superAdminChainId) revert ChainNotSuperAdmin();
+        _;
     }
+
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                        EXTERNAL FUNCTIONS                  */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
         
     /// @notice Semantic version.
     /// @custom:semver 1.0.0-beta.1
@@ -58,7 +63,11 @@ abstract contract SuperOwnable is Ownable, ISemver {
         if (_identifier.origin != address(this)) revert IdOriginNotSuperOwnable();
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_identifier, keccak256(_data));
 
-        (uint64 newSuperAdminChainId) = abi.decode(_data, (uint64));
+        // Decode `InitiateCrosschainSuperAdminChainIdUpdate` event
+        bytes32 selector = abi.decode(_data[:32], (bytes32));
+        if (selector != InitiateCrosschainSuperAdminChainIdUpdate.selector) revert DataNotCrosschainSuperAdminChainIdUpdate();
+
+        (uint64 newSuperAdminChainId) = abi.decode(_data[32:], (uint64));
         _setSuperAdminChainId(newSuperAdminChainId);
     }
 
@@ -89,9 +98,21 @@ abstract contract SuperOwnable is Ownable, ISemver {
         emit CrosschainOwnershipTransferred(previousOwner, newOwner);
     }
 
-    // =============================================================
-    // Internal Functions
-    // =============================================================
+    function transferOwnership(address newOwner) public payable virtual override onlyOwner onlySuperAdmin {
+        super.transferOwnership(newOwner);
+    }
+
+    function renounceOwnership() public payable virtual override onlyOwner onlySuperAdmin {
+        super.renounceOwnership();
+    }
+
+    function completeOwnershipHandover(address pendingOwner) public payable virtual override onlyOwner onlySuperAdmin {
+        super.completeOwnershipHandover(pendingOwner);
+    }
+
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                        INTERNAL FUNCTIONS                  */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     /**
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
@@ -101,5 +122,10 @@ abstract contract SuperOwnable is Ownable, ISemver {
     function _setOwner(address newOwner) internal override {
         emit InitiateCrosschainOwnershipTransfer(owner(), newOwner);
         super._setOwner(newOwner);
+    }
+
+    function _initializeSuperOwner(uint64 newSuperAdminchainId, address newOwner) internal virtual {
+        _setOwner(newOwner);
+        _setSuperAdminChainId(newSuperAdminchainId);
     }
 }
