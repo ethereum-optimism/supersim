@@ -12,8 +12,8 @@ contract MockMarketFactory {
         predictionMarket = _predictionMarket;
     }
 
-    function newMarket() external {
+    function newMarket() public payable {
         MockResolver resolver = new MockResolver();
-        predictionMarket.newMarket(resolver);
+        predictionMarket.newMarket{value: msg.value}(resolver);
     }
 }

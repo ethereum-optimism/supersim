@@ -20,15 +20,17 @@ struct Market {
 
     // Liquidity held in the market
     uint256 ethBalance;
+    uint256 yesBalance;
+    uint256 noBalance;
 }
 
-// @notice emitted when a resolver has decided the outcome for a market
+// @notice thrown when a resolver has decided the outcome for a market
 error ResolverOutcomeDecided();
 
-// @notice emitted when no value is sent to a payable function
+// @notice thrown when no value is sent to a payable function
 error NoValue();
 
-// @notice emitted when there is insufficient liquidity in the market
+// @notice thrown when there is insufficient liquidity in the market
 error InsufficientLiquidity();
 
 // @notice A very basic implementation of a prediction market.
@@ -52,7 +54,7 @@ contract PredictionMarket {
     event LiquidityAdded(IMarketResolver indexed resolver, address provider, uint256 ethAmount);
 
     // @notice emitted when liquidity has been redeemed from a market
-    event LiquidityRedeemed(IMarketResolver indexed resolver, address redeemer, uint256 yesAmount, uint256 noAmount);
+    event LiquidityRedeemed(IMarketResolver indexed resolver, address redeemer, uint256 yesBalance, uint256 noBalance);
 
     // @notice emitted when a bet has been placed on a market
     event BetPlaced(IMarketResolver indexed resolver, address bettor, MarketOutcome outcome, uint256 amountIn, uint256 amountOut);
@@ -102,38 +104,36 @@ contract PredictionMarket {
     // @param _resolver contract identifying the outcome for an open market
     function addLiquidity(IMarketResolver _resolver) public payable {
         if (msg.value == 0) revert NoValue();
-        uint256 ethAmount = msg.value;
 
         Market storage market = markets[_resolver];
         if (market.status == MarketStatus.CLOSED) revert ResolverOutcomeDecided();
 
-        uint256 lpAmount = ethAmount;
+        uint256 ethAmount = msg.value;
+        uint256 lpSupply = market.lpToken.totalSupply();
 
         uint256 yesAmount;
         uint256 noAmount;
 
-        if (market.lpToken.totalSupply() == 0) {
+        if (lpSupply == 0) {
             // Initial liquidity
             yesAmount = ethAmount;
             noAmount = ethAmount;
         } else {
-            // Add liquidity according to the current ratios of the market
-            uint256 yesBalance = market.yesToken.balanceOf(address(this));
-            uint256 noBalance = market.noToken.balanceOf(address(this));
-            uint256 lpSupply = market.lpToken.totalSupply();
-            
             // Calculate tokens to mint based on current pool ratios
-            yesAmount = (ethAmount * yesBalance) / lpSupply;
-            noAmount = (ethAmount * noBalance) / lpSupply;
+            yesAmount = (ethAmount * market.yesBalance) / lpSupply;
+            noAmount = (ethAmount * market.noBalance) / lpSupply;
         }
 
         // Hold pool assets
         market.yesToken.mint(address(this), yesAmount);
         market.noToken.mint(address(this), noAmount);
+
         market.ethBalance += ethAmount;
+        market.yesBalance += yesAmount;
+        market.noBalance += noAmount;
 
         // Mint LP tokens to the sender
-        market.lpToken.mint(msg.sender, lpAmount);
+        market.lpToken.mint(msg.sender, ethAmount);
         emit LiquidityAdded(_resolver, msg.sender, ethAmount);
     }
 
@@ -141,16 +141,25 @@ contract PredictionMarket {
     // @param _resolver contract identifying the outcome for an open market
     // @param _outcome the outcome to buy
     // @param ethAmountIn the amount of ETH to buy
-    // @dev Held Invariant: `yes_balance * no_balance = K` Where K is the total amount of liquidity. The outcome tokens
+    // @dev Held Invariant: `yes_balance * no_balance = k` Where k is the total amount of liquidity. The outcome tokens
     //      are backed 1:1 with eth which allows eth to always be the input for the swap for either outcome token.
     function calcOutcomeOut(IMarketResolver _resolver, MarketOutcome _outcome, uint256 ethAmountIn) public view returns (uint256) {
         Market memory market = markets[_resolver];
-        uint256 yesBalance = market.yesToken.balanceOf(address(this));
-        uint256 noBalance = market.noToken.balanceOf(address(this));
         if (_outcome == MarketOutcome.YES) {
-            return (ethAmountIn * yesBalance) / (ethAmountIn + noBalance);
+            return (ethAmountIn * market.yesBalance) / (ethAmountIn + market.noBalance);
         } else {
-            return (ethAmountIn * noBalance) / (ethAmountIn + yesBalance);
+            return (ethAmountIn * market.noBalance) / (ethAmountIn + market.yesBalance);
+        }
+    }
+
+    // @notice calculate the current ETH payout when placing a bet on an outcome
+    function calcOutcomePayout(IMarketResolver _resolver, MarketOutcome _outcome, uint256 ethAmountIn) public view returns (uint256) {
+        uint256 amountOut = calcOutcomeOut(_resolver, _outcome, outcomeAmount);
+        Market memory market = markets[_resolver];
+        if (_outcome == MarketOutcome.YES) {
+            return (market.ethBalance + ethAmountIn) * amountOut / market.yesToken.totalSupply();
+        } else {
+            return (market.ethBalance + ethAmountIn) * amountOut / market.noToken.totalSupply();
         }
     }
 
@@ -161,20 +170,23 @@ contract PredictionMarket {
         if (msg.value == 0) revert NoValue();
         require(_outcome == MarketOutcome.YES || _outcome == MarketOutcome.NO);
 
-        uint256 amountIn = msg.value;
-
-        // Market must be tradeable & liquid with the amount eth in
         Market storage market = markets[_resolver];
         if (market.status == MarketStatus.CLOSED) revert ResolverOutcomeDecided();
 
-        // Compute trade amounts
+        // Compute trade amounts & swap
+        uint256 amountIn = msg.value;
         uint256 amountOut = calcOutcomeOut(_resolver, _outcome, amountIn);
-        MintableBurnableERC20 outcomeToken = _outcome == MarketOutcome.YES ? market.yesToken : market.noToken; 
-        if (amountOut > outcomeToken.balanceOf(address(this))) revert InsufficientLiquidity();
+        if (_outcome == MarketOutcome.YES) {
+            if (amountOut > market.yesBalance) revert InsufficientLiquidity();
+            market.yesBalance -= amountOut;
+            market.yesToken.transfer(msg.sender, amountOut);
+        } else {
+            if (amountOut > market.noBalance) revert InsufficientLiquidity();
+            market.noBalance -= amountOut;
+            market.noToken.transfer(msg.sender, amountOut);
+        }
 
-        // Perform swap
         market.ethBalance += amountIn;
-        outcomeToken.transfer(msg.sender, amountOut);
         emit BetPlaced(_resolver, msg.sender, _outcome, amountIn, amountOut);
     }
 
@@ -187,7 +199,7 @@ contract PredictionMarket {
         MintableBurnableERC20 outcomeToken = market.outcome == MarketOutcome.YES ? market.yesToken : market.noToken;
         uint256 amount = outcomeToken.balanceOf(msg.sender);
 
-        // Transfer & burn the winning outcome tokens
+        // Transfer & burn the winning outcome tokens (TODO: this is incorrect. burnFrom instead?)
         outcomeToken.transfer(msg.sender, amount);
         outcomeToken.burn(amount);
 
@@ -210,9 +222,6 @@ contract PredictionMarket {
         uint256 lpSupply = market.lpToken.totalSupply();
         uint256 lpBalance = market.lpToken.balanceOf(msg.sender);
 
-        uint256 yesBalance = market.yesToken.balanceOf(address(this));
-        uint256 noBalance = market.noToken.balanceOf(address(this));
-
         // Burn LP tokens
         market.lpToken.transferFrom(msg.sender, address(this),lpBalance);
         market.lpToken.burn(lpBalance);
@@ -224,8 +233,11 @@ contract PredictionMarket {
         // No ETH is returned as liquidity is permanently supplied at the
         // fair odds of the market.
 
-        uint256 yesAmount = (lpBalance * yesBalance) / lpSupply;
-        uint256 noAmount = (lpBalance * noBalance) / lpSupply;
+        uint256 yesAmount = (lpBalance * market.yesBalance) / lpSupply;
+        uint256 noAmount = (lpBalance * market.noBalance) / lpSupply;
+
+        market.yesBalance -= yesAmount;
+        market.noBalance -= noAmount;
 
         market.yesToken.transfer(msg.sender, yesAmount);
         market.noToken.transfer(msg.sender, noAmount);

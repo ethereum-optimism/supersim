@@ -74,6 +74,7 @@ export const useMarkets = () => {
         .filter((_, i) => marketsData?.[i] !== undefined)
         .map((resolver, i) => {
             const result = marketsData![i].result;
+            console.log(result)
             return {
                 resolver,
                 status: result[0],
@@ -81,7 +82,9 @@ export const useMarkets = () => {
                 yesToken: result[2],
                 noToken: result[3],
                 lpToken: result[4],
-                ethBalance: result[5]
+                ethBalance: result[5],
+                yesBalance: result[6],
+                noBalance: result[7]
             };
         })
 

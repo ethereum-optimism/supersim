@@ -25,7 +25,7 @@ contract PredictionMarketTest is Test {
         MockResolver testResolver = new MockResolver();
         predictionMarket.newMarket(testResolver);
 
-        (MarketStatus status, MarketOutcome outcome, , , , ) = predictionMarket.markets(testResolver);
+        (MarketStatus status, MarketOutcome outcome, , , , , ,) = predictionMarket.markets(testResolver);
         if (status != MarketStatus.OPEN) fail();
         if (outcome != MarketOutcome.UNDECIDED) fail();
     }
@@ -34,16 +34,16 @@ contract PredictionMarketTest is Test {
         MockResolver testResolver = new MockResolver();
         predictionMarket.newMarket{ value: 1 ether }(testResolver);
 
-        (, , MintableBurnableERC20 yesToken, MintableBurnableERC20 noToken, MintableBurnableERC20 lpToken, uint256 liquidity) =
+        (, , MintableBurnableERC20 yesToken, MintableBurnableERC20 noToken, MintableBurnableERC20 lpToken, uint256 ethBalance, uint256 yesBalance, uint256 noBalance) =
             predictionMarket.markets(testResolver);
 
         // eth balance is tracked
-        assertEq(liquidity, 1 ether);
+        assertEq(ethBalance, 1 ether);
 
         // lp and pool tokens at fair odds
-        assertEq(lpToken.balanceOf(address(this)), liquidity);
-        assertEq(yesToken.balanceOf(address(predictionMarket)), liquidity);
-        assertEq(noToken.balanceOf(address(predictionMarket)), liquidity);
+        assertEq(lpToken.balanceOf(address(this)), ethBalance);
+        assertEq(yesToken.balanceOf(address(predictionMarket)), yesBalance);
+        assertEq(noToken.balanceOf(address(predictionMarket)), noBalance);
     }
 
     function test_newMarket_decidedOutcome_reverts() public {
@@ -59,17 +59,19 @@ contract PredictionMarketTest is Test {
         MockResolver testResolver = new MockResolver();
         predictionMarket.newMarket{ value: 1 ether }(testResolver);
 
-        (, , MintableBurnableERC20 yesToken, , ,) = predictionMarket.markets(testResolver);
+        (, , MintableBurnableERC20 yesToken, , , , uint256 yesBalance, ) = predictionMarket.markets(testResolver);
 
         // buy YES outcome with half of the available liquidity
         uint256 expectedAmountOut = predictionMarket.calcOutcomeOut(testResolver, MarketOutcome.YES, 0.5 ether);
         predictionMarket.buyOutcome{ value: 0.5 ether }(testResolver, MarketOutcome.YES);
 
         assertEq(yesToken.balanceOf(address(this)), expectedAmountOut);
+        assertEq(yesToken.balanceOf(address(predictionMarket)), yesBalance - expectedAmountOut);
 
         // Additional ETH is now winnable in this pool
-        (, , , , , uint256 liquidity) = predictionMarket.markets(testResolver);
-        assertEq(liquidity, 1.5 ether);
+        (, , , , , uint256 ethBalance, uint256 newYesBalance, ) = predictionMarket.markets(testResolver);
+        assertEq(ethBalance, 1.5 ether);
+        assertEq(yesToken.balanceOf(address(predictionMarket)), newYesBalance);
     }
 
     function test_addLiquidity_succeeds() public {
@@ -79,15 +81,18 @@ contract PredictionMarketTest is Test {
         // double the liquidity
         predictionMarket.addLiquidity { value: 1 ether }(testResolver);
 
-        (, , MintableBurnableERC20 yesToken, MintableBurnableERC20 noToken, MintableBurnableERC20 lpToken, uint256 liquidity) =
+        (, , MintableBurnableERC20 yesToken, MintableBurnableERC20 noToken, MintableBurnableERC20 lpToken, uint256 ethBalance, uint256 yesBalance, uint256 noBalance) =
             predictionMarket.markets(testResolver);
 
-        assertEq(liquidity, 2 ether);
+        // still at even odds since no swaps have occurred
+        assertEq(ethBalance, 2 ether);
+        assertEq(yesBalance, 2 ether);
+        assertEq(noBalance, 2 ether);
 
         // lp and pool tokens at fair odds
-        assertEq(lpToken.balanceOf(address(this)), liquidity);
-        assertEq(yesToken.balanceOf(address(predictionMarket)), liquidity);
-        assertEq(noToken.balanceOf(address(predictionMarket)), liquidity);
+        assertEq(lpToken.balanceOf(address(this)), ethBalance);
+        assertEq(yesToken.balanceOf(address(predictionMarket)), yesBalance);
+        assertEq(noToken.balanceOf(address(predictionMarket)), noBalance);
     }
 
     function test_addLiquidity_noValue_reverts() public {
@@ -102,14 +107,11 @@ contract PredictionMarketTest is Test {
         MockResolver testResolver = new MockResolver();
         predictionMarket.newMarket{ value: 1 ether }(testResolver);
 
-        (, , MintableBurnableERC20 yesToken, MintableBurnableERC20 noToken, MintableBurnableERC20 lpToken, ) =
-            predictionMarket.markets(testResolver);
-
         // Perform a swap to skew the odds
         predictionMarket.buyOutcome{ value: 0.5 ether }(testResolver, MarketOutcome.YES);
 
-        uint256 yesBalance = yesToken.balanceOf(address(predictionMarket));
-        uint256 noBalance = noToken.balanceOf(address(predictionMarket));
+        (, , MintableBurnableERC20 yesToken, MintableBurnableERC20 noToken, MintableBurnableERC20 lpToken, , uint256 yesBalance, uint256 noBalance) =
+            predictionMarket.markets(testResolver);
 
         // add an additional ETH of liquidity via a new account
         vm.prank(address(1)); vm.deal(address(1), 1 ether);

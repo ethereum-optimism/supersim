@@ -2,10 +2,10 @@
 pragma solidity 0.8.25;
 
 enum MarketOutcome {
-    UNDECIDED,
+    UNDECIDED, // 0
 
-    YES,
-    NO
+    YES, // 1
+    NO // 2
 }
 
 interface IMarketResolver {

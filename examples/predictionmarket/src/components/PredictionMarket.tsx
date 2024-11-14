@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 
+import { useMarkets } from '../hooks/useMarkets';
 
 import Connect from './Connect';
 import Header from './Header';
 import Markets from './Markets';
+import Positions from './Positions';
 
 const PredictionMarket: React.FC = () => {
     const { isConnected } = useAccount();
     const { connect, connectors } = useConnect();
+
+    const { markets } = useMarkets();
 
     const [activeTab, setActiveTab] = useState<'markets' | 'positions'>('markets');
 
@@ -23,9 +27,9 @@ const PredictionMarket: React.FC = () => {
     const renderMain = () => {
         switch (activeTab) {
             case 'markets':
-                return <Markets />;
+                return <Markets markets={markets} />;
             case 'positions':
-                return <div>positions</div>;
+                return <Positions markets={markets} />;
         }
     }
 

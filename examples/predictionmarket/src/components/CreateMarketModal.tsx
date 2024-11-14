@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 
+import { useNewMockMarket } from '../hooks/useNewMockMarket';
+
 interface CreateMarketModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
 const CreateMarketModal: React.FC<CreateMarketModalProps> = ({ isOpen, onClose }) => {
-    const [selectedChain] = useState('Base');
-    const [blockNumber, setBlockNumber] = useState('');
-    const [outcome, setOutcome] = useState<'Even' | 'Odd' | null>(null);
-    const [stakeAmount, setStakeAmount] = useState('');
+    //const [selectedChain] = useState('Base');
+    //const [blockNumber, setBlockNumber] = useState('');
+    //const [outcome, setOutcome] = useState<'Even' | 'Odd' | null>(null);
+    const [liquidityAmount, setliquidityAmount] = useState('');
+    const { newMockMarket, isPending, isConfirming } = useNewMockMarket()
 
     if (!isOpen) return null;
 
@@ -22,6 +25,7 @@ const CreateMarketModal: React.FC<CreateMarketModalProps> = ({ isOpen, onClose }
                 </div>
 
                 <div style={styles.content}>
+                {/*
                     <div style={styles.field}>
                         <label style={styles.label}>
                             Select Chain <span style={styles.required}>*</span>
@@ -76,16 +80,15 @@ const CreateMarketModal: React.FC<CreateMarketModalProps> = ({ isOpen, onClose }
                             </button>
                         </div>
                     </div>
+                    */}
 
                     <div style={styles.field}>
-                        <label style={styles.label}>
-                            Stake Amount <span style={styles.required}>*</span>
-                        </label>
-                        <div style={styles.stakeInput}>
+                        <label style={styles.label}>Liquidity <span style={styles.required}>*</span></label>
+                        <div style={styles.liquidityInput}>
                             <input
                                 type="number"
-                                value={stakeAmount}
-                                onChange={(e) => setStakeAmount(e.target.value)}
+                                value={liquidityAmount}
+                                onChange={(e) => setliquidityAmount(e.target.value)}
                                 style={styles.input}
                                 placeholder="0.00"
                             />
@@ -93,7 +96,11 @@ const CreateMarketModal: React.FC<CreateMarketModalProps> = ({ isOpen, onClose }
                         </div>
                     </div>
 
-                    <button style={styles.createButton}>Create bet</button>
+                    <button 
+                        style={styles.createButton}
+                        onClick={() => newMockMarket(Number(liquidityAmount) * 10 ** 18)}>
+                        {isPending || isConfirming ? 'Making market': 'Create Market'}
+                    </button>
                 </div>
             </div>
         </div>
@@ -134,6 +141,7 @@ const styles = {
     closeButton: {
         border: 'none',
         background: 'none',
+        color: 'black',
         fontSize: '24px',
         cursor: 'pointer',
         padding: '4px',
@@ -167,6 +175,8 @@ const styles = {
     },
     input: {
         width: '100%',
+        backgroundColor: 'white',
+        color: 'black',
         padding: '12px',
         border: '1px solid #e0e0e0',
         borderRadius: '8px',
@@ -204,7 +214,7 @@ const styles = {
         color: 'white',
         border: 'none',
     },
-    stakeInput: {
+    liquidityInput: {
         position: 'relative' as const,
     },
     ethLabel: {

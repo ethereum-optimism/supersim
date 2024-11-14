@@ -1,40 +1,54 @@
-import React from 'react';
-import { useMarkets } from '../hooks/useMarkets';
+import React, { useState } from 'react';
 
-const Markets: React.FC = () => {
-    const { markets } = useMarkets();
-    
+import PlaceBetModal from './PlaceBetModal';
+
+const Market: React.FC<{ market }> = ({ market }) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalYes, setIsModalYes] = useState(false);
+
+    const odds = Number(market.noBalance) / (Number(market.yesBalance) + Number(market.noBalance)) * 100
+
+    return (
+        <div style={styles.marketCard}>
+            <div style={styles.marketRow}>
+                <div style={styles.cell}>Mock Resolver</div>
+                <div style={styles.cell}>{market.resolver.slice(0,10)}...</div>
+                <div style={styles.cell}>{odds.toFixed(2)}%</div>
+                <div style={styles.cell}>{Number(market.ethBalance) / 10 ** 18} ETH</div>
+                <div style={styles.cell}>
+                    <div style={styles.betButtons}>
+                        <button onClick={() => {setIsModalOpen(true); setIsModalYes(true)}}>Yes</button>
+                        <button onClick={() => {setIsModalOpen(true); setIsModalYes(false)}}>No</button>
+                    </div>
+                </div>
+            </div>
+
+            <PlaceBetModal isOpen={isModalOpen} isYes={isModalYes} market={market} onClose={() => setIsModalOpen(false)} />
+        </div>
+    )
+}
+
+const Markets: React.FC<{ markets: any[] }> = ({ markets }) => {
+    const liveMarkets = markets.filter((market) => market.status === 0)
     return (
         <div style={styles.container}>
-            <h1 style={styles.title}>Markets</h1>
+            <h1 style={styles.title}>Live Markets</h1>
             <p>View all created markets. Pick Your Bet!</p>
             
             {/* Table Header */}
             <div style={styles.tableHeader}>
-                <div style={styles.headerCell}>Chain</div>
+                <div style={styles.headerCell}>Description</div>
                 <div style={styles.headerCell}>Resolver</div>
                 <div style={styles.headerCell}>Odds</div>
-                <div style={styles.headerCell}>Volume</div>
+                <div style={styles.headerCell}>Liquidity</div>
                 <div style={styles.headerCell}>Place Bet</div>
             </div>
 
             {/* Market List */}
             <div style={styles.marketList}>
-                {markets.map((market) => (
-                    <div key={market.resolver} style={styles.marketCard}>
-                        <div style={styles.marketRow}>
-                            <div style={styles.cell}>901</div>
-                            <div style={styles.cell}>{market.resolver.slice(0,10)}...</div>
-                            <div style={styles.cell}>20%</div>
-                            <div style={styles.cell}>{market.ethBalance.toString()} ETH</div>
-                            <div style={styles.cell}>
-                                <div style={styles.betButtons}>
-                                    <button>Yes</button>
-                                    <button>No</button>
-                                </div>
-
-                            </div>
-                        </div>
+                {liveMarkets.map((market) => (
+                    <div key={market.resolver}>
+                        <Market market={market} />
                     </div>
                 ))}
             </div>
@@ -60,11 +74,6 @@ const styles = {
         border: '1px solid #e5e7eb',
         borderRadius: '0.5rem',
         padding: '1rem',
-        cursor: 'pointer',
-        transition: 'background-color 0.2s',
-        ':hover': {
-            backgroundColor: '#f9fafb',
-        },
     },
     marketTitle: {
         fontSize: '1.125rem',

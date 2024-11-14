@@ -17,12 +17,16 @@ export enum MarketStatus {
 }
 
 export interface Market {
+    resolver: Address
+
     status: MarketStatus
-    outtcome: MarketOutcome
+    outcome: MarketOutcome
 
     yesToken: Address,
     noToken: Address,
     lpToken: Address,
 
-    ethBalance: number
+    ethBalance: BigInt
+    yesBalance: BigInt
+    noBalance: BigInt
 }
