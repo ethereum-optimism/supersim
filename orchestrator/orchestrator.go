@@ -27,7 +27,7 @@ type Orchestrator struct {
 	l2Chains map[uint64]config.Chain
 	l2OpSims map[uint64]*opsimulator.OpSimulator
 
-	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
+	L2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 	l2ToL2MsgRelayer *interop.L2ToL2MessageRelayer
 }
 
@@ -61,7 +61,7 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 
 	// Interop Setup
 	if networkConfig.InteropEnabled {
-		o.l2ToL2MsgIndexer = interop.NewL2ToL2MessageIndexer(log)
+		o.L2ToL2MsgIndexer = interop.NewL2ToL2MessageIndexer(log)
 		if networkConfig.InteropAutoRelay {
 			o.l2ToL2MsgRelayer = interop.NewL2ToL2MessageRelayer(log)
 		}
@@ -125,13 +125,13 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 			return err
 		}
 
-		if err := o.l2ToL2MsgIndexer.Start(ctx, l2ChainClientByChainId); err != nil {
+		if err := o.L2ToL2MsgIndexer.Start(ctx, l2ChainClientByChainId); err != nil {
 			return fmt.Errorf("l2 to l2 message indexer failed to start: %w", err)
 		}
 
 		if o.l2ToL2MsgRelayer != nil {
 			o.log.Info("starting L2ToL2CrossDomainMessenger autorelayer") // `info` since it's explictily enabled
-			if err := o.l2ToL2MsgRelayer.Start(o.l2ToL2MsgIndexer, l2OpSimClientByChainId); err != nil {
+			if err := o.l2ToL2MsgRelayer.Start(o.L2ToL2MsgIndexer, l2OpSimClientByChainId); err != nil {
 				return fmt.Errorf("l2 to l2 message relayer failed to start: %w", err)
 			}
 		}
@@ -151,7 +151,7 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 		}
 
 		o.log.Debug("stopping L2ToL2CrossDomainMessenger indexer")
-		if err := o.l2ToL2MsgIndexer.Stop(ctx); err != nil {
+		if err := o.L2ToL2MsgIndexer.Stop(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("l2 to l2 message indexer failed to stop: %w", err))
 		}
 	}

@@ -66,7 +66,7 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 		return nil, fmt.Errorf("failed to create orchestrator")
 	}
 
-	adminServer := admin.NewAdminServer(log, cliConfig.AdminPort, &networkConfig)
+	adminServer := admin.NewAdminServer(log, cliConfig.AdminPort, &networkConfig, o.L2ToL2MsgIndexer)
 
 	return &Supersim{log, cliConfig, &networkConfig, o, adminServer}, nil
 }

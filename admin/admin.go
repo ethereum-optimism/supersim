@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum-optimism/supersim/interop"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gin-gonic/gin"
@@ -20,18 +22,27 @@ type AdminServer struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	networkConfig *config.NetworkConfig
+	networkConfig    *config.NetworkConfig
+	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 
 	port uint64
 }
 
 type RPCMethods struct {
-	Log           log.Logger
-	NetworkConfig *config.NetworkConfig
+	Log              log.Logger
+	NetworkConfig    *config.NetworkConfig
+	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 }
 
-func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig) *AdminServer {
-	return &AdminServer{log: log, port: port, networkConfig: networkConfig}
+func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, interop *interop.L2ToL2MessageIndexer) *AdminServer {
+
+	adminServer := &AdminServer{log: log, port: port, networkConfig: networkConfig}
+
+	if networkConfig.InteropEnabled && interop != nil {
+		adminServer.l2ToL2MsgIndexer = interop
+	}
+
+	return adminServer
 }
 
 func (s *AdminServer) Start(ctx context.Context) error {
@@ -106,6 +117,10 @@ func (s *AdminServer) setupRouter() *gin.Engine {
 		NetworkConfig: s.networkConfig,
 	}
 
+	if s.networkConfig.InteropEnabled {
+		rpcMethods.l2ToL2MsgIndexer = s.l2ToL2MsgIndexer
+	}
+
 	if err := rpcServer.RegisterName("admin", rpcMethods); err != nil {
 		s.log.Error("failed to register RPC methods:", "error", err)
 		return nil
@@ -147,4 +162,23 @@ func (m *RPCMethods) GetL1Addresses(args *uint64) *map[string]string {
 	}
 	m.Log.Debug("admin_getL2Addresses")
 	return &reply
+}
+
+func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) *interop.L2ToL2Message {
+
+	if args == nil {
+		m.Log.Error("valid msg hash not provided", "args", *args)
+		return nil
+	}
+
+	storeEntry, err := m.l2ToL2MsgIndexer.Get(*args)
+
+	if err != nil {
+		m.Log.Error("failed to get msg", "error", err)
+		return nil
+	}
+
+	reply := storeEntry.Message()
+
+	return reply
 }
