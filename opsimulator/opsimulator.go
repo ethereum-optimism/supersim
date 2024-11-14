@@ -33,6 +33,7 @@ import (
 )
 
 const (
+	defaultHost = "127.0.0.1"
 	l2NativeSuperchainERC20Addr = "0x420beeF000000000000000000000000000000001"
 )  
 
@@ -94,6 +95,10 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.Handle("/", corsHandler(opSim.handler(ctx)))
 
+	if opSim.host == "" {
+		opSim.host = defaultHost
+	}
+
 	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(opSim.host, fmt.Sprintf("%d", opSim.port)), mux)
 	if err != nil {
 		return fmt.Errorf("failed to start HTTP RPC server: %w", err)
@@ -109,7 +114,7 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 			panic(fmt.Errorf("unexpected opsimulator listening port: %w", err))
 		}
 	}
-
+     
 	ethClient, err := ethclient.Dial(opSim.Endpoint())
 	if err != nil {
 		return fmt.Errorf("failed to create eth client: %w", err)

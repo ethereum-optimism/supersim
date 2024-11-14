@@ -74,9 +74,13 @@ func (a *Anvil) Start(ctx context.Context) error {
 	if a.cmd != nil {
 		return errors.New("anvil already started")
 	}
+	host := a.cfg.Host
+	if host == "" {
+		host = "127.0.0.1"
+	}
 
 	args := []string{
-		"--host", a.cfg.Host,
+		"--host", host,
 		"--accounts", fmt.Sprintf("%d", a.cfg.SecretsConfig.Accounts),
 		"--mnemonic", a.cfg.SecretsConfig.Mnemonic,
 		"--derivation-path", a.cfg.SecretsConfig.DerivationPath.String(),
