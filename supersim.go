@@ -65,13 +65,15 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 
 	// Forward interop config     
 	networkConfig.InteropAutoRelay = cliConfig.InteropAutoRelay
+	networkConfig.InteropDelay = cliConfig.InteropDelay
 
 	o, err := orchestrator.NewOrchestrator(log, closeApp, &networkConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create orchestrator")
 	}
 
-	adminServer := admin.NewAdminServer(log, cliConfig.AdminPort)
+	adminServer := admin.NewAdminServer(log, cliConfig.AdminPort, &networkConfig)
+
 	return &Supersim{log, cliConfig, &networkConfig, o, adminServer}, nil
 }
 
@@ -114,7 +116,7 @@ func (s *Supersim) ConfigAsString() string {
 
 	fmt.Fprintln(&b, "Supersim Config")
 	fmt.Fprintln(&b, "-----------------------")
-	fmt.Fprintf(&b, "Admin Server: %s\n\n", s.adminServer.Endpoint())
+	fmt.Fprintln(&b, s.adminServer.ConfigAsString())
 
 	fmt.Fprintln(&b, "Chain Configuration")
 	fmt.Fprintln(&b, "-----------------------")

@@ -116,6 +116,7 @@ func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
 
 type ForkInteropTestSuiteOptions struct {
 	interopAutoRelay bool
+	interopDelay     uint64
 }
 
 func createForkedInteropTestSuite(t *testing.T, testOptions ForkInteropTestSuiteOptions) *InteropTestSuite {
@@ -128,6 +129,7 @@ func createForkedInteropTestSuite(t *testing.T, testOptions ForkInteropTestSuite
 			InteropEnabled: true,
 		},
 		InteropAutoRelay: testOptions.interopAutoRelay,
+		InteropDelay:     testOptions.interopDelay,
 	}
 	superchain := registry.Superchains[cliConfig.ForkConfig.Network]
 	srcChainCfg := config.OPChainByName(superchain, srcChain)
@@ -808,7 +810,6 @@ func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 }
 
 func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
-	t.Parallel()
 
 	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
@@ -904,4 +905,110 @@ func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 		return diff.Cmp(valueToTransfer) == 0, nil
 	})
 	assert.NoError(t, waitErr)
+}
+
+func TestInteropInvariantSucceedsWithDelay(t *testing.T) {
+	testSuite := createInteropTestSuite(t, config.CLIConfig{
+		InteropDelay: 2, // 2 second delay
+	})
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
+	require.NoError(t, err)
+
+	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
+	require.NoError(t, err)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := predeploys.L2toL2CrossDomainMessengerAddr
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+	tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// Wait for delay time to pass
+	time.Sleep(2 * time.Second)
+
+	// progress forward blocks to ensure timestamps are updated
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+	err = testSuite.SourceEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+
+	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
+	require.NoError(t, err)
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	require.NoError(t, err)
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := bindings.ICrossL2InboxIdentifier{
+		Origin:      origin,
+		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+		LogIndex:    big.NewInt(0),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
+		ChainId:     testSuite.SourceChainID,
+	}
+	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
+	require.NoError(t, err)
+
+	// Should succeed because delay time has passed
+	tx, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
+	require.NoError(t, err)
+
+	receipt, err := bind.WaitMined(context.Background(), testSuite.DestEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, receipt.Status == 1, "executing message transaction failed")
+}
+
+func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
+	testSuite := createInteropTestSuite(t, config.CLIConfig{
+		InteropDelay: 5,
+	})
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
+	require.NoError(t, err)
+
+	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
+	require.NoError(t, err)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := predeploys.L2toL2CrossDomainMessengerAddr
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+	tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	require.NoError(t, err)
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := bindings.ICrossL2InboxIdentifier{
+		Origin:      origin,
+		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+		LogIndex:    big.NewInt(0),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
+		ChainId:     testSuite.SourceChainID,
+	}
+	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
+	require.NoError(t, err)
+
+	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
+	require.NoError(t, err)
+
+	_, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
+
+	// Should fail because the delay time hasn't passed
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not enough time has passed since initiating message")
 }

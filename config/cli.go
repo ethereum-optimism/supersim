@@ -33,6 +33,7 @@ const (
 
 	InteropEnabledFlagName   = "interop.enabled"
 	InteropAutoRelayFlagName = "interop.autorelay"
+	InteropDelayFlagName     = "interop.delay"
 )
 
 var documentationLinks = []struct {
@@ -76,6 +77,7 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Value:   "",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "LOGS_DIRECTORY"),
 		},
+<<<<<<< HEAD
 		&cli.StringFlag{
 			Name:    L1HostFlagName,
 			Usage:   "Host address for the L1 instance",
@@ -87,6 +89,13 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "Host address for L2 instances",
 			Value:   "127.0.0.1",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "L2_HOST"),
+=======
+		&cli.Uint64Flag{
+			Name:    InteropDelayFlagName,
+			Value:   0, // enabled by default
+			Usage:   "Delay before relaying messages sent to the L2ToL2CrossDomainMessenger",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_DELAY"),
+>>>>>>> main
 		},
 	}
 }
@@ -137,6 +146,7 @@ type CLIConfig struct {
 	L2StartingPort uint64
 
 	InteropAutoRelay bool
+	InteropDelay     uint64
 
 	LogsDirectory string
 
@@ -154,6 +164,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		L2StartingPort: ctx.Uint64(L2StartingPortFlagName),
 
 		InteropAutoRelay: ctx.Bool(InteropAutoRelayFlagName),
+		InteropDelay:     ctx.Uint64(InteropDelayFlagName),
 
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 
