@@ -967,7 +967,7 @@ func TestInteropInvariantSucceedsWithDelay(t *testing.T) {
 
 func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	testSuite := createInteropTestSuite(t, config.CLIConfig{
-		InteropDelay: 5,
+		InteropDelay: 2, // 2 second delay
 	})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -990,6 +990,8 @@ func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
+	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
+	require.NoError(t, err)
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
@@ -1003,12 +1005,8 @@ func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
 	require.NoError(t, err)
 
-	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
-
+	// Should fail because delay time has not passed
 	_, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
-
-	// Should fail because the delay time hasn't passed
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not enough time has passed since initiating message")
 }
