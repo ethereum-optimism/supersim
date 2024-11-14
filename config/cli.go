@@ -77,7 +77,6 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Value:   "",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "LOGS_DIRECTORY"),
 		},
-<<<<<<< HEAD
 		&cli.StringFlag{
 			Name:    L1HostFlagName,
 			Usage:   "Host address for the L1 instance",
@@ -89,13 +88,12 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "Host address for L2 instances",
 			Value:   "127.0.0.1",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "L2_HOST"),
-=======
+		},
 		&cli.Uint64Flag{
 			Name:    InteropDelayFlagName,
 			Value:   0, // enabled by default
 			Usage:   "Delay before relaying messages sent to the L2ToL2CrossDomainMessenger",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_DELAY"),
->>>>>>> main
 		},
 	}
 }

@@ -51,14 +51,10 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 	// Sping up OpSim to fornt the L2 instances
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
-<<<<<<< HEAD
 		if cfg.Host == "" {
 			cfg.Host = defaultHost
 		}
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils)
-=======
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay)
->>>>>>> main
+		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
