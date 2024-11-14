@@ -36,6 +36,7 @@ var (
 )
 
 const (
+	defaultHost          = "127.0.0.1"
 	anvilListeningLogStr = "Listening on"
 )
 
@@ -76,7 +77,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 	}
 	host := a.cfg.Host
 	if host == "" {
-		host = "127.0.0.1"
+		host = defaultHost
 	}
 
 	args := []string{
@@ -120,7 +121,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 	a.cmd = exec.CommandContext(a.resourceCtx, "anvil", args...)
 	go func() {
 		<-ctx.Done()
-		a.resourceCancel()      
+		a.resourceCancel()
 	}()
 
 	// In the event anvil is started with port 0, we'll need to block

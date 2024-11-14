@@ -7,7 +7,7 @@ import (
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 
 	"net"
-    "regexp"
+	"regexp"
 
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 
@@ -22,12 +22,12 @@ const (
 
 	L1ForkHeightFlagName = "l1.fork.height"
 	L1PortFlagName       = "l1.port"
-	L1HostFlagName = "l1.host"
+	L1HostFlagName       = "l1.host"
 
 	ChainsFlagName         = "chains"
 	NetworkFlagName        = "network"
 	L2StartingPortFlagName = "l2.starting.port"
-	L2HostFlagName = "l2.host"
+	L2HostFlagName         = "l2.host"
 
 	LogsDirectoryFlagName = "logs.directory"
 
@@ -77,17 +77,17 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "LOGS_DIRECTORY"),
 		},
 		&cli.StringFlag{
-            Name:    L1HostFlagName,
-            Usage:   "Host address for the L1 instance",
-            Value:   "127.0.0.1",
-            EnvVars: opservice.PrefixEnvVar(envPrefix, "L1_HOST"),
-        },
-        &cli.StringFlag{
-            Name:    L2HostFlagName,
-            Usage:   "Host address for L2 instances",
-            Value:   "127.0.0.1",
-            EnvVars: opservice.PrefixEnvVar(envPrefix, "L2_HOST"),
-        },
+			Name:    L1HostFlagName,
+			Usage:   "Host address for the L1 instance",
+			Value:   "127.0.0.1",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "L1_HOST"),
+		},
+		&cli.StringFlag{
+			Name:    L2HostFlagName,
+			Usage:   "Host address for L2 instances",
+			Value:   "127.0.0.1",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "L2_HOST"),
+		},
 	}
 }
 
@@ -142,8 +142,8 @@ type CLIConfig struct {
 
 	ForkConfig *ForkCLIConfig
 
-	L1Host         string
-    L2Host         string
+	L1Host string
+	L2Host string
 }
 
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
@@ -157,8 +157,8 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 
-		L1Host:         ctx.String(L1HostFlagName),
-        L2Host:         ctx.String(L2HostFlagName),
+		L1Host: ctx.String(L1HostFlagName),
+		L2Host: ctx.String(L2HostFlagName),
 	}
 
 	if ctx.Command.Name == ForkCommandName {
@@ -177,11 +177,11 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 // Check runs validatation on the cli configuration
 func (c *CLIConfig) Check() error {
 	if err := validateHost(c.L1Host); err != nil {
-        return fmt.Errorf("invalid L1 host address: %w", err)
-    }
-    if err := validateHost(c.L2Host); err != nil {
-        return fmt.Errorf("invalid L2 host address: %w", err)
-    }
+		return fmt.Errorf("invalid L1 host address: %w", err)
+	}
+	if err := validateHost(c.L2Host); err != nil {
+		return fmt.Errorf("invalid L2 host address: %w", err)
+	}
 
 	if c.ForkConfig != nil {
 		forkCfg := c.ForkConfig
@@ -217,21 +217,21 @@ func PrintDocLinks() {
 }
 
 func validateHost(host string) error {
-    if host == "" {
-        return fmt.Errorf("host cannot be empty")
-    }
-    
-    if host == "localhost" || host == "127.0.0.1" {
-        return nil
-    }
-    
-    if ip := net.ParseIP(host); ip != nil {
-        return nil
-    }
-    
-    if matched, _ := regexp.MatchString(`^[a-zA-Z0-9][a-zA-Z0-9\-\.]+[a-zA-Z0-9]$`, host); !matched {
-        return fmt.Errorf("invalid host format: %s", host)
-    }
-    
-    return nil
+	if host == "" {
+		return fmt.Errorf("host cannot be empty")
+	}
+
+	if host == "localhost" || host == "127.0.0.1" {
+		return nil
+	}
+
+	if ip := net.ParseIP(host); ip != nil {
+		return nil
+	}
+
+	if matched, _ := regexp.MatchString(`^[a-zA-Z0-9][a-zA-Z0-9\-\.]+[a-zA-Z0-9]$`, host); !matched {
+		return fmt.Errorf("invalid host format: %s", host)
+	}
+
+	return nil
 }

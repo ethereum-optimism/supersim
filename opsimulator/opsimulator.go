@@ -33,9 +33,9 @@ import (
 )
 
 const (
-	defaultHost = "127.0.0.1"
+	defaultHost                 = "127.0.0.1"
 	l2NativeSuperchainERC20Addr = "0x420beeF000000000000000000000000000000001"
-)  
+)
 
 type OpSimulator struct {
 	config.Chain // the chain that op-sim is wrapping
@@ -50,7 +50,7 @@ type OpSimulator struct {
 	bgTasksCancel context.CancelFunc
 	peers         map[uint64]config.Chain
 
-	host string
+	host         string
 	port         uint64
 	httpServer   *ophttp.HTTPServer
 	crossL2Inbox *bindings.CrossL2Inbox
@@ -114,7 +114,7 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 			panic(fmt.Errorf("unexpected opsimulator listening port: %w", err))
 		}
 	}
-     
+
 	ethClient, err := ethclient.Dial(opSim.Endpoint())
 	if err != nil {
 		return fmt.Errorf("failed to create eth client: %w", err)

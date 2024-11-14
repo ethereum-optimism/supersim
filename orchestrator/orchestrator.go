@@ -32,7 +32,7 @@ type Orchestrator struct {
 }
 
 const defaultHost = "127.0.0.1"
-     
+
 func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig) (*Orchestrator, error) {
 	// Spin up L1 anvil instance
 	l1Anvil := anvil.New(log, closeApp, &networkConfig.L1Config)
