@@ -29,17 +29,17 @@ type AdminServer struct {
 }
 
 type RPCMethods struct {
-	Log              log.Logger
-	NetworkConfig    *config.NetworkConfig
+	log              log.Logger
+	networkConfig    *config.NetworkConfig
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 }
 
-func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, interop *interop.L2ToL2MessageIndexer) *AdminServer {
+func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, indexer *interop.L2ToL2MessageIndexer) *AdminServer {
 
 	adminServer := &AdminServer{log: log, port: port, networkConfig: networkConfig}
 
-	if networkConfig.InteropEnabled && interop != nil {
-		adminServer.l2ToL2MsgIndexer = interop
+	if networkConfig.InteropEnabled && indexer != nil {
+		adminServer.l2ToL2MsgIndexer = indexer
 	}
 
 	return adminServer
@@ -113,8 +113,8 @@ func (s *AdminServer) setupRouter() *gin.Engine {
 
 	rpcServer := rpc.NewServer()
 	rpcMethods := &RPCMethods{
-		Log:           s.log,
-		NetworkConfig: s.networkConfig,
+		log:           s.log,
+		networkConfig: s.networkConfig,
 	}
 
 	if s.networkConfig.InteropEnabled {
@@ -137,14 +137,14 @@ func (s *AdminServer) setupRouter() *gin.Engine {
 
 func (m *RPCMethods) GetConfig(args *struct{}) *config.NetworkConfig {
 
-	m.Log.Debug("admin_getConfig")
-	return m.NetworkConfig
+	m.log.Debug("admin_getConfig")
+	return m.networkConfig
 }
 
 func (m *RPCMethods) GetL1Addresses(args *uint64) *map[string]string {
-	chain := filterByChainID(m.NetworkConfig.L2Configs, *args)
+	chain := filterByChainID(m.networkConfig.L2Configs, *args)
 	if chain == nil {
-		m.Log.Error("chain not found", "chainID", *args)
+		m.log.Error("chain not found", "chainID", *args)
 		return nil
 	}
 
@@ -160,25 +160,32 @@ func (m *RPCMethods) GetL1Addresses(args *uint64) *map[string]string {
 		"ProxyAdmin":                        chain.L2Config.L1Addresses.ProxyAdmin.String(),
 		"SuperchainConfig":                  chain.L2Config.L1Addresses.SuperchainConfig.String(),
 	}
-	m.Log.Debug("admin_getL2Addresses")
+	m.log.Debug("admin_getL2Addresses")
 	return &reply
 }
 
 func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) *interop.L2ToL2Message {
 
 	if args == nil {
-		m.Log.Error("valid msg hash not provided", "args", *args)
+		m.log.Error("valid msg hash not provided", "args", *args)
 		return nil
 	}
 
-	storeEntry, err := m.l2ToL2MsgIndexer.Get(*args)
+	if m.networkConfig.InteropEnabled && m.l2ToL2MsgIndexer != nil {
 
-	if err != nil {
-		m.Log.Error("failed to get msg", "error", err)
+		storeEntry, err := m.l2ToL2MsgIndexer.Get(*args)
+
+		if err != nil {
+			m.log.Error("failed to get msg", "error", err)
+			return nil
+		}
+
+		reply := storeEntry.Message()
+
+		return reply
+
+	} else {
+		m.log.Error("auto relay not enabled", "args", *args)
 		return nil
 	}
-
-	reply := storeEntry.Message()
-
-	return reply
 }
