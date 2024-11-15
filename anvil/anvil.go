@@ -315,7 +315,7 @@ func (a *Anvil) SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]typ
 
 	txArgs := txArgs{From: from, To: tx.To(), Gas: hexutil.Uint64(tx.Gas()), GasPrice: (*hexutil.Big)(tx.GasPrice()), Data: tx.Data(), Value: (*hexutil.Big)(tx.Value())}
 	result := callFrame{}
-	if err := a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "latest", logTracerParams); err != nil {
+	if err := a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "pending", logTracerParams); err != nil {
 		return nil, err
 	}
 
