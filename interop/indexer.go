@@ -157,8 +157,7 @@ func (i *L2ToL2MessageIndexer) processEventLog(ctx context.Context, backend ethe
 
 func (i *L2ToL2MessageIndexer) logMessageEvent(eventName string, entry *L2ToL2MessageStoreEntry, log *types.Log) {
 	msg := entry.Message()
-	msgHash, _ := msg.Hash()
-	i.log.Info(fmt.Sprintf("L2ToL2CrossChainMessenger#%s", eventName), "sourceChainID", msg.Source, "destinationChainID", msg.Destination, "nonce", msg.Nonce, "sender", msg.Sender, "target", msg.Target, "txHash", log.TxHash.String(), "msgHash", msgHash.String())
+	i.log.Info(fmt.Sprintf("L2ToL2CrossChainMessenger#%s", eventName), "sourceChainID", msg.Source, "destinationChainID", msg.Destination, "nonce", msg.Nonce, "sender", msg.Sender, "target", msg.Target, "txHash", log.TxHash.String())
 }
 
 func (i *L2ToL2MessageIndexer) createSubscription(key string, messageChan chan<- *L2ToL2MessageStoreEntry) (func(), error) {
