@@ -36,7 +36,6 @@ var (
 )
 
 const (
-	defaultHost          = "127.0.0.1"
 	anvilListeningLogStr = "Listening on"
 )
 
@@ -75,13 +74,9 @@ func (a *Anvil) Start(ctx context.Context) error {
 	if a.cmd != nil {
 		return errors.New("anvil already started")
 	}
-	host := a.cfg.Host
-	if host == "" {
-		host = defaultHost
-	}
 
 	args := []string{
-		"--host", host,
+		"--host", a.cfg.Host,
 		"--accounts", fmt.Sprintf("%d", a.cfg.SecretsConfig.Accounts),
 		"--mnemonic", a.cfg.SecretsConfig.Mnemonic,
 		"--derivation-path", a.cfg.SecretsConfig.DerivationPath.String(),

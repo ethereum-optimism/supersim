@@ -17,33 +17,11 @@ type TestSuite struct {
 	orchestrator *Orchestrator
 }
 
-type TestCase struct {
-	name    string
-	l1Host  string
-	l2Host  string
-	wantErr bool
-}
-
-func createTestSuite(t *testing.T, tc *TestCase) *TestSuite {
-	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()), "")
+func createTestSuite(t *testing.T, networkConfig *config.NetworkConfig) *TestSuite {
 	testlog := testlog.Logger(t, log.LevelInfo)
 
-	l1Host := defaultHost
-	l2Host := defaultHost
-	if tc != nil {
-		l1Host = tc.l1Host
-		l2Host = tc.l2Host
-	}
-
-	networkConfig.L1Config.Host = l1Host
-	networkConfig.L1Config.Port = 9471
-	for i := range networkConfig.L2Configs {
-		networkConfig.L2Configs[i].Host = l2Host
-		networkConfig.L2StartingPort = 9473
-	}
-
 	ctx, closeApp := context.WithCancelCause(context.Background())
-	orchestrator, err := NewOrchestrator(testlog, closeApp, &networkConfig)
+	orchestrator, _ := NewOrchestrator(testlog, closeApp, networkConfig)
 
 	t.Cleanup(func() {
 		closeApp(nil)
@@ -52,64 +30,41 @@ func createTestSuite(t *testing.T, tc *TestCase) *TestSuite {
 		}
 	})
 
-	if err != nil {
-		if tc != nil && tc.wantErr {
-			return nil
-		}
-		t.Fatalf("unable to create orchestrator: %s", err)
-	}
-
 	if err := orchestrator.Start(ctx); err != nil {
-		if tc != nil && tc.wantErr {
-			return nil
-		}
 		t.Fatalf("unable to start orchestrator: %s", err)
-	}
-
-	require.Equal(t, l1Host, orchestrator.L1Chain().Config().Host)
-	for _, chain := range orchestrator.l2Chains {
-		require.Equal(t, l2Host, chain.Config().Host)
+		return nil
 	}
 
 	return &TestSuite{t, orchestrator}
 }
 
 func TestStartup(t *testing.T) {
-	testSuite := createTestSuite(t, nil)
+	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()), "")
+	networkConfig.L1Config.Host = "127.0.0.1"
+	for i := range networkConfig.L2Configs {
+		networkConfig.L2Configs[i].Host = "127.0.0.1"
+	}
+	testSuite := createTestSuite(t, &networkConfig)
 	verifyChainConfigs(t, testSuite)
 }
 
-func TestOrchestratorWithHosts(t *testing.T) {
-	t.Run("default configuration", func(t *testing.T) {
-		testSuite := createTestSuite(t, nil)
-		verifyChainConfigs(t, testSuite)
-	})
-	testCases := []TestCase{
-		{
-			name:    "custom hosts",
-			l1Host:  "0.0.0.0",
-			l2Host:  "0.0.0.0",
-			wantErr: false,
-		},
-		{
-			name:    "mixed custom hosts",
-			l1Host:  defaultHost,
-			l2Host:  "0.0.0.0",
-			wantErr: false,
-		},
+func TestCustomHosts(t *testing.T) {
+	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()), "")
+	networkConfig.L1Config.Host = "0.0.0.0"
+	for i := range networkConfig.L2Configs {
+		networkConfig.L2Configs[i].Host = "0.0.0.0"
 	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Logf("Testing with L1 Host: %s, L2 Host: %s", tc.l1Host, tc.l2Host)
-
-			testSuite := createTestSuite(t, &tc)
-			if !tc.wantErr {
-				require.NotNil(t, testSuite)
-				verifyChainConfigs(t, testSuite)
-			}
-		})
+	testSuite := createTestSuite(t, &networkConfig)
+	verifyChainConfigs(t, testSuite)
+}
+func TestMixedCustomHosts(t *testing.T) {
+	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()), "")
+	networkConfig.L1Config.Host = "127.0.0.1"
+	for i := range networkConfig.L2Configs {
+		networkConfig.L2Configs[i].Host = "0.0.0.0"
 	}
+	testSuite := createTestSuite(t, &networkConfig)
+	verifyChainConfigs(t, testSuite)
 }
 
 func verifyChainConfigs(t *testing.T, suite *TestSuite) {

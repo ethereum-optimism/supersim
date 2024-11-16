@@ -63,7 +63,7 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 		networkConfig.L2Configs[i].Host = cliConfig.L2Host
 	}
 
-	// Forward interop config     
+	// Forward interop config
 	networkConfig.InteropAutoRelay = cliConfig.InteropAutoRelay
 	networkConfig.InteropDelay = cliConfig.InteropDelay
 

@@ -68,7 +68,6 @@ type ChainConfig struct {
 type NetworkConfig struct {
 	L1Config ChainConfig
 
-	L2Host         string
 	L2StartingPort uint64
 	L2Configs      []ChainConfig
 

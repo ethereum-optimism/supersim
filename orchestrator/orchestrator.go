@@ -31,8 +31,6 @@ type Orchestrator struct {
 	l2ToL2MsgRelayer *interop.L2ToL2MessageRelayer
 }
 
-const defaultHost = "127.0.0.1"
-
 func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig) (*Orchestrator, error) {
 	// Spin up L1 anvil instance
 	l1Anvil := anvil.New(log, closeApp, &networkConfig.L1Config)
@@ -51,9 +49,7 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 	// Sping up OpSim to fornt the L2 instances
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
-		if cfg.Host == "" {
-			cfg.Host = defaultHost
-		}
+
 		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay)
 
 		// only increment expected port if it has been specified
@@ -77,11 +73,11 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 
 func (o *Orchestrator) Start(ctx context.Context) error {
 	o.log.Debug("starting orchestrator")
-
 	// Start Chains
 	if err := o.l1Chain.Start(ctx); err != nil {
 		return fmt.Errorf("l1 chain %s failed to start: %w", o.l1Chain.Config().Name, err)
 	}
+
 	for _, chain := range o.l2Chains {
 		if err := chain.Start(ctx); err != nil {
 			return fmt.Errorf("l2 chain %s failed to start: %w", chain.Config().Name, err)
