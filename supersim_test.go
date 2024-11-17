@@ -1058,7 +1058,6 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 		destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
 		require.NoError(t, err)
 		diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
-		// return diff.Cmp(valueToTransfer) == 0, nil
 
 		newClient, err := rpc.Dial(testSuite.Supersim.Orchestrator.AdminServer.Endpoint())
 		if err != nil {
