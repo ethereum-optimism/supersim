@@ -96,7 +96,7 @@ In a few seconds, you should see the RelayedMessage on chain 902:
 
 ```sh
 # example
-INFO [08-30|14:30:14.698] SuperchainWETH#CrosschainMint to=0x420bEEF000000000000000000000000000000002 amount=10,000,000,000,000,000,000
+INFO [08-30|14:30:14.698] SuperchainWETH#CrosschainMint to=0x420beeF000000000000000000000000000000002 amount=10,000,000,000,000,000,000
 ```
 
 ### 4. Check the balance on chain 902
