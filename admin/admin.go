@@ -34,6 +34,19 @@ type RPCMethods struct {
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 }
 
+type JSONRPCError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+func (e *JSONRPCError) Error() string {
+	return e.Message
+}
+
+func (err *JSONRPCError) ErrorCode() int {
+	return err.Code
+}
+
 func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, indexer *interop.L2ToL2MessageIndexer) *AdminServer {
 
 	adminServer := &AdminServer{log: log, port: port, networkConfig: networkConfig}
@@ -113,12 +126,9 @@ func (s *AdminServer) setupRouter() *gin.Engine {
 
 	rpcServer := rpc.NewServer()
 	rpcMethods := &RPCMethods{
-		log:           s.log,
-		networkConfig: s.networkConfig,
-	}
-
-	if s.networkConfig.InteropEnabled {
-		rpcMethods.l2ToL2MsgIndexer = s.l2ToL2MsgIndexer
+		log:              s.log,
+		networkConfig:    s.networkConfig,
+		l2ToL2MsgIndexer: s.l2ToL2MsgIndexer,
 	}
 
 	if err := rpcServer.RegisterName("admin", rpcMethods); err != nil {
@@ -141,11 +151,13 @@ func (m *RPCMethods) GetConfig(args *struct{}) *config.NetworkConfig {
 	return m.networkConfig
 }
 
-func (m *RPCMethods) GetL1Addresses(args *uint64) *map[string]string {
+func (m *RPCMethods) GetL1Addresses(args *uint64) (*map[string]string, error) {
 	chain := filterByChainID(m.networkConfig.L2Configs, *args)
 	if chain == nil {
-		m.log.Error("chain not found", "chainID", *args)
-		return nil
+		return nil, &JSONRPCError{
+			Code:    -32602,
+			Message: "chain not found",
+		}
 	}
 
 	reply := map[string]string{
@@ -161,31 +173,32 @@ func (m *RPCMethods) GetL1Addresses(args *uint64) *map[string]string {
 		"SuperchainConfig":                  chain.L2Config.L1Addresses.SuperchainConfig.String(),
 	}
 	m.log.Debug("admin_getL2Addresses")
-	return &reply
+	return &reply, nil
 }
 
-func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) *interop.L2ToL2Message {
+func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) (*interop.L2ToL2Message, error) {
 
-	if args == nil {
-		m.log.Error("valid msg hash not provided", "args", *args)
-		return nil
-	}
-
-	if m.networkConfig.InteropEnabled && m.l2ToL2MsgIndexer != nil {
-
-		storeEntry, err := m.l2ToL2MsgIndexer.Get(*args)
-
-		if err != nil {
-			m.log.Error("failed to get msg", "error", err)
-			return nil
+	if m.l2ToL2MsgIndexer == nil {
+		return nil, &JSONRPCError{
+			Code:    -32601,
+			Message: "L2ToL2MsgIndexer is not initialized. Ensure that interop is enabled using the --interop.enabled flag.",
 		}
-
-		reply := storeEntry.Message()
-
-		return reply
-
-	} else {
-		m.log.Error("auto relay not enabled", "args", *args)
-		return nil
 	}
+
+	if (args == nil || args == &common.Hash{}) {
+		return nil, &JSONRPCError{
+			Code:    -32602,
+			Message: "Valid msg hash not provided",
+		}
+	}
+
+	storeEntry, err := m.l2ToL2MsgIndexer.Get(*args)
+	if err != nil {
+		return nil, &JSONRPCError{
+			Code:    -32603,
+			Message: fmt.Sprintf("Failed to get message: %v", err),
+		}
+	}
+	m.log.Debug("admin_getL2ToL2MessageByMsgHash")
+	return storeEntry.Message(), nil
 }

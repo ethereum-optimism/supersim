@@ -9,7 +9,6 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
-	"github.com/ethereum-optimism/supersim/admin"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/orchestrator"
 
@@ -23,8 +22,6 @@ type Supersim struct {
 	NetworkConfig *config.NetworkConfig
 
 	Orchestrator *orchestrator.Orchestrator
-
-	adminServer *admin.AdminServer
 }
 
 func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseFunc, cliConfig *config.CLIConfig) (*Supersim, error) {
@@ -61,23 +58,18 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 	networkConfig.InteropAutoRelay = cliConfig.InteropAutoRelay
 	networkConfig.InteropDelay = cliConfig.InteropDelay
 
-	o, err := orchestrator.NewOrchestrator(log, closeApp, &networkConfig)
+	o, err := orchestrator.NewOrchestrator(log, closeApp, &networkConfig, cliConfig.AdminPort)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create orchestrator")
 	}
 
-	a := admin.NewAdminServer(log, cliConfig.AdminPort, &networkConfig, o.L2ToL2MessageIndexer())
-
-	return &Supersim{log, cliConfig, &networkConfig, o, a}, nil
+	return &Supersim{log, cliConfig, &networkConfig, o}, nil
 }
 
 func (s *Supersim) Start(ctx context.Context) error {
 	s.log.Info("starting supersim")
 	if err := s.Orchestrator.Start(ctx); err != nil {
 		return fmt.Errorf("orchestrator failed to start: %w", err)
-	}
-	if err := s.adminServer.Start(ctx); err != nil {
-		return fmt.Errorf("admin server failed to start: %w", err)
 	}
 
 	s.log.Info("supersim is ready")
@@ -90,9 +82,6 @@ func (s *Supersim) Stop(ctx context.Context) error {
 	s.log.Info("stopping supersim")
 	if err := s.Orchestrator.Stop(ctx); err != nil {
 		errs = append(errs, fmt.Errorf("orchestrator failed to stop: %w", err))
-	}
-	if err := s.adminServer.Stop(ctx); err != nil {
-		errs = append(errs, fmt.Errorf("admin server failed to stop: %w", err))
 	}
 
 	s.log.Info("stopped supersim")
@@ -109,10 +98,6 @@ func (s *Supersim) ConfigAsString() string {
 	fmt.Fprintln(&b, config.DefaultSecretsConfigAsString())
 
 	fmt.Fprintln(&b, "Supersim Config")
-	fmt.Fprintln(&b, "-----------------------")
-	fmt.Fprintln(&b, s.adminServer.ConfigAsString())
-
-	fmt.Fprintln(&b, "Chain Configuration")
 	fmt.Fprintln(&b, "-----------------------")
 	fmt.Fprintln(&b, s.Orchestrator.ConfigAsString())
 
