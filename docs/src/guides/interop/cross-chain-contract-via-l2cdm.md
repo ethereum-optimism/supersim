@@ -23,7 +23,7 @@ This guide walks through the `CrossChainPingPong.sol` contract, focusing on high
 ## High level overview
 
 `CrossChainPingPong.sol` implements a cross-chain ping-pong game using the L2ToL2CrossDomainMessenger.
- * Players hit a virtual ** *ball* ** back and forth between allowed L2 chains. The game starts with a serve
+ * Players hit a virtual **ball** back and forth between allowed L2 chains. The game starts with a serve
  * from a designated start chain, and each hit increases the rally count. The contract tracks the last hitter's address, chain ID, and the current rally count.
 
 ### Diagram
