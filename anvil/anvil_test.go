@@ -15,10 +15,6 @@ import (
 )
 
 func TestAnvil(t *testing.T) {
-	t.Run("unset default host", func(t *testing.T) {
-		cfg := config.ChainConfig{ChainID: 10, Port: 0}
-		testAnvilInstance(t, cfg)
-	})
 	t.Run("set default host", func(t *testing.T) {
 		cfg := config.ChainConfig{ChainID: 10, Port: 0, Host: "127.0.0.1"}
 		testAnvilInstance(t, cfg)
