@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"net"
 	"net/http"
 	"sync"
@@ -10,6 +11,7 @@ import (
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gin-gonic/gin"
@@ -37,6 +39,15 @@ type RPCMethods struct {
 type JSONRPCError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+}
+
+type JSONL2ToL2Message struct {
+	Destination uint64         `json:"Destination"`
+	Source      uint64         `json:"Source"`
+	Nonce       *big.Int       `json:"Nonce"`
+	Sender      common.Address `json:"Sender"`
+	Target      common.Address `json:"Target"`
+	Message     hexutil.Bytes  `json:"Message"`
 }
 
 func (e *JSONRPCError) Error() string {
@@ -176,7 +187,7 @@ func (m *RPCMethods) GetL1Addresses(args *uint64) (*map[string]string, error) {
 	return &reply, nil
 }
 
-func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) (*interop.L2ToL2Message, error) {
+func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) (*JSONL2ToL2Message, error) {
 
 	if m.l2ToL2MsgIndexer == nil {
 		return nil, &JSONRPCError{
@@ -199,6 +210,16 @@ func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) (*interop.L2To
 			Message: fmt.Sprintf("Failed to get message: %v", err),
 		}
 	}
+
+	msg := storeEntry.Message()
+
 	m.log.Debug("admin_getL2ToL2MessageByMsgHash")
-	return storeEntry.Message(), nil
+	return &JSONL2ToL2Message{
+		Destination: msg.Destination,
+		Source:      msg.Source,
+		Nonce:       msg.Nonce,
+		Sender:      msg.Sender,
+		Target:      msg.Target,
+		Message:     msg.Message,
+	}, nil
 }
