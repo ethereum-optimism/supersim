@@ -1,4 +1,4 @@
-export const address = '0x81D8CB015e36922F7ecC5CEAdd018dc7327e6FC7'
+export const address = import.meta.env.TICTACTOE_ADDRESS || '0x81D8CB015e36922F7ecC5CEAdd018dc7327e6FC7'
 
 export const abi = [
     {
