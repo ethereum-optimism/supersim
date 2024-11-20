@@ -65,6 +65,15 @@ type TestSuite struct {
 	Supersim *Supersim
 }
 
+type JSONL2ToL2Message struct {
+	Destination uint64         `json:"Destination"`
+	Source      uint64         `json:"Source"`
+	Nonce       *big.Int       `json:"Nonce"`
+	Sender      common.Address `json:"Sender"`
+	Target      common.Address `json:"Target"`
+	Message     hexutil.Bytes  `json:"Message"`
+}
+
 type InteropTestSuite struct {
 	t *testing.T
 
@@ -1069,7 +1078,7 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 	})
 	assert.NoError(t, waitErr)
 
-	var message *interop.L2ToL2Message
+	var message *JSONL2ToL2Message
 	// msgHash for the above sendERC20 txn
 	msgHash := "0x3656fd893944321663b2877d10db2895fb68e2346fd7e3f648ce5b986c200166"
 	rpcErr := client.CallContext(context.Background(), &message, "admin_getL2ToL2MessageByMsgHash", msgHash)
