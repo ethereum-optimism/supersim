@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
+	"github.com/ethereum-optimism/supersim/opsimulator"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
@@ -26,6 +27,7 @@ type AdminServer struct {
 
 	networkConfig    *config.NetworkConfig
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
+	l1DepositStore   *opsimulator.L1DepositStoreManager
 
 	port uint64
 }
@@ -34,6 +36,7 @@ type RPCMethods struct {
 	log              log.Logger
 	networkConfig    *config.NetworkConfig
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
+	l1DepositStore   *opsimulator.L1DepositStoreManager
 }
 
 type JSONRPCError struct {
@@ -50,6 +53,17 @@ type JSONL2ToL2Message struct {
 	Message     hexutil.Bytes  `json:"Message"`
 }
 
+type JSONDepositTx struct {
+	SourceHash          common.Hash     `json:"SourceHash"`
+	From                common.Address  `json:"From"`
+	To                  *common.Address `json:"To"`
+	Mint                *big.Int        `json:"Mint"`
+	Value               *big.Int        `json:"Value"`
+	Gas                 uint64          `json:"Gas"`
+	IsSystemTransaction bool            `json:"IsSystemTransaction"`
+	Data                hexutil.Bytes   `json:"Data"`
+}
+
 func (e *JSONRPCError) Error() string {
 	return e.Message
 }
@@ -58,9 +72,9 @@ func (err *JSONRPCError) ErrorCode() int {
 	return err.Code
 }
 
-func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, indexer *interop.L2ToL2MessageIndexer) *AdminServer {
+func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, indexer *interop.L2ToL2MessageIndexer, l1DepositStore *opsimulator.L1DepositStoreManager) *AdminServer {
 
-	adminServer := &AdminServer{log: log, port: port, networkConfig: networkConfig}
+	adminServer := &AdminServer{log: log, port: port, networkConfig: networkConfig, l1DepositStore: l1DepositStore}
 
 	if networkConfig.InteropEnabled && indexer != nil {
 		adminServer.l2ToL2MsgIndexer = indexer
@@ -140,6 +154,7 @@ func (s *AdminServer) setupRouter() *gin.Engine {
 		log:              s.log,
 		networkConfig:    s.networkConfig,
 		l2ToL2MsgIndexer: s.l2ToL2MsgIndexer,
+		l1DepositStore:   s.l1DepositStore,
 	}
 
 	if err := rpcServer.RegisterName("admin", rpcMethods); err != nil {
@@ -221,5 +236,41 @@ func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) (*JSONL2ToL2Me
 		Sender:      msg.Sender,
 		Target:      msg.Target,
 		Message:     msg.Message,
+	}, nil
+}
+
+func (m *RPCMethods) GetL1ToL2MessageByTxnHash(args *common.Hash) (*JSONDepositTx, error) {
+	if m.l1DepositStore == nil {
+		return nil, &JSONRPCError{
+			Code:    -32601,
+			Message: "L1DepositStoreManager is not initialized.",
+		}
+	}
+
+	if (args == nil || args == &common.Hash{}) {
+		return nil, &JSONRPCError{
+			Code:    -32602,
+			Message: "Valid msg hash not provided",
+		}
+	}
+
+	storeEntry, err := m.l1DepositStore.Get(*args)
+
+	if err != nil {
+		return nil, &JSONRPCError{
+			Code:    -32603,
+			Message: fmt.Sprintf("Failed to get message: %v", err),
+		}
+	}
+
+	return &JSONDepositTx{
+		SourceHash:          storeEntry.SourceHash,
+		From:                storeEntry.From,
+		To:                  storeEntry.To,
+		Mint:                storeEntry.Mint,
+		Value:               storeEntry.Value,
+		Gas:                 storeEntry.Gas,
+		IsSystemTransaction: storeEntry.IsSystemTransaction,
+		Data:                storeEntry.Data,
 	}, nil
 }

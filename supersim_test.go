@@ -74,6 +74,17 @@ type JSONL2ToL2Message struct {
 	Message     hexutil.Bytes  `json:"Message"`
 }
 
+type JSONDepositTx struct {
+	SourceHash          common.Hash     `json:"SourceHash"`
+	From                common.Address  `json:"From"`
+	To                  *common.Address `json:"To"`
+	Mint                *big.Int        `json:"Mint"`
+	Value               *big.Int        `json:"Value"`
+	Gas                 uint64          `json:"Gas"`
+	IsSystemTransaction bool            `json:"IsSystemTransaction"`
+	Data                hexutil.Bytes   `json:"Data"`
+}
+
 type InteropTestSuite struct {
 	t *testing.T
 
@@ -1088,4 +1099,71 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 	assert.Equal(t, testSuite.SourceChainID.Uint64(), message.Source)
 	assert.Equal(t, tx.To().String(), message.Target.String())
 	assert.Equal(t, tx.To().String(), message.Sender.String())
+}
+
+func TestAdminGetL1ToL2MessageByTxnHash(t *testing.T) {
+	t.Parallel()
+
+	testSuite := createTestSuite(t, &config.CLIConfig{})
+
+	l1Chain := testSuite.Supersim.Orchestrator.L1Chain()
+	l1EthClient, _ := ethclient.Dial(l1Chain.Endpoint())
+
+	var wg sync.WaitGroup
+	var l1TxMutex sync.Mutex
+
+	l2Chains := testSuite.Supersim.Orchestrator.L2Chains()
+	wg.Add(len(l2Chains))
+	for i, chain := range l2Chains {
+		go func() {
+			defer wg.Done()
+
+			l2EthClient, _ := ethclient.Dial(chain.Endpoint())
+			privateKey, _ := testSuite.DevKeys.Secret(devkeys.UserKey(i))
+			senderAddress, _ := testSuite.DevKeys.Address(devkeys.UserKey(i))
+			adminRPCClient, _ := rpc.Dial(testSuite.Supersim.Orchestrator.AdminServer.Endpoint())
+
+			oneEth := big.NewInt(1e18)
+			prevBalance, _ := l2EthClient.BalanceAt(context.Background(), senderAddress, nil)
+
+			transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(l1Chain.Config().ChainID)))
+			transactor.Value = oneEth
+			optimismPortal, _ := opbindings.NewOptimismPortal(common.Address(chain.Config().L2Config.L1Addresses.OptimismPortalProxy), l1EthClient)
+
+			// needs a lock because the gas estimation can be outdated between transactions
+			l1TxMutex.Lock()
+			tx, err := optimismPortal.DepositTransaction(transactor, senderAddress, oneEth, 100000, false, make([]byte, 0))
+			l1TxMutex.Unlock()
+			require.NoError(t, err)
+
+			txReceipt, _ := bind.WaitMined(context.Background(), l1EthClient, tx)
+			require.NoError(t, err)
+
+			require.True(t, txReceipt.Status == 1, "Deposit transaction failed")
+			require.NotEmpty(t, txReceipt.Logs, "Deposit transaction failed")
+
+			postBalance, postBalanceCheckErr := wait.ForBalanceChange(
+				context.Background(),
+				l2EthClient,
+				senderAddress,
+				prevBalance,
+			)
+			require.NoError(t, postBalanceCheckErr)
+
+			// check that balance was increased
+			require.Equal(t, oneEth, postBalance.Sub(postBalance, prevBalance), "Recipient balance is incorrect")
+
+			var message *JSONDepositTx
+			// msgHash for the above sendERC20 txn
+			l1TxnHash := txReceipt.TxHash
+			rpcErr := adminRPCClient.CallContext(context.Background(), &message, "admin_getL1ToL2MessageByTxnHash", l1TxnHash)
+			require.NoError(t, rpcErr)
+
+			assert.Equal(t, oneEth.String(), message.Value.String())
+			assert.Equal(t, oneEth.String(), message.Mint.String())
+			assert.Equal(t, false, message.IsSystemTransaction)
+		}()
+	}
+
+	wg.Wait()
 }
