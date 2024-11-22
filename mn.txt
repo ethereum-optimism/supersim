@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/ethereum-optimism/supersim/config"
@@ -57,7 +58,8 @@ type Anvil struct {
 	stopped   atomic.Bool
 	stoppedCh chan struct{}
 
-	cleanupTasks []func()
+	cleanupCh chan struct{}
+	wg        sync.WaitGroup
 }
 
 func New(log log.Logger, closeApp context.CancelCauseFunc, cfg *config.ChainConfig) *Anvil {
@@ -69,13 +71,35 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, cfg *config.ChainConf
 		resourceCancel: resCancel,
 		closeApp:       closeApp,
 		stoppedCh:      make(chan struct{}, 1),
+		cleanupCh:      make(chan struct{}),
 	}
+}
+
+func (a *Anvil) StartCleanupListener() {
+	go func() {
+		<-a.cleanupCh
+		a.wg.Wait()
+	}()
+}
+
+func (a *Anvil) SignalCleanup() {
+	close(a.cleanupCh)
+}
+
+func (a *Anvil) RegisterCleanupTask(task func()) {
+	a.wg.Add(1)
+	go func() {
+		defer a.wg.Done()
+		task()
+	}()
 }
 
 func (a *Anvil) Start(ctx context.Context) error {
 	if a.cmd != nil {
 		return errors.New("anvil already started")
 	}
+
+	a.StartCleanupListener()
 
 	args := []string{
 		"--host", a.cfg.Host,
@@ -95,18 +119,18 @@ func (a *Anvil) Start(ctx context.Context) error {
 	}
 
 	if len(a.cfg.GenesisJSON) > 0 && a.cfg.ForkConfig == nil {
-		tempFile, err := os.CreateTemp("", "genesis-*.json")
+		tempGenesisFile, err := os.CreateTemp("", "genesis-*.json")
 
 		if err != nil {
 			return fmt.Errorf("error creating temporary genesis file: %w", err)
 		}
-		if _, err = tempFile.Write(a.cfg.GenesisJSON); err != nil {
+		if _, err = tempGenesisFile.Write(a.cfg.GenesisJSON); err != nil {
 			return fmt.Errorf("error writing to genesis file: %w", err)
 		}
-		args = append(args, "--init", tempFile.Name())
+		args = append(args, "--init", tempGenesisFile.Name())
 
-		a.registerCleanupTask(func() {
-			a.removeFile(tempFile)
+		a.RegisterCleanupTask(func() {
+			a.removeFile(tempGenesisFile)
 		})
 	}
 	if a.cfg.ForkConfig != nil {
@@ -133,13 +157,13 @@ func (a *Anvil) Start(ctx context.Context) error {
 	// Empty LogsDirectory defaults to temp file
 	if a.cfg.LogsDirectory == "" {
 		tempLogFile, err := os.CreateTemp("", fmt.Sprintf("anvil-chain-%d-", a.cfg.ChainID))
+
 		if err != nil {
 			return fmt.Errorf("failed to create temp log file: %w", err)
 		}
 
-		logFile = tempLogFile
-
-		a.registerCleanupTask(func() {
+		logFile = tempLogFiley
+		a.RegisterCleanupTask(func() {
 			a.removeFile(logFile)
 		})
 	} else {
@@ -241,7 +265,7 @@ func (a *Anvil) Stop(_ context.Context) error {
 
 	a.rpcClient.Close()
 	a.resourceCancel()
-	a.executeCleanup()
+	a.SignalCleanup()
 	<-a.stoppedCh
 	return nil
 }
@@ -339,14 +363,4 @@ func (a *Anvil) removeFile(file *os.File) {
 	if err := os.Remove(file.Name()); err != nil {
 		a.log.Warn("failed to remove temp genesis file", "file.path", file.Name(), "err", err)
 	}
-}
-
-func (a *Anvil) executeCleanup() {
-	for _, task := range a.cleanupTasks {
-		task()
-	}
-}
-
-func (a *Anvil) registerCleanupTask(task func()) {
-	a.cleanupTasks = append(a.cleanupTasks, task)
 }

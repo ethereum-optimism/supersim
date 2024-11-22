@@ -1,0 +1,258 @@
+
+
+                             _   _
+                            (_) | |
+      __ _   _ __   __   __  _  | |
+     / _` | | '_ \  \ \ / / | | | |
+    | (_| | | | | |  \ V /  | | | |
+     \__,_| |_| |_|   \_/   |_| |_|
+
+    0.2.0 (2559899 2024-10-25T00:22:15.633229410Z)
+    https://github.com/foundry-rs/foundry
+
+Available Accounts
+==================
+
+(0) 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (10000.000000000000000000 ETH)
+(1) 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 (10000.000000000000000000 ETH)
+(2) 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC (10000.000000000000000000 ETH)
+(3) 0x90F79bf6EB2c4f870365E785982E1f101E93b906 (10000.000000000000000000 ETH)
+(4) 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 (10000.000000000000000000 ETH)
+(5) 0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc (10000.000000000000000000 ETH)
+(6) 0x976EA74026E726554dB657fA54763abd0C3a0aa9 (10000.000000000000000000 ETH)
+(7) 0x14dC79964da2C08b23698B3D3cc7Ca32193d9955 (10000.000000000000000000 ETH)
+(8) 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f (10000.000000000000000000 ETH)
+(9) 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 (10000.000000000000000000 ETH)
+
+Private Keys
+==================
+
+(0) 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+(1) 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+(2) 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+(3) 0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6
+(4) 0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a
+(5) 0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba
+(6) 0x92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e
+(7) 0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356
+(8) 0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97
+(9) 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
+
+Wallet
+==================
+Mnemonic:          test test test test test test test test test test test junk
+Derivation path:   m/44'/60'/0'/0/
+
+
+Chain ID
+==================
+
+902
+
+Base Fee
+==================
+
+1000000000
+
+Gas Limit
+==================
+
+30000000
+
+Genesis Timestamp
+==================
+
+1732215287
+
+Listening on 127.0.0.1:32933
+evm_setIntervalMining
+debug_traceCall
+eth_sendRawTransaction
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+eth_getTransactionReceipt
+
+    Transaction: 0x547050910192478cdbeda0875d62f4f44ce28b42bc3adcd5663b1ebe4f01d755
+    Gas used: 95774
+
+    Block Number: 1
+    Block Hash: 0x53faae1d7488094da452e1cf444dd446ad5722c57f8e274ac01c7e4bdf55af75
+    Block Time: "Thu, 21 Nov 2024 18:54:49 +0000"
+
+eth_getTransactionReceipt
+
+    Block Number: 2
+    Block Hash: 0x77db502e9ef0629d85d14bd602f45c67dad13994adfe95aa48cf95ad21aa0e54
+    Block Time: "Thu, 21 Nov 2024 18:54:51 +0000"
+
+
+    Block Number: 3
+    Block Hash: 0x4c8b6774459c4da75588bd626adb0205681916f23aab347c804b6d3dd0954b10
+    Block Time: "Thu, 21 Nov 2024 18:54:53 +0000"
+
+
+    Block Number: 4
+    Block Hash: 0x20b34df39b688eb947ab155d9403c9c46b5a2119738be0a5bfc080357dd0b685
+    Block Time: "Thu, 21 Nov 2024 18:54:55 +0000"
+
+
+    Block Number: 5
+    Block Hash: 0x22ec08402c74e8a834d65316302ee8866e6e8f3eb9a35a5aae7a39c3fa7d8cc9
+    Block Time: "Thu, 21 Nov 2024 18:54:57 +0000"
+
+
+    Block Number: 6
+    Block Hash: 0x375a3e311869c186e559806af3b485463433c814e073b2851de227ffc0dcb7f0
+    Block Time: "Thu, 21 Nov 2024 18:54:59 +0000"
+
+
+    Block Number: 7
+    Block Hash: 0xaa5640f7acaacf687c0284c24fcd0e12f571e2acc3c2d5e138ff488772b4f4a6
+    Block Time: "Thu, 21 Nov 2024 18:55:01 +0000"
+
+
+    Block Number: 8
+    Block Hash: 0x6917c4cdecc5988b55d4c4f45b7bbe59b66383349f40eaf117dd62df64da3351
+    Block Time: "Thu, 21 Nov 2024 18:55:03 +0000"
+
+
+    Block Number: 9
+    Block Hash: 0x7f8fb2b917c4f3877ba8a0c4bfd20af3445c0957d9d1a56dc9b1c9ce6d65c507
+    Block Time: "Thu, 21 Nov 2024 18:55:05 +0000"
+
+
+    Block Number: 10
+    Block Hash: 0x81c0ee99bcc1ef77dbe4de201abb85743525ca5eef1a2e5a8562548a0e9c3291
+    Block Time: "Thu, 21 Nov 2024 18:55:07 +0000"
+
+
+    Block Number: 11
+    Block Hash: 0x388729f247a182d6ab8f987d47467ac411519fad61308354e5b453545e7ce498
+    Block Time: "Thu, 21 Nov 2024 18:55:09 +0000"
+
+
+    Block Number: 12
+    Block Hash: 0x06248f44f5e56e90e6b84c629dbd323de7a78647e67a055a4d57a8e620f23850
+    Block Time: "Thu, 21 Nov 2024 18:55:11 +0000"
+
+
+    Block Number: 13
+    Block Hash: 0x5cd7d579cf4e37b00d1166d62b500338b6fd884fcb05fe5e4222d3038899d575
+    Block Time: "Thu, 21 Nov 2024 18:55:13 +0000"
+
+
+    Block Number: 14
+    Block Hash: 0x53d5f6de58e1f6ff68ba0b743ed26b687e160ef40107a56ff6fe04e301e58338
+    Block Time: "Thu, 21 Nov 2024 18:55:15 +0000"
+
+
+    Block Number: 15
+    Block Hash: 0x6e694868e2d19db961895f45fb67c9347447b0232c0d566e35228cd6a8f02fb1
+    Block Time: "Thu, 21 Nov 2024 18:55:17 +0000"
+
+
+    Block Number: 16
+    Block Hash: 0xb7ff762701f204eb71f634a24a217aec188cdac468873197078290b68c11d2d7
+    Block Time: "Thu, 21 Nov 2024 18:55:19 +0000"
+
+
+    Block Number: 17
+    Block Hash: 0x9844ad39ec9da8fd2dca88fcd447bf6ee8d43b45d78866c81f2b2af8832963cd
+    Block Time: "Thu, 21 Nov 2024 18:55:21 +0000"
+
