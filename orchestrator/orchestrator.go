@@ -49,7 +49,8 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 	// Sping up OpSim to fornt the L2 instances
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay)
+
+		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
@@ -72,11 +73,11 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 
 func (o *Orchestrator) Start(ctx context.Context) error {
 	o.log.Debug("starting orchestrator")
-
 	// Start Chains
 	if err := o.l1Chain.Start(ctx); err != nil {
 		return fmt.Errorf("l1 chain %s failed to start: %w", o.l1Chain.Config().Name, err)
 	}
+
 	for _, chain := range o.l2Chains {
 		if err := chain.Start(ctx); err != nil {
 			return fmt.Errorf("l2 chain %s failed to start: %w", chain.Config().Name, err)
