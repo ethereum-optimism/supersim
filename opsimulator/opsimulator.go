@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"sync/atomic"
 
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
@@ -33,7 +32,6 @@ import (
 )
 
 const (
-	host                        = "127.0.0.1"
 	l2NativeSuperchainERC20Addr = "0x420beeF000000000000000000000000000000001"
 )
 
@@ -52,6 +50,7 @@ type OpSimulator struct {
 	bgTasksCancel context.CancelFunc
 	peers         map[uint64]config.Chain
 
+	host         string
 	port         uint64
 	httpServer   *ophttp.HTTPServer
 	crossL2Inbox *bindings.CrossL2Inbox
@@ -64,7 +63,7 @@ type OpSimulator struct {
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
-func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64, depositStoreManager *L1DepositStoreManager) *OpSimulator {
+func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, l2Chain.EthClient())
@@ -77,6 +76,7 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain,
 
 		log:          log.New("chain.id", l2Chain.Config().ChainID),
 		port:         port,
+		host:         host,
 		l1Chain:      l1Chain,
 		crossL2Inbox: crossL2Inbox,
 		interopDelay: interopDelay,
@@ -100,20 +100,26 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.Handle("/", corsHandler(opSim.handler(ctx)))
 
-	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(host, fmt.Sprintf("%d", opSim.port)), mux)
+	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(opSim.host, fmt.Sprintf("%d", opSim.port)), mux)
 	if err != nil {
 		return fmt.Errorf("failed to start HTTP RPC server: %w", err)
 	}
 
 	cfg := opSim.Config()
 	opSim.log.Debug("started opsimulator", "name", cfg.Name, "chain.id", cfg.ChainID, "addr", hs.Addr())
-
 	opSim.httpServer = hs
+
 	if opSim.port == 0 {
-		opSim.port, err = strconv.ParseUint(strings.Split(hs.Addr().String(), ":")[1], 10, 64)
+		_, portStr, err := net.SplitHostPort(hs.Addr().String())
+		if err != nil {
+			panic(fmt.Errorf("failed to parse address: %w", err))
+		}
+
+		port, err := strconv.ParseUint(portStr, 10, 64)
 		if err != nil {
 			panic(fmt.Errorf("unexpected opsimulator listening port: %w", err))
 		}
+		opSim.port = port
 	}
 
 	ethClient, err := ethclient.Dial(opSim.Endpoint())
@@ -452,7 +458,7 @@ func (opSim *OpSimulator) Config() *config.ChainConfig {
 
 // Overridden such that the correct port is used
 func (opSim *OpSimulator) Endpoint() string {
-	return fmt.Sprintf("http://%s:%d", host, opSim.port)
+	return fmt.Sprintf("http://%s:%d", opSim.host, opSim.port)
 }
 
 func corsHandler(next http.Handler) http.Handler {

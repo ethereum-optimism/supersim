@@ -36,7 +36,6 @@ var (
 )
 
 const (
-	host                 = "127.0.0.1"
 	anvilListeningLogStr = "Listening on"
 )
 
@@ -77,7 +76,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 	}
 
 	args := []string{
-		"--host", host,
+		"--host", a.cfg.Host,
 		"--accounts", fmt.Sprintf("%d", a.cfg.SecretsConfig.Accounts),
 		"--mnemonic", a.cfg.SecretsConfig.Mnemonic,
 		"--derivation-path", a.cfg.SecretsConfig.DerivationPath.String(),
@@ -241,11 +240,11 @@ func (a *Anvil) Stop(_ context.Context) error {
 }
 
 func (a *Anvil) Endpoint() string {
-	return fmt.Sprintf("http://%s:%d", host, a.cfg.Port)
+	return fmt.Sprintf("http://%s:%d", a.cfg.Host, a.cfg.Port)
 }
 
 func (a *Anvil) wsEndpoint() string {
-	return fmt.Sprintf("ws://%s:%d", host, a.cfg.Port)
+	return fmt.Sprintf("ws://%s:%d", a.cfg.Host, a.cfg.Port)
 }
 
 func (a *Anvil) Name() string {
@@ -311,7 +310,7 @@ func (a *Anvil) SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]typ
 
 	txArgs := txArgs{From: from, To: tx.To(), Gas: hexutil.Uint64(tx.Gas()), GasPrice: (*hexutil.Big)(tx.GasPrice()), Data: tx.Data(), Value: (*hexutil.Big)(tx.Value())}
 	result := callFrame{}
-	if err := a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "latest", logTracerParams); err != nil {
+	if err := a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "pending", logTracerParams); err != nil {
 		return nil, err
 	}
 
