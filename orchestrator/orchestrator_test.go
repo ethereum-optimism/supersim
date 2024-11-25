@@ -21,7 +21,7 @@ func createTestSuite(t *testing.T, networkConfig *config.NetworkConfig) *TestSui
 	testlog := testlog.Logger(t, log.LevelInfo)
 
 	ctx, closeApp := context.WithCancelCause(context.Background())
-	orchestrator, _ := NewOrchestrator(testlog, closeApp, networkConfig)
+	orchestrator, _ := NewOrchestrator(testlog, closeApp, networkConfig, 0)
 
 	t.Cleanup(func() {
 		closeApp(nil)

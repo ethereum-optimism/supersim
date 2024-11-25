@@ -3,11 +3,15 @@ package admin
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"net"
 	"net/http"
 	"sync"
 
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum-optimism/supersim/interop"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gin-gonic/gin"
@@ -20,18 +24,49 @@ type AdminServer struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	networkConfig *config.NetworkConfig
+	networkConfig    *config.NetworkConfig
+	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 
 	port uint64
 }
 
 type RPCMethods struct {
-	Log           log.Logger
-	NetworkConfig *config.NetworkConfig
+	log              log.Logger
+	networkConfig    *config.NetworkConfig
+	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 }
 
-func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig) *AdminServer {
-	return &AdminServer{log: log, port: port, networkConfig: networkConfig}
+type JSONRPCError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+type JSONL2ToL2Message struct {
+	Destination uint64         `json:"Destination"`
+	Source      uint64         `json:"Source"`
+	Nonce       *big.Int       `json:"Nonce"`
+	Sender      common.Address `json:"Sender"`
+	Target      common.Address `json:"Target"`
+	Message     hexutil.Bytes  `json:"Message"`
+}
+
+func (e *JSONRPCError) Error() string {
+	return e.Message
+}
+
+func (err *JSONRPCError) ErrorCode() int {
+	return err.Code
+}
+
+func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, indexer *interop.L2ToL2MessageIndexer) *AdminServer {
+
+	adminServer := &AdminServer{log: log, port: port, networkConfig: networkConfig}
+
+	if networkConfig.InteropEnabled && indexer != nil {
+		adminServer.l2ToL2MsgIndexer = indexer
+	}
+
+	return adminServer
 }
 
 func (s *AdminServer) Start(ctx context.Context) error {
@@ -102,8 +137,9 @@ func (s *AdminServer) setupRouter() *gin.Engine {
 
 	rpcServer := rpc.NewServer()
 	rpcMethods := &RPCMethods{
-		Log:           s.log,
-		NetworkConfig: s.networkConfig,
+		log:              s.log,
+		networkConfig:    s.networkConfig,
+		l2ToL2MsgIndexer: s.l2ToL2MsgIndexer,
 	}
 
 	if err := rpcServer.RegisterName("admin", rpcMethods); err != nil {
@@ -122,15 +158,17 @@ func (s *AdminServer) setupRouter() *gin.Engine {
 
 func (m *RPCMethods) GetConfig(args *struct{}) *config.NetworkConfig {
 
-	m.Log.Debug("admin_getConfig")
-	return m.NetworkConfig
+	m.log.Debug("admin_getConfig")
+	return m.networkConfig
 }
 
-func (m *RPCMethods) GetL1Addresses(args *uint64) *map[string]string {
-	chain := filterByChainID(m.NetworkConfig.L2Configs, *args)
+func (m *RPCMethods) GetL1Addresses(args *uint64) (*map[string]string, error) {
+	chain := filterByChainID(m.networkConfig.L2Configs, *args)
 	if chain == nil {
-		m.Log.Error("chain not found", "chainID", *args)
-		return nil
+		return nil, &JSONRPCError{
+			Code:    -32602,
+			Message: "chain not found",
+		}
 	}
 
 	reply := map[string]string{
@@ -145,6 +183,43 @@ func (m *RPCMethods) GetL1Addresses(args *uint64) *map[string]string {
 		"ProxyAdmin":                        chain.L2Config.L1Addresses.ProxyAdmin.String(),
 		"SuperchainConfig":                  chain.L2Config.L1Addresses.SuperchainConfig.String(),
 	}
-	m.Log.Debug("admin_getL2Addresses")
-	return &reply
+	m.log.Debug("admin_getL2Addresses")
+	return &reply, nil
+}
+
+func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) (*JSONL2ToL2Message, error) {
+
+	if m.l2ToL2MsgIndexer == nil {
+		return nil, &JSONRPCError{
+			Code:    -32601,
+			Message: "L2ToL2MsgIndexer is not initialized. Ensure that interop is enabled using the --interop.enabled flag.",
+		}
+	}
+
+	if (args == nil || args == &common.Hash{}) {
+		return nil, &JSONRPCError{
+			Code:    -32602,
+			Message: "Valid msg hash not provided",
+		}
+	}
+
+	storeEntry, err := m.l2ToL2MsgIndexer.Get(*args)
+	if err != nil {
+		return nil, &JSONRPCError{
+			Code:    -32603,
+			Message: fmt.Sprintf("Failed to get message: %v", err),
+		}
+	}
+
+	msg := storeEntry.Message()
+
+	m.log.Debug("admin_getL2ToL2MessageByMsgHash")
+	return &JSONL2ToL2Message{
+		Destination: msg.Destination,
+		Source:      msg.Source,
+		Nonce:       msg.Nonce,
+		Sender:      msg.Sender,
+		Target:      msg.Target,
+		Message:     msg.Message,
+	}, nil
 }

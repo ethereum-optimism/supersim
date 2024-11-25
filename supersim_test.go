@@ -65,6 +65,15 @@ type TestSuite struct {
 	Supersim *Supersim
 }
 
+type JSONL2ToL2Message struct {
+	Destination uint64         `json:"Destination"`
+	Source      uint64         `json:"Source"`
+	Nonce       *big.Int       `json:"Nonce"`
+	Sender      common.Address `json:"Sender"`
+	Target      common.Address `json:"Target"`
+	Message     hexutil.Bytes  `json:"Message"`
+}
+
 type InteropTestSuite struct {
 	t *testing.T
 
@@ -1011,4 +1020,72 @@ func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	// Should fail because the delay time hasn't passed
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not enough time has passed since initiating message")
+}
+
+func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
+
+	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+
+	sourceSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.SourceEthClient)
+	require.NoError(t, err)
+
+	sourceSuperchainTokenBridge, err := bindings.NewSuperchainTokenBridge(predeploys.SuperchainTokenBridgeAddr, testSuite.SourceEthClient)
+	require.NoError(t, err)
+
+	destSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.DestEthClient)
+	require.NoError(t, err)
+	valueToTransfer := big.NewInt(10_000_000)
+
+	sourceTransactor.Value = valueToTransfer
+	depositTx, err := sourceSuperchainWETH.Deposit(sourceTransactor)
+	require.NoError(t, err)
+	depositTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, depositTx)
+	require.NoError(t, err)
+	require.True(t, depositTxReceipt.Status == 1, "weth deposit transaction failed")
+	sourceTransactor.Value = nil
+
+	destStartingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+	require.NoError(t, err)
+
+	_, err = sourceSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+	require.NoError(t, err)
+
+	tx, err := sourceSuperchainTokenBridge.SendERC20(sourceTransactor, predeploys.SuperchainWETHAddr, sourceTransactor.From, valueToTransfer, testSuite.DestChainID)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	var client *rpc.Client
+	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+		destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+		require.NoError(t, err)
+		diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
+
+		newClient, err := rpc.Dial(testSuite.Supersim.Orchestrator.AdminServer.Endpoint())
+		if err != nil {
+			return false, err
+		}
+		client = newClient
+
+		return diff.Cmp(valueToTransfer) == 0, nil
+	})
+	assert.NoError(t, waitErr)
+
+	var message *JSONL2ToL2Message
+	// msgHash for the above sendERC20 txn
+	msgHash := "0x3656fd893944321663b2877d10db2895fb68e2346fd7e3f648ce5b986c200166"
+	rpcErr := client.CallContext(context.Background(), &message, "admin_getL2ToL2MessageByMsgHash", msgHash)
+	require.NoError(t, rpcErr)
+
+	assert.Equal(t, testSuite.DestChainID.Uint64(), message.Destination)
+	assert.Equal(t, testSuite.SourceChainID.Uint64(), message.Source)
+	assert.Equal(t, tx.To().String(), message.Target.String())
+	assert.Equal(t, tx.To().String(), message.Sender.String())
 }
