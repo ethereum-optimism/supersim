@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ethereum-optimism/supersim/admin"
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
@@ -29,9 +30,11 @@ type Orchestrator struct {
 
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 	l2ToL2MsgRelayer *interop.L2ToL2MessageRelayer
+
+	AdminServer *admin.AdminServer
 }
 
-func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig) (*Orchestrator, error) {
+func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig, adminPort uint64) (*Orchestrator, error) {
 	// Spin up L1 anvil instance
 	l1Anvil := anvil.New(log, closeApp, &networkConfig.L1Config)
 
@@ -67,6 +70,10 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 			o.l2ToL2MsgRelayer = interop.NewL2ToL2MessageRelayer(log)
 		}
 	}
+
+	a := admin.NewAdminServer(log, adminPort, networkConfig, o.l2ToL2MsgIndexer)
+
+	o.AdminServer = a
 
 	return &o, nil
 }
@@ -138,6 +145,10 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		}
 	}
 
+	if err := o.AdminServer.Start(ctx); err != nil {
+		return fmt.Errorf("admin server failed to start: %w", err)
+	}
+
 	o.log.Debug("orchestrator is ready")
 	return nil
 }
@@ -173,6 +184,10 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 	if err := o.l1Chain.Stop(ctx); err != nil {
 		o.log.Debug("stopping l1 chain", "chain.id", o.l1Chain.Config().ChainID)
 		errs = append(errs, fmt.Errorf("l1 chain %s failed to stop: %w", o.l1Chain.Config().Name, err))
+	}
+
+	if err := o.AdminServer.Stop(ctx); err != nil {
+		errs = append(errs, fmt.Errorf("admin server failed to stop: %w", err))
 	}
 
 	return errors.Join(errs...)
@@ -222,6 +237,12 @@ func (o *Orchestrator) Endpoint(chainId uint64) string {
 func (o *Orchestrator) ConfigAsString() string {
 	var b strings.Builder
 	l1Cfg := o.l1Chain.Config()
+
+	fmt.Fprintln(&b, o.AdminServer.ConfigAsString())
+
+	fmt.Fprintln(&b, "Chain Configuration")
+	fmt.Fprintln(&b, "-----------------------")
+
 	fmt.Fprintf(&b, "L1: Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", l1Cfg.Name, l1Cfg.ChainID, o.l1Chain.Endpoint(), o.l1Chain.LogPath())
 
 	fmt.Fprintf(&b, "\nL2: Predeploy Contracts Spec ( %s )\n", "https://specs.optimism.io/protocol/predeploys.html")
