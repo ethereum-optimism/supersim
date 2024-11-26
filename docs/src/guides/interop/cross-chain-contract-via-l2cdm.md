@@ -108,7 +108,7 @@ While not explicitly mentioned in the code, this contract's design implicitly as
 
 3. **Initialization State Considerations**:
 
-   The starting chain id is apart of the initcode, meaning a deployment with a differing value would result in a different address via CREATE2. This is a nice feature as there's an implicit agreement on the starting chain from the address.
+   The starting chain id is a part of the initcode, meaning a deployment with a differing value would result in a different address via CREATE2. This is a nice feature as there's an implicit agreement on the starting chain from the address.
 
    Without CREATE2, you would need to:
     - Manually track contract addresses for each chain.
@@ -148,7 +148,7 @@ function receiveBall(PingPongBall memory _ball) onlyCrossDomainCallback() extern
 }
 ```
 - The handler simply stores reference to the received ball
-- The handler can only be invokable by the cross chain messenger
+- The handler can only be invoked by the cross chain messenger
 - Since the contract is self-referential, the cross chain sender must be the same contract address
 
 #### 3. Hit The Ball Cross Chain

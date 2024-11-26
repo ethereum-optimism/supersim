@@ -249,7 +249,7 @@ Below, find a list of all kinds of interesting projects built with Supersim - If
 - [SuperchainERC20 Starter Kit](https://github.com/ethereum-optimism/superchainerc20-starter) - A toolkit to get started with superchainERC20 - an implementation of ERC-7802 designed to enable asset interoperability in the Superchain
 - [Hyperlane DevX Demo](https://github.com/ethereum-optimism/supersim/tree/main/integrations/hyperlane) - A demo for the developer experience  when using Hyperlane as a wrapper over OP's Native Interop
 - [Infinity Pets](https://github.com/karlfloersch/infinity-pets) - An example of horizontally scalable smart contract system and frontend application
-- [Interop Interactions and Interopable token](https://github.com/ismailmoazami/Supersim-interactions-and-OpInteropToken-contracts) - Script for  transfering tokens seamlessly between local OP chains and sample token contract that is SuperchainERC20 bridgable called OpInteropToken.
+- [Interop Interactions and Interopable token](https://github.com/ismailmoazami/Supersim-interactions-and-OpInteropToken-contracts) - Script for  transferring tokens seamlessly between local OP chains and sample token contract that is SuperchainERC20 bridgable called OpInteropToken.
 
 
 ## 🤝 Contributing
