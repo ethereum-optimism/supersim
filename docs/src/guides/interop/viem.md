@@ -1,5 +1,5 @@
 <!-- omit in toc -->
-# Using `viem` to relay interop messages (TypeScript)
+# Viem to send and relay interop messages
 
 This guide describes how to use [`viem`](https://viem.sh/) to send and relay interop messages using the `L2ToL2CrossDomainMessenger`
 

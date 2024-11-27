@@ -23,12 +23,8 @@
 
 - [Sending deposit transactions](./guides/deposit-transactions.md)
 - [Interoperability](./guides/interop/README.md)
-  - [Viem to send and relay interop messages](./guides/interop/relay-using-viem.md)
-  - [Manually relaying interop messages with cast](./guides/interop/manually-relaying-interop-messages-cast.md)
+  - [Cross Chain Contract Calls (PingPong)](./guides/interop/cross-chain-contract-calls-pingpong.md)
+  - [Cross Chain Event Reading (TicTacToe)](./guides/interop/cross-chain-event-reads-tictactoe.md)
   - [Bridging SuperchainWETH](./guides/interop/bridging-superchain-weth.md)
-  - [Cross Chain Contract via L2ToL2CDM](./guides/interop/cross-chain-contract-via-l2cdm.md)
-  - [Calling a contract on destination chain]()
-
-# Examples
-
-- [Cross-chain tic-tac-toe](./examples/cross-chain-tictactoe.md)
+  - [Viem bindings](./guides/interop/viem.md)
+  - [Relay with Cast](./guides/interop/cast.md)
