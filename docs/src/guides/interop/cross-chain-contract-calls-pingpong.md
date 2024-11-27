@@ -1,5 +1,5 @@
 <!-- omit in toc -->
-# Cross Chain Contract via the `L2ToL2CrossDomainMessenger`
+# Cross Chain Contract Calls (PingPong)
 
 This guide walks through the `CrossChainPingPong.sol` contract, focusing on high level design and steps on integrating the `L2ToL2CrossChainMessenger` contract. The source code can be found [here](https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/pingpong/CrossChainPingPong.sol).
 

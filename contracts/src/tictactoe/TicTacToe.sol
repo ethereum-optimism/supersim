@@ -59,6 +59,7 @@ contract TicTacToe {
     struct Game {
         address player;
         address opponent;
+        uint256 gameId;
         // `1` for the player's moves, `2` opposing.
         uint8[3][3] moves;
         uint8 movesLeft;
@@ -107,6 +108,7 @@ contract TicTacToe {
         Game storage game = games[chainId][gameId][msg.sender];
         game.player = msg.sender;
         game.opponent = opponent;
+        game.gameId = gameId;
         game.lastOpponentId = _newGameId;
         game.movesLeft = 9;
 
@@ -142,6 +144,7 @@ contract TicTacToe {
         // Record Game Metadata
         game.player = msg.sender;
         game.opponent = opponent;
+        game.gameId = gameId;
         game.lastOpponentId = _acceptedGameId;
         game.movesLeft = 9;
 
@@ -170,9 +173,10 @@ contract TicTacToe {
         (uint256 chainId, uint256 gameId,, uint8 oppX, uint8 oppY) =
             abi.decode(_movePlayedData[32:], (uint256, uint256, address, uint8, uint8));
 
-        // Game was instantiated for this player
+        // Game was instantiated for this player & the move is for the same game
         Game storage game = games[chainId][gameId][msg.sender];
         if (game.player != msg.sender) revert GameNotExists();
+        if (game.gameId != gameId) revert GameNotExists();
 
         // The move played is forward progressing from the same chain
         if (_movePlayedId.chainId != game.lastOpponentId.chainId) revert IdChainMismatch();
