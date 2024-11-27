@@ -1,0 +1,376 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Cross Chain Event Reading (TicTacToe) - Supersim</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Supersim</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ethereum-optimism/supersim" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="cross-chain-event-reading-tictactoe"><a class="header" href="#cross-chain-event-reading-tictactoe">Cross Chain Event Reading (TicTacToe)</a></h1>
+<p>A horizontally scalable implementation of TicTacToe. This <a href="https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/tictactoe/TicTacToe.sol">implementation</a> allows players to play each other from any chain without cross-chain calls, instead relying on cross-chain event reading. Since superchain interop can allow for event reading with a 1-block latency, the experience is the <strong>same as a single-chain implementation</strong></p>
+<p>See the documentation for the <a href="https://github.com/ethereum-optimism/supersim/tree/main/examples/tictactoe">frontend</a> for how this game UI is presented to the player.</p>
+<ul>
+<li><a href="#how-it-works">How it works</a>
+<ul>
+<li><a href="#1-intent-to-play">1. Intent To Play</a></li>
+<li><a href="#2-accepting-a-game">2. Accepting A Game</a></li>
+<li><a href="#3-starting-the-game">3. Starting The Game</a></li>
+<li><a href="#4-making-moves">4. Making Moves</a></li>
+</ul>
+</li>
+<li><a href="#takeaways">Takeaways</a></li>
+</ul>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p>We use events to define the ordering of the a game with players only maintaining a local view. By default, a chain is also apart of its own interopble dependency set, <em>meaning players on the same chain can also play each other with no code changes</em>!</p>
+<p>The system predeploy that enables pulling in validated cross-chain events is the <a href="https://specs.optimism.io/interop/predeploys.html#crossl2inbox">CrossL2Inbox</a>.</p>
+<pre><code class="language-solidity">contract ICrossL2Inbox {
+    function validateMessage(Identifier calldata _id, bytes32 _msgHash) external view;
+}
+</code></pre>
+<p>This contract relies on a <strong>CREATE2</strong> deployment to ensure a consistent address across all chains, used to assert the origin of the pulled in game event.</p>
+<h3 id="1-intent-to-play"><a class="header" href="#1-intent-to-play">1. Intent To Play</a></h3>
+<p>A game is uniquely identified by the chain it was started from with a unqiue nonce. This identifier is included in all event fields such that each player can uniquely reference it locally.</p>
+<p>To start a game, a player invokes <code>newGame</code> which broadcasts a <code>NewGame</code> event that any opponent <strong>on any chain</strong> can react to.</p>
+<pre><code class="language-solidity">event NewGame(uint256 chainId, uint256 gameId, address player);
+
+function newGame() external {
+    emit NewGame(block.chainid, nextGameId, msg.sender);
+    nextGameId++;
+}
+</code></pre>
+<h3 id="2-accepting-a-game"><a class="header" href="#2-accepting-a-game">2. Accepting A Game</a></h3>
+<p>When a <code>NewGame</code> event is observed, any player can declare their intent to play via <code>acceptGame</code>, referencing the <code>NewGame</code> event. An <code>AcceptedGame</code> event is emitted to signal to the creator that a game is ready to begin.</p>
+<pre><code class="language-solidity">event AcceptedGame(uint256 chainId, uint256 gameId, address opponent, address player);
+
+function acceptGame(ICrossL2Inbox.Identifier calldata _newGameId, bytes calldata _newGameData) external {
+    if (_newGameId.origin != address(this)) revert IdOriginNotTicTacToe();
+    ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_newGameId, keccak256(_newGameData));
+
+    bytes32 selector = abi.decode(_newGameData[:32], (bytes32));
+    if (selector != NewGame.selector) revert DataNotNewGame();
+
+    ...
+
+    emit AcceptedGame(chainId, gameId, game.opponent, game.player);
+}
+</code></pre>
+<p>To prepare for the game, the event data is decoded and a local view of this game is stored.</p>
+<pre><code class="language-solidity">(uint256 chainId, uint256 gameId, address opponent) = abi.decode(_newGameData[32:], (uint256, uint256, address));
+if (opponent == msg.sender) revert SenderIsOpponent();
+
+// Record Game Metadata (no moves)
+Game storage game = games[chainId][gameId][msg.sender];
+game.player = msg.sender;
+game.opponent = opponent;
+game.gameId = gameId;
+game.lastOpponentId = _newGameId;
+game.movesLeft = 9;
+
+emit AcceptedGame(chainId, gameId, game.opponent, game.player);
+</code></pre>
+<h3 id="3-starting-the-game"><a class="header" href="#3-starting-the-game">3. Starting The Game</a></h3>
+<p>As <code>AcceptedGame</code> events are emmited, the player must pick one opponent to play. The opponent's <code>AcceptedGame</code> event is used to instantiate the game and play the starting move via the <code>MovePlayed</code> event.</p>
+<pre><code class="language-solidity">event MovePlayed(uint256 chainId, uint256 gameId, address player, uint8 _x, uint8 _y);
+
+function startGame(ICrossL2Inbox.Identifier calldata _acceptedGameId, bytes calldata _acceptedGameData, uint8 _x, uint8 _y) external {
+    if (_acceptedGameId.origin != address(this)) revert IdOriginNotTicTacToe();
+    ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_acceptedGameId, keccak256(_acceptedGameData));
+
+    bytes32 selector = abi.decode(_acceptedGameData[:32], (bytes32));
+    if (selector != AcceptedGame.selector) revert DataNotAcceptedGame();
+
+    ...
+
+    emit MovePlayed(chainId, gameId, game.player, _x, _y);
+</code></pre>
+<p>The event fields contain the information required to perform the neccessary validation.</p>
+<ul>
+<li>The game identifier for lookup</li>
+<li>The caller is the appropriate player</li>
+<li>The player is accepting from the same starting chain</li>
+</ul>
+<pre><code class="language-solidity">(uint256 chainId, uint256 gameId, address player, address opponent) = // player, opponent swapped in local view
+    abi.decode(_acceptedGameData[32:], (uint256, uint256, address, address));
+
+// The accepted game was started from this chain, from the sender
+if (chainId != block.chainid) revert GameChainMismatch();
+if (msg.sender != player) revert SenderNotPlayer();
+
+// Game has not already been started with an opponent.
+Game storage game = games[chainId][gameId][msg.sender];
+if (game.opponent != address(0)) revert GameStarted();
+
+// Store local view of this game
+...
+
+// Locally record the move by the player with 1
+game.moves[_x][_y] = 1;
+game.lastOpponentId = _acceptedGameId;
+
+emit MovePlayed(chainId, gameId, game.player, _x, _y);
+</code></pre>
+<h3 id="3-making-moves"><a class="header" href="#3-making-moves">3. Making Moves</a></h3>
+<p>Once a game is started, players can continually make moves by invoking <code>makeMove</code>, reacting to a <code>MovePlayed</code> event of their opponent.</p>
+<pre><code class="language-solidity">function makeMove(ICrossL2Inbox.Identifier calldata _movePlayedId, bytes calldata _movePlayedData, uint8 _x, uint8 _y) external {
+    if (_movePlayedId.origin != address(this)) revert IdOriginNotTicTacToe();
+    ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_movePlayedId, keccak256(_movePlayedData));
+
+    bytes32 selector = abi.decode(_movePlayedData[:32], (bytes32));
+    if (selector != MovePlayed.selector) revert DataNotMovePlayed();
+}
+</code></pre>
+<p>Similar to <code>acceptGame</code>, validation is performed and the move of their opponent is first locally recorded.</p>
+<ul>
+<li>The game identifier for lookup</li>
+<li>The caller is the player for this game</li>
+<li>The opponent event corresponds to the same game</li>
+<li>Ordering is enforced by ensuring that the supplied event is always forward progressing.</li>
+</ul>
+<pre><code class="language-solidity">(uint256 chainId, uint256 gameId,, uint8 oppX, uint8 oppY) = abi.decode(_movePlayedData[32:], (uint256, uint256, address, uint8, uint8));
+
+// Game was instantiated for this player &amp; the move is for the same game
+Game storage game = games[chainId][gameId][msg.sender];
+if (game.player != msg.sender) revert GameNotExists();
+if (game.gameId != gameId) revert GameNotExists();
+
+// The move played event is forward progressing from the last observed event
+if (_movePlayedId.chainId != game.lastOpponentId.chainId) revert IdChainMismatch();
+if (_movePlayedId.blockNumber &lt;= game.lastOpponentId.blockNumber) revert MoveNotForwardProgressing();
+game.lastOpponentId = _movePlayedId;
+
+// Mark the opponents move
+game.moves[oppX][oppY] = 2;
+game.movesLeft--;
+</code></pre>
+<p>When a move is played we check if the game has been drawn or won, determining the subsequent event to emit.</p>
+<p>The <code>makeMove</code> function is only callable when an opponent has a new <code>MovePlayed</code> event. Therefore, if the game is won or drawn, it cannot be progressed any further by the opponent.</p>
+<pre><code class="language-solidity">// Make the players move
+game.moves[_x][_y] = 1;
+game.movesLeft--;
+
+// Determine the status of the game
+if (_isGameWon(game)) {
+    emit GameWon(chainId, gameId, game.player, _x, _y);
+} else if (game.movesLeft == 0) {
+    emit GameDraw(chainId, gameId, game.player, _x, _y);
+} else {
+    emit MovePlayed(chainId, gameId, game.player, _x, _y);
+}
+</code></pre>
+<h2 id="takeaways"><a class="header" href="#takeaways">Takeaways</a></h2>
+<p>Leveraging superchain interop, we can build a new type of horizontally scalable contracts that do not rely on hub/spoke messaging with relayers.</p>
+<ol>
+<li>
+<p>As new chains are added to the superchain, this contract can be installed by anyone and immediately playable with no necessary code changes. The frontend simply needs to react the addition of a new chain</p>
+</li>
+<li>
+<p>The concept of a "chain" can be completely abstracted away from the user. When connecting their wallet, the frontend can simply pick the chain which the user has funds on with the lowest gas fees.</p>
+</li>
+<li>
+<p>Event reading enables a new level of composability for cross-chain interactions! Imagine a prediciton market contract that resolves based on the outcome of a TicTacToe game via the <code>GameWon</code> or <code>GameLost</code> event without the need for a trusted oracle, nor permission or native integration with the TicTacToe contract.</p>
+</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../guides/interop/cross-chain-contract-calls-pingpong.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../../guides/interop/bridging-superchain-weth.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../guides/interop/cross-chain-contract-calls-pingpong.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../../guides/interop/bridging-superchain-weth.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../../src/static/mermaid.min.js"></script>
+        <script src="../../src/static/mermaid-init.js"></script>
+        <script src="../../src/static/solidity.min.js"></script>
+
+
+    </div>
+    </body>
+</html>

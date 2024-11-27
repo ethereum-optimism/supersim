@@ -685,23 +685,445 @@ OPTIONS:
 <div style="break-before: page; page-break-before: always;"></div><h1 id="deposit-transactions"><a class="header" href="#deposit-transactions">Deposit transactions</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="interoperability"><a class="header" href="#interoperability">Interoperability</a></h1>
 <div style="break-before: page; page-break-before: always;"></div><!-- omit in toc -->
-<h1 id="using-viem-to-relay-interop-messages-typescript"><a class="header" href="#using-viem-to-relay-interop-messages-typescript">Using <code>viem</code> to relay interop messages (TypeScript)</a></h1>
+<h1 id="cross-chain-contract-calls-pingpong"><a class="header" href="#cross-chain-contract-calls-pingpong">Cross Chain Contract Calls (PingPong)</a></h1>
+<p>This guide walks through the <code>CrossChainPingPong.sol</code> contract, focusing on high level design and steps on integrating the <code>L2ToL2CrossChainMessenger</code> contract. The source code can be found <a href="https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/pingpong/CrossChainPingPong.sol">here</a>.</p>
+<ul>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#high-level-overview">High level overview</a>
+<ul>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#diagram">Diagram</a></li>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#flow">Flow</a>
+<ul>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#1-contract-deployment">1. Contract Deployment</a></li>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#2-hit-the-ball-starting-move">2. Hit the Ball (Starting Move)</a></li>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#3-receive-on-destination-chain">3. Receive on Destination Chain</a></li>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#4-continue-game-hit">4. Continue Game (Hit)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#walkthrough">Walkthrough</a>
+<ul>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#initializing-contract-state">Initializing contract state</a>
+<ul>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#constructor-setup">Constructor Setup</a></li>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#reliance-on-create2-for-cross-chain-consistency">Reliance on CREATE2 for cross chain consistency</a></li>
+</ul>
+</li>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#hitting-the-ball">Hitting the ball</a>
+<ul>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#1-hitting-constraints">1. Hitting Constraints</a></li>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#2-define-the-receiving-handler">2. Define The Receiving Handler</a></li>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#3-hit-the-ball-cross-chain">3. Hit the Ball Cross Chain</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="guides/interop/cross-chain-contract-calls-pingpong.html#takeaways">Takeaways</a></li>
+</ul>
+<h2 id="high-level-overview"><a class="header" href="#high-level-overview">High level overview</a></h2>
+<p><code>CrossChainPingPong.sol</code> implements a cross-chain ping-pong game using the L2ToL2CrossDomainMessenger.</p>
+<ul>
+<li>Players hit a virtual ** <em>ball</em> ** back and forth between allowed L2 chains. The game starts with a serve</li>
+<li>from a designated start chain, and each hit increases the rally count. The contract tracks the last hitter's address, chain ID, and the current rally count.</li>
+</ul>
+<h3 id="diagram"><a class="header" href="#diagram">Diagram</a></h3>
+<pre class="mermaid">sequenceDiagram
+    participant Chain1 as Chain 1
+    participant Chain2 as Chain 2
+    
+    Note over Chain1: 🚀 Game Starts (starting chain)
+    Note over Chain1: 🏓 Hit Ball
+    Chain1-&gt;&gt;Chain2: 📤 Send PingPongBall {rallyCount: 1, lastHitter: Chain1}
+    Chain1--&gt;&gt;Chain1: Emit BallSent event
+    activate Chain2
+    Note over Chain2: 📥 Receive Ball
+        Chain2--&gt;&gt;Chain2: Emit BallReceived event
+
+    Note over Chain2: 🏓 Hit Ball
+    Chain2-&gt;&gt;Chain1: 📤 Send PingPongBall {rallyCount: 2, lastHitter: Chain2}
+    Chain2--&gt;&gt;Chain2: Emit BallSent event
+    deactivate Chain2
+    activate Chain1
+    Note over Chain1: 📥 Receive Ball
+        Chain1--&gt;&gt;Chain1: Emit BallReceived event
+
+    Note over Chain1,Chain2: Game continues...
+</pre>
+<h3 id="flow"><a class="header" href="#flow">Flow</a></h3>
+<h4 id="1-contract-deployment"><a class="header" href="#1-contract-deployment">1. Contract Deployment</a></h4>
+<ul>
+<li>Deployed on all participating chains</li>
+<li>Utilizes CREATE2 with the same parameter, <code>_serverChainId</code>, resulting in the same address and initial state.</li>
+</ul>
+<h4 id="2-hit-the-ball-starting-move"><a class="header" href="#2-hit-the-ball-starting-move">2. Hit the Ball (Starting Move)</a></h4>
+<ul>
+<li>Call <code>hitBallTo</code> on the chain with the ball, specifying a destination chain.</li>
+<li>Contract uses <code>L2ToL2CrossDomainMessenger</code> to send the ball data to the specified chain.</li>
+<li>The reference to the ball is deleted from the serving chain.</li>
+</ul>
+<h4 id="3-receive-on-destination-chain"><a class="header" href="#3-receive-on-destination-chain">3. Receive on Destination Chain</a></h4>
+<ul>
+<li>L2ToL2CrossDomainMessenger on destination chain calls <code>receiveBall</code>.</li>
+<li>Contract verifies the message sender and origin.</li>
+<li>Ball data is stored, indicating its presence on this chain.</li>
+</ul>
+<h4 id="4-continue-game-hit"><a class="header" href="#4-continue-game-hit">4. Continue Game (Hit)</a></h4>
+<ul>
+<li>Any user on the chain currently holding the ball calls <code>hitBallTo</code> to send it to another chain.</li>
+<li>Contract updates the <code>PingPongBall</code> data (increment rally count, update last hitter).</li>
+<li>Process repeats from step 2.</li>
+</ul>
+<h2 id="walkthrough"><a class="header" href="#walkthrough">Walkthrough</a></h2>
+<p>Here's an explanation of the functions in the contract, with a focus on how it interacts with <code>L2ToL2CrossChainMessenger</code>.</p>
+<h3 id="initializing-contract-state"><a class="header" href="#initializing-contract-state">Initializing contract state</a></h3>
+<h4 id="constructor-setup"><a class="header" href="#constructor-setup">Constructor Setup</a></h4>
+<pre><code class="language-solidity">constructor(uint256 _serverChainId) {
+    if (block.chainid == _serverChainId) {
+        ball = PingPongBall(1, block.chainid, msg.sender);
+    }
+}
+</code></pre>
+<p>If the starting chain, initialize the ball allowing it to be hittable.</p>
+<h4 id="reliance-on-create2-for-cross-chain-consistency"><a class="header" href="#reliance-on-create2-for-cross-chain-consistency">Reliance on CREATE2 for cross chain consistency</a></h4>
+<p>While not explicitly mentioned in the code, this contract's design implicitly assumes the use of CREATE2 for deployment. Here's why CREATE2 is crucial for this setup:</p>
+<ol>
+<li>
+<p><strong>Predictable Addresses</strong>:
+CREATE2 enables deployment at the same address on all chains, crucial for cross-chain message verification:</p>
+<pre><code class="language-solidity">if (messenger.crossDomainMessageSender() != address(this)) revert InvalidCrossDomainSender();
+</code></pre>
+</li>
+<li>
+<p><strong>Self-referential Messaging</strong>:
+The contract sends messages to itself on other chains:</p>
+<pre><code class="language-solidity">messenger.sendMessage(_toChainId, address(this), _message);
+</code></pre>
+<p>This requires <code>address(this)</code> to be consistent across chains.</p>
+</li>
+<li>
+<p><strong>Initialization State Considerations</strong>:</p>
+<p>The starting chain id is apart of the initcode, meaning a deployment with a differing value would result in a different address via CREATE2. This is a nice feature as there's an implicit agreement on the starting chain from the address.</p>
+<p>Without CREATE2, you would need to:</p>
+<ul>
+<li>Manually track contract addresses for each chain.</li>
+<li>Implement a more complex initialization process to register contract addresses across chains.</li>
+<li>Potentially redesign the security model that relies on address matching.</li>
+</ul>
+</li>
+</ol>
+<h3 id="hitting-the-ball"><a class="header" href="#hitting-the-ball">Hitting the ball</a></h3>
+<p><code>hitBallTo</code>: This function is used to hit the ball, when present, to another chain</p>
+<h4 id="1-hitting-constraints"><a class="header" href="#1-hitting-constraints">1. Hitting Constraints</a></h4>
+<pre><code class="language-solidity">function hitBallTo(uint256 _toChainId) public {
+    if (ball.lastHitterAddress == address(0)) revert BallNotPresent();
+    if (_toChainId == block.chainid) revert InvalidDestination();
+    ...
+}
+</code></pre>
+<ul>
+<li>The <code>ball</code> contract variable is populated on the chain, indicating its presence</li>
+<li>The destination must be a different chain</li>
+</ul>
+<h4 id="2-define-the-receiving-handler"><a class="header" href="#2-define-the-receiving-handler">2. Define The Receiving Handler</a></h4>
+<pre><code class="language-solidity">modifier onlyCrossDomainCallback() {
+    if (msg.sender != address(messenger)) revert CallerNotL2ToL2CrossDomainMessenger();
+    if (messenger.crossDomainMessageSender() != address(this)) revert InvalidCrossDomainSender();
+
+    _;
+}
+
+function receiveBall(PingPongBall memory _ball) onlyCrossDomainCallback() external {
+    // Hold reference to the ball
+    ball = _ball;
+
+    emit BallReceived(messenger.crossDomainMessageSource(), block.chainid, _ball);
+}
+</code></pre>
+<ul>
+<li>The handler simply stores reference to the received ball</li>
+<li>The handler can only be invokable by the cross chain messenger</li>
+<li>Since the contract is self-referential, the cross chain sender must be the same contract address</li>
+</ul>
+<h4 id="3-hit-the-ball-cross-chain"><a class="header" href="#3-hit-the-ball-cross-chain">3. Hit The Ball Cross Chain</a></h4>
+<pre><code class="language-solidity">function hitBallTo(uint256 _toChainId) public {
+    ...
+
+    // Construct a new ball
+    PingPongBall memory newBall = PingPongBall(ball.rallyCount + 1, block.chainid, msg.sender);
+
+    // Delete current reference
+    delete ball;
+
+    // Send to the destination
+    messenger.sendMessage(_toChainId, address(this), abi.encodeCall(this.receiveBall, (newBall)));
+
+    emit BallSent(block.chainid, _toChainId, newBall);
+}
+</code></pre>
+<ul>
+<li>Populate a new ball with updated properties</li>
+<li>Delete reference to the current ball so it's no longer hittable</li>
+<li>Invoke the contract on the destination chain matching the <code>receiveBall</code> handler defined in (2).</li>
+</ul>
+<h2 id="takeaways"><a class="header" href="#takeaways">Takeaways</a></h2>
+<p>This is just one of many patterns to use the L2ToL2CrossDomainMessenger in your contract to power cross chain calls. Key points to remember:</p>
+<ol>
+<li>
+<p><strong>Simple Message Passing</strong>: This design sends simple messages between identical contracts on different chains. Each message contains only the essential game state (rally count, last hitter). More complex systems might involve multiple contracts, intermediary relayers.</p>
+</li>
+<li>
+<p><strong>Cross Chain Sender Verification</strong>: Always verify the sender of cross-chain messages. This includes checking both the immediate caller (the messenger) and the original sender on the source chain.</p>
+</li>
+<li>
+<p><strong>Cross Chain Contract Coordination</strong>: This design uses CREATE2 for consistent contract addresses across chains, simplifying cross-chain verification. Alternative approaches include:</p>
+<ul>
+<li>Beacon proxy patterns for upgradeable contracts</li>
+<li>Post-deployment setup where contract addresses are specified after deployment</li>
+</ul>
+</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="cross-chain-event-reading-tictactoe"><a class="header" href="#cross-chain-event-reading-tictactoe">Cross Chain Event Reading (TicTacToe)</a></h1>
+<p>A horizontally scalable implementation of TicTacToe. This <a href="https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/tictactoe/TicTacToe.sol">implementation</a> allows players to play each other from any chain without cross-chain calls, instead relying on cross-chain event reading. Since superchain interop can allow for event reading with a 1-block latency, the experience is the <strong>same as a single-chain implementation</strong></p>
+<p>See the documentation for the <a href="https://github.com/ethereum-optimism/supersim/tree/main/examples/tictactoe">frontend</a> for how this game UI is presented to the player.</p>
+<ul>
+<li><a href="guides/interop/cross-chain-event-reads-tictactoe.html#how-it-works">How it works</a>
+<ul>
+<li><a href="guides/interop/cross-chain-event-reads-tictactoe.html#1-intent-to-play">1. Intent To Play</a></li>
+<li><a href="guides/interop/cross-chain-event-reads-tictactoe.html#2-accepting-a-game">2. Accepting A Game</a></li>
+<li><a href="guides/interop/cross-chain-event-reads-tictactoe.html#3-starting-the-game">3. Starting The Game</a></li>
+<li><a href="guides/interop/cross-chain-event-reads-tictactoe.html#4-making-moves">4. Making Moves</a></li>
+</ul>
+</li>
+<li><a href="guides/interop/cross-chain-event-reads-tictactoe.html#takeaways">Takeaways</a></li>
+</ul>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p>We use events to define the ordering of the a game with players only maintaining a local view. By default, a chain is also apart of its own interopble dependency set, <em>meaning players on the same chain can also play each other with no code changes</em>!</p>
+<p>The system predeploy that enables pulling in validated cross-chain events is the <a href="https://specs.optimism.io/interop/predeploys.html#crossl2inbox">CrossL2Inbox</a>.</p>
+<pre><code class="language-solidity">contract ICrossL2Inbox {
+    function validateMessage(Identifier calldata _id, bytes32 _msgHash) external view;
+}
+</code></pre>
+<p>This contract relies on a <strong>CREATE2</strong> deployment to ensure a consistent address across all chains, used to assert the origin of the pulled in game event.</p>
+<h3 id="1-intent-to-play"><a class="header" href="#1-intent-to-play">1. Intent To Play</a></h3>
+<p>A game is uniquely identified by the chain it was started from with a unqiue nonce. This identifier is included in all event fields such that each player can uniquely reference it locally.</p>
+<p>To start a game, a player invokes <code>newGame</code> which broadcasts a <code>NewGame</code> event that any opponent <strong>on any chain</strong> can react to.</p>
+<pre><code class="language-solidity">event NewGame(uint256 chainId, uint256 gameId, address player);
+
+function newGame() external {
+    emit NewGame(block.chainid, nextGameId, msg.sender);
+    nextGameId++;
+}
+</code></pre>
+<h3 id="2-accepting-a-game"><a class="header" href="#2-accepting-a-game">2. Accepting A Game</a></h3>
+<p>When a <code>NewGame</code> event is observed, any player can declare their intent to play via <code>acceptGame</code>, referencing the <code>NewGame</code> event. An <code>AcceptedGame</code> event is emitted to signal to the creator that a game is ready to begin.</p>
+<pre><code class="language-solidity">event AcceptedGame(uint256 chainId, uint256 gameId, address opponent, address player);
+
+function acceptGame(ICrossL2Inbox.Identifier calldata _newGameId, bytes calldata _newGameData) external {
+    if (_newGameId.origin != address(this)) revert IdOriginNotTicTacToe();
+    ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_newGameId, keccak256(_newGameData));
+
+    bytes32 selector = abi.decode(_newGameData[:32], (bytes32));
+    if (selector != NewGame.selector) revert DataNotNewGame();
+
+    ...
+
+    emit AcceptedGame(chainId, gameId, game.opponent, game.player);
+}
+</code></pre>
+<p>To prepare for the game, the event data is decoded and a local view of this game is stored.</p>
+<pre><code class="language-solidity">(uint256 chainId, uint256 gameId, address opponent) = abi.decode(_newGameData[32:], (uint256, uint256, address));
+if (opponent == msg.sender) revert SenderIsOpponent();
+
+// Record Game Metadata (no moves)
+Game storage game = games[chainId][gameId][msg.sender];
+game.player = msg.sender;
+game.opponent = opponent;
+game.gameId = gameId;
+game.lastOpponentId = _newGameId;
+game.movesLeft = 9;
+
+emit AcceptedGame(chainId, gameId, game.opponent, game.player);
+</code></pre>
+<h3 id="3-starting-the-game"><a class="header" href="#3-starting-the-game">3. Starting The Game</a></h3>
+<p>As <code>AcceptedGame</code> events are emmited, the player must pick one opponent to play. The opponent's <code>AcceptedGame</code> event is used to instantiate the game and play the starting move via the <code>MovePlayed</code> event.</p>
+<pre><code class="language-solidity">event MovePlayed(uint256 chainId, uint256 gameId, address player, uint8 _x, uint8 _y);
+
+function startGame(ICrossL2Inbox.Identifier calldata _acceptedGameId, bytes calldata _acceptedGameData, uint8 _x, uint8 _y) external {
+    if (_acceptedGameId.origin != address(this)) revert IdOriginNotTicTacToe();
+    ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_acceptedGameId, keccak256(_acceptedGameData));
+
+    bytes32 selector = abi.decode(_acceptedGameData[:32], (bytes32));
+    if (selector != AcceptedGame.selector) revert DataNotAcceptedGame();
+
+    ...
+
+    emit MovePlayed(chainId, gameId, game.player, _x, _y);
+</code></pre>
+<p>The event fields contain the information required to perform the neccessary validation.</p>
+<ul>
+<li>The game identifier for lookup</li>
+<li>The caller is the appropriate player</li>
+<li>The player is accepting from the same starting chain</li>
+</ul>
+<pre><code class="language-solidity">(uint256 chainId, uint256 gameId, address player, address opponent) = // player, opponent swapped in local view
+    abi.decode(_acceptedGameData[32:], (uint256, uint256, address, address));
+
+// The accepted game was started from this chain, from the sender
+if (chainId != block.chainid) revert GameChainMismatch();
+if (msg.sender != player) revert SenderNotPlayer();
+
+// Game has not already been started with an opponent.
+Game storage game = games[chainId][gameId][msg.sender];
+if (game.opponent != address(0)) revert GameStarted();
+
+// Store local view of this game
+...
+
+// Locally record the move by the player with 1
+game.moves[_x][_y] = 1;
+game.lastOpponentId = _acceptedGameId;
+
+emit MovePlayed(chainId, gameId, game.player, _x, _y);
+</code></pre>
+<h3 id="3-making-moves"><a class="header" href="#3-making-moves">3. Making Moves</a></h3>
+<p>Once a game is started, players can continually make moves by invoking <code>makeMove</code>, reacting to a <code>MovePlayed</code> event of their opponent.</p>
+<pre><code class="language-solidity">function makeMove(ICrossL2Inbox.Identifier calldata _movePlayedId, bytes calldata _movePlayedData, uint8 _x, uint8 _y) external {
+    if (_movePlayedId.origin != address(this)) revert IdOriginNotTicTacToe();
+    ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_movePlayedId, keccak256(_movePlayedData));
+
+    bytes32 selector = abi.decode(_movePlayedData[:32], (bytes32));
+    if (selector != MovePlayed.selector) revert DataNotMovePlayed();
+}
+</code></pre>
+<p>Similar to <code>acceptGame</code>, validation is performed and the move of their opponent is first locally recorded.</p>
+<ul>
+<li>The game identifier for lookup</li>
+<li>The caller is the player for this game</li>
+<li>The opponent event corresponds to the same game</li>
+<li>Ordering is enforced by ensuring that the supplied event is always forward progressing.</li>
+</ul>
+<pre><code class="language-solidity">(uint256 chainId, uint256 gameId,, uint8 oppX, uint8 oppY) = abi.decode(_movePlayedData[32:], (uint256, uint256, address, uint8, uint8));
+
+// Game was instantiated for this player &amp; the move is for the same game
+Game storage game = games[chainId][gameId][msg.sender];
+if (game.player != msg.sender) revert GameNotExists();
+if (game.gameId != gameId) revert GameNotExists();
+
+// The move played event is forward progressing from the last observed event
+if (_movePlayedId.chainId != game.lastOpponentId.chainId) revert IdChainMismatch();
+if (_movePlayedId.blockNumber &lt;= game.lastOpponentId.blockNumber) revert MoveNotForwardProgressing();
+game.lastOpponentId = _movePlayedId;
+
+// Mark the opponents move
+game.moves[oppX][oppY] = 2;
+game.movesLeft--;
+</code></pre>
+<p>When a move is played we check if the game has been drawn or won, determining the subsequent event to emit.</p>
+<p>The <code>makeMove</code> function is only callable when an opponent has a new <code>MovePlayed</code> event. Therefore, if the game is won or drawn, it cannot be progressed any further by the opponent.</p>
+<pre><code class="language-solidity">// Make the players move
+game.moves[_x][_y] = 1;
+game.movesLeft--;
+
+// Determine the status of the game
+if (_isGameWon(game)) {
+    emit GameWon(chainId, gameId, game.player, _x, _y);
+} else if (game.movesLeft == 0) {
+    emit GameDraw(chainId, gameId, game.player, _x, _y);
+} else {
+    emit MovePlayed(chainId, gameId, game.player, _x, _y);
+}
+</code></pre>
+<h2 id="takeaways-1"><a class="header" href="#takeaways-1">Takeaways</a></h2>
+<p>Leveraging superchain interop, we can build a new type of horizontally scalable contracts that do not rely on hub/spoke messaging with relayers.</p>
+<ol>
+<li>
+<p>As new chains are added to the superchain, this contract can be installed by anyone and immediately playable with no necessary code changes. The frontend simply needs to react the addition of a new chain</p>
+</li>
+<li>
+<p>The concept of a "chain" can be completely abstracted away from the user. When connecting their wallet, the frontend can simply pick the chain which the user has funds on with the lowest gas fees.</p>
+</li>
+<li>
+<p>Event reading enables a new level of composability for cross-chain interactions! Imagine a prediciton market contract that resolves based on the outcome of a TicTacToe game via the <code>GameWon</code> or <code>GameLost</code> event without the need for a trusted oracle, nor permission or native integration with the TicTacToe contract.</p>
+</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="bridging-superchainweth"><a class="header" href="#bridging-superchainweth">Bridging SuperchainWETH</a></h1>
+<p>Crosschain ETH transfers in the Superchain are facilitated through the SuperchainWETH contract. For more information on this checkout the spec for SuperchainWETH: https://specs.optimism.io/interop/superchain-weth.html.</p>
+<h2 id="send-native-eth-from-chain-901-to-902-via-superchainweth"><a class="header" href="#send-native-eth-from-chain-901-to-902-via-superchainweth">Send native ETH from chain 901 to 902 via SuperchainWETH</a></h2>
+<p>This outlines how to send native ETH from chain 901 to 902. To simplify these steps supersim will be run with the <code>--interop.autorelay</code> flag. The <code>--interop.autorelay</code> flag automatically triggers the relay message transaction once the initial send transaction is completed on the source chain, improving the developer experience by removing the need to manually send the relay message.</p>
+<h3 id="1-start-supersim-with-the-autorelayer-enabled-1"><a class="header" href="#1-start-supersim-with-the-autorelayer-enabled-1">1. Start <code>supersim</code> with the autorelayer enabled</a></h3>
+<pre><code class="language-sh">supersim --interop.autorelay 
+</code></pre>
+<h3 id="2-wrap-the-native-eth-to-superchainweth-on-chain-901"><a class="header" href="#2-wrap-the-native-eth-to-superchainweth-on-chain-901">2. Wrap the native ETH to SuperchainWETH on chain 901</a></h3>
+<p>Wrap 10 ETH to <code>SuperchainWETH</code>. The <code>SuperchainWETH</code> contract is a predeploy at address <code>0x4200000000000000000000000000000000000024</code></p>
+<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000024 "deposit()" --value 10ether --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 
+</code></pre>
+<h3 id="3-check-balance-of-superchainweth-on-chain-901"><a class="header" href="#3-check-balance-of-superchainweth-on-chain-901">3. Check balance of SuperchainWETH on chain 901</a></h3>
+<p>Verify that the balance of the SuperchainWETH on chain 901 has increased by <code>10000000000000000000</code>:</p>
+<pre><code class="language-sh">cast balance --erc20 0x4200000000000000000000000000000000000024 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545
+</code></pre>
+<h3 id="4-initiate-the-send-transaction-on-chain-901-through-the-superchaintokenbridge"><a class="header" href="#4-initiate-the-send-transaction-on-chain-901-through-the-superchaintokenbridge">4. Initiate the send transaction on chain 901 through the SuperchainTokenBridge</a></h3>
+<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000028 "sendERC20(address _token, address _to, uint256 _amount, uint256 _chainId)" 0x4200000000000000000000000000000000000024  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 10000000000000000000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+</code></pre>
+<p><strong>5. Wait for the relayed message to appear on chain 902</strong></p>
+<p>In a few seconds, you should see the RelayedMessage on chain 902:</p>
+<pre><code class="language-sh"># example
+INFO [08-30|14:30:14.698] SuperchainWETH#CrosschainMint to=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 amount=10,000,000,000,000,000,000
+</code></pre>
+<p><strong>6. Check the balance of SuperchainWETH on chain 902</strong></p>
+<p>Verify that the balance of SuperchainWETH on chain 902 has increased by 10000000000000000000:</p>
+<pre><code class="language-sh">cast balance --erc20 0x4200000000000000000000000000000000000024 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
+</code></pre>
+<p><strong>7. Unwrap the SuperchainWETH to native ETH on chain 902</strong></p>
+<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000024 "withdraw(uint256)" 10000000000000000000 --rpc-url http://127.0.0.1:9546 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 
+</code></pre>
+<p><strong>8. Check the balance of ETH on chain 902</strong>
+Verify that the balance of ETH on chain 902 has increased:</p>
+<pre><code class="language-sh">cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
+</code></pre>
+<h2 id="experimental-auto-wrapping-and-unwrapping-of-native-eth-and-sending-from-chain-901-to-902-using-l2-to-l2-message-passing"><a class="header" href="#experimental-auto-wrapping-and-unwrapping-of-native-eth-and-sending-from-chain-901-to-902-using-l2-to-l2-message-passing">(Experimental) auto-wrapping and unwrapping of native ETH and sending from chain 901 to 902 using L2 to L2 message passing</a></h2>
+<h3 id="note-this-example-uses-a-contract-superchainethwrapper-written-for-prototyping-and-testing-purposes-this-contract-has-not-been-audited-and-it-may-contain-bugs-or-security-vulnerabilities-we-are-not-liable-for-any-issues-arising-from-its-use-it-is-strongly-advised-that-this-contract-not-be-used-with-actual-funds-and-should-only-be-used-for-testing-on-testnets-or-in-a-controlled-development-environment-this-contract-is-deployed-at-a-special-address-0x420beef000000000000000000000000000000002-only-on-the-vanilla-version-of-supersim-and-will-not-be-found-at-this-address-in-fork-mode-or-in-any-other-environments-outside-of-supersim"><a class="header" href="#note-this-example-uses-a-contract-superchainethwrapper-written-for-prototyping-and-testing-purposes-this-contract-has-not-been-audited-and-it-may-contain-bugs-or-security-vulnerabilities-we-are-not-liable-for-any-issues-arising-from-its-use-it-is-strongly-advised-that-this-contract-not-be-used-with-actual-funds-and-should-only-be-used-for-testing-on-testnets-or-in-a-controlled-development-environment-this-contract-is-deployed-at-a-special-address-0x420beef000000000000000000000000000000002-only-on-the-vanilla-version-of-supersim-and-will-not-be-found-at-this-address-in-fork-mode-or-in-any-other-environments-outside-of-supersim">Note: this example uses a contract <code>SuperchainETHWrapper</code> written for prototyping and testing purposes. This contract has not been audited and it may contain bugs or security vulnerabilities. We are not liable for any issues arising from its use. It is strongly advised that this contract not be used with actual funds and should only be used for testing on testnets or in a controlled development environment. This contract is deployed at a special address <code>0x420beeF000000000000000000000000000000002</code> only on the vanilla version of supersim and will not be found at this address in fork mode or in any other environments outside of supersim.</a></h3>
+<p>In a typical L2 to L2 ETH cross-chain transfer, four transactions are required:</p>
+<ol>
+<li>Wrap Native ETH to SuperchainWETH on source chain</li>
+<li>Send SuperchainWETH to recipient using SuperchainTokenBridge#SendERC20</li>
+<li>Relay message transaction on the destination chain to receive SuperchainWETH on destination</li>
+<li>Unwrap SuperchainWETH to ETH on destination chain</li>
+</ol>
+<p>To simplify this process, you can use the <code>SuperchainETHWrapper</code> and the <code>--interop.autorelay</code> flag to get this down to just one step. The <code>SuperchainETHWrapper#SendETH</code> function handles wrapping the native ETH to SuperchainWETH and initiating the message to relay and unwrap the SuperchainWETH on the destination. The <code>--interop.autorelay</code> flag automatically triggers the relay message transaction once the initial send transaction is completed on the source chain, improving the developer experience by removing the need to manually send the relay message.</p>
+<h3 id="1-start-supersim-with-the-autorelayer-enabled-2"><a class="header" href="#1-start-supersim-with-the-autorelayer-enabled-2">1. Start <code>supersim</code> with the autorelayer enabled</a></h3>
+<pre><code class="language-sh">supersim --interop.autorelay 
+</code></pre>
+<h3 id="2-initiate-the-send-transaction-on-chain-901"><a class="header" href="#2-initiate-the-send-transaction-on-chain-901">2. Initiate the send transaction on chain 901</a></h3>
+<p>Send ETH from Chain 901 to account <code>0xCE35738E4bC96bB0a194F71B3d184809F3727f56</code> on Chain 902 using the following command:</p>
+<pre><code class="language-sh">cast send 0x420beeF000000000000000000000000000000002 "sendETH(address,uint256,bytes)" 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 902 0x --value 10ether --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+</code></pre>
+<h3 id="3-wait-for-the-relayed-message-to-appear-on-chain-902"><a class="header" href="#3-wait-for-the-relayed-message-to-appear-on-chain-902">3. Wait for the relayed message to appear on chain 902</a></h3>
+<p>In a few seconds, you should see the RelayedMessage on chain 902:</p>
+<pre><code class="language-sh"># example
+INFO [08-30|14:30:14.698] SuperchainWETH#CrosschainMint to=0x420bEEF000000000000000000000000000000002 amount=10,000,000,000,000,000,000
+</code></pre>
+<h3 id="4-check-the-balance-on-chain-902"><a class="header" href="#4-check-the-balance-on-chain-902">4. Check the balance on chain 902</a></h3>
+<p>Verify that the balance of ETH for account 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 on chain 902 has increased:</p>
+<pre><code class="language-sh">cast balance 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 --rpc-url http://127.0.0.1:9546
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><!-- omit in toc -->
+<h1 id="viem-to-send-and-relay-interop-messages"><a class="header" href="#viem-to-send-and-relay-interop-messages">Viem to send and relay interop messages</a></h1>
 <p>This guide describes how to use <a href="https://viem.sh/"><code>viem</code></a> to send and relay interop messages using the <code>L2ToL2CrossDomainMessenger</code></p>
 <p>We'll perform the SuperchainERC20 interop transfer in <a href="guides/interop/../../getting-started/first-steps.html#send-an-interoperable-superchainerc20-token-from-chain-901-to-902-l2-to-l2-message-passing">First steps</a> and <a href="guides/interop/./manually-relaying-interop-messages-cast.html">Manually relaying interop messages with <code>cast</code></a> again, this time using <code>viem</code> to relay the message without the autorelayer.</p>
 <ul>
-<li><a href="guides/interop/relay-using-viem.html#steps">Steps</a>
+<li><a href="guides/interop/viem.html#steps">Steps</a>
 <ul>
-<li><a href="guides/interop/relay-using-viem.html#1-start-supersim">1. Start <code>supersim</code></a></li>
-<li><a href="guides/interop/relay-using-viem.html#2-install-typescript-packages">2. Install TypeScript packages</a></li>
-<li><a href="guides/interop/relay-using-viem.html#3-define-chains-and-constants">3. Define chains and constants</a></li>
-<li><a href="guides/interop/relay-using-viem.html#4-mint-and-send-l2nativesuperchainerc20-on-source-chain">4. Mint and send <code>L2NativeSuperchainERC20</code> on source chain</a></li>
-<li><a href="guides/interop/relay-using-viem.html#5-relay-the-message-on-the-destination-chain">5. Relay the message on the destination chain</a></li>
+<li><a href="guides/interop/viem.html#1-start-supersim">1. Start <code>supersim</code></a></li>
+<li><a href="guides/interop/viem.html#2-install-typescript-packages">2. Install TypeScript packages</a></li>
+<li><a href="guides/interop/viem.html#3-define-chains-and-constants">3. Define chains and constants</a></li>
+<li><a href="guides/interop/viem.html#4-mint-and-send-l2nativesuperchainerc20-on-source-chain">4. Mint and send <code>L2NativeSuperchainERC20</code> on source chain</a></li>
+<li><a href="guides/interop/viem.html#5-relay-the-message-on-the-destination-chain">5. Relay the message on the destination chain</a></li>
 </ul>
 </li>
-<li><a href="guides/interop/relay-using-viem.html#full-code-snippet">Full code snippet</a></li>
+<li><a href="guides/interop/viem.html#full-code-snippet">Full code snippet</a></li>
 </ul>
 <h2 id="steps"><a class="header" href="#steps">Steps</a></h2>
-<p>The full code snippet can be found <a href="guides/interop/relay-using-viem.html#full-code-snippet">here</a></p>
+<p>The full code snippet can be found <a href="guides/interop/viem.html#full-code-snippet">here</a></p>
 <h3 id="1-start-supersim"><a class="header" href="#1-start-supersim">1. Start <code>supersim</code></a></h3>
 <pre><code class="language-sh">supersim
 </code></pre>
@@ -940,30 +1362,30 @@ const balance = await opChainBClient.readContract({
 console.log(`Balance on OPChainB: ${balance}`);
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><!-- omit in toc -->
-<h1 id="manually-relaying-interop-messages-with-cast-and-l2tol2crossdomainmessenger"><a class="header" href="#manually-relaying-interop-messages-with-cast-and-l2tol2crossdomainmessenger">Manually relaying interop messages with <code>cast</code> and L2ToL2CrossDomainMessenger</a></h1>
+<h1 id="cast-commands-to-relay-interop-messages"><a class="header" href="#cast-commands-to-relay-interop-messages"><code>cast</code> commands to relay interop messages</a></h1>
 <p>This guide describes how to form a <a href="https://specs.optimism.io/interop/messaging.html#message-identifier">message identifier</a> to relay a <a href="https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol">L2ToL2CrossDomainMessenger</a> cross chain call.</p>
 <p>We'll perform the SuperchainERC20 interop transfer in <a href="guides/interop/../../getting-started/first-steps.html#send-an-interoperable-superchainerc20-token-from-chain-901-to-902-l2-to-l2-message-passing">First steps</a> again, this time manually relaying the message without the autorelayer.</p>
 <ul>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#overview">Overview</a>
+<li><a href="guides/interop/cast.html#overview">Overview</a>
 <ul>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#contracts-used">Contracts used</a></li>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#high-level-steps">High level steps</a></li>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#message-identifier">Message identifier</a></li>
+<li><a href="guides/interop/cast.html#contracts-used">Contracts used</a></li>
+<li><a href="guides/interop/cast.html#high-level-steps">High level steps</a></li>
+<li><a href="guides/interop/cast.html#message-identifier">Message identifier</a></li>
 </ul>
 </li>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#steps">Steps</a>
+<li><a href="guides/interop/cast.html#steps">Steps</a>
 <ul>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#1-start-supersim">1. Start <code>supersim</code></a></li>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#2-mint-tokens-to-transfer-on-chain-901">2. Mint tokens to transfer on chain 901</a></li>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#3-initiate-the-send-transaction-on-chain-901">3. Initiate the send transaction on chain 901</a></li>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger">4. Get the log emitted by the <code>L2ToL2CrossDomainMessenger</code></a></li>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#5-get-the-block-timestamp-the-log-was-emitted-in">5. Get the block timestamp the log was emitted in</a></li>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#6-prepare-the-identifier">6. Prepare the identifier</a></li>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#7-send-the-relaymessage-transaction">7. Send the relayMessage transaction</a></li>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#8-check-the-balance-on-chain-902">8. Check the balance on chain 902</a></li>
+<li><a href="guides/interop/cast.html#1-start-supersim">1. Start <code>supersim</code></a></li>
+<li><a href="guides/interop/cast.html#2-mint-tokens-to-transfer-on-chain-901">2. Mint tokens to transfer on chain 901</a></li>
+<li><a href="guides/interop/cast.html#3-initiate-the-send-transaction-on-chain-901">3. Initiate the send transaction on chain 901</a></li>
+<li><a href="guides/interop/cast.html#4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger">4. Get the log emitted by the <code>L2ToL2CrossDomainMessenger</code></a></li>
+<li><a href="guides/interop/cast.html#5-get-the-block-timestamp-the-log-was-emitted-in">5. Get the block timestamp the log was emitted in</a></li>
+<li><a href="guides/interop/cast.html#6-prepare-the-identifier">6. Prepare the identifier</a></li>
+<li><a href="guides/interop/cast.html#7-send-the-relaymessage-transaction">7. Send the relayMessage transaction</a></li>
+<li><a href="guides/interop/cast.html#8-check-the-balance-on-chain-902">8. Check the balance on chain 902</a></li>
 </ul>
 </li>
-<li><a href="guides/interop/manually-relaying-interop-messages-cast.html#alternatives">Alternatives</a></li>
+<li><a href="guides/interop/cast.html#alternatives">Alternatives</a></li>
 </ul>
 <h2 id="overview-2"><a class="header" href="#overview-2">Overview</a></h2>
 <h3 id="contracts-used"><a class="header" href="#contracts-used">Contracts used</a></h3>
@@ -1102,265 +1524,6 @@ contract L2ToL2CrossDomainMessenger {
 <li>use <code>supersim --interop.autorelay</code> - this only works on supersim, but relayers for the testnet/prod environment will be available soon!</li>
 <li><a href="guides/interop/relay-using-viem.html">use <code>viem</code> bindings/actions</a> - if you're using typescript, we have bindings available to make fetching identifiers and relaying messages easy</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="bridging-superchainweth"><a class="header" href="#bridging-superchainweth">Bridging SuperchainWETH</a></h1>
-<p>Crosschain ETH transfers in the Superchain are facilitated through the SuperchainWETH contract. For more information on this checkout the spec for SuperchainWETH: https://specs.optimism.io/interop/superchain-weth.html.</p>
-<h2 id="send-native-eth-from-chain-901-to-902-via-superchainweth"><a class="header" href="#send-native-eth-from-chain-901-to-902-via-superchainweth">Send native ETH from chain 901 to 902 via SuperchainWETH</a></h2>
-<p>This outlines how to send native ETH from chain 901 to 902. To simplify these steps supersim will be run with the <code>--interop.autorelay</code> flag. The <code>--interop.autorelay</code> flag automatically triggers the relay message transaction once the initial send transaction is completed on the source chain, improving the developer experience by removing the need to manually send the relay message.</p>
-<h3 id="1-start-supersim-with-the-autorelayer-enabled-1"><a class="header" href="#1-start-supersim-with-the-autorelayer-enabled-1">1. Start <code>supersim</code> with the autorelayer enabled</a></h3>
-<pre><code class="language-sh">supersim --interop.autorelay 
-</code></pre>
-<h3 id="2-wrap-the-native-eth-to-superchainweth-on-chain-901"><a class="header" href="#2-wrap-the-native-eth-to-superchainweth-on-chain-901">2. Wrap the native ETH to SuperchainWETH on chain 901</a></h3>
-<p>Wrap 10 ETH to <code>SuperchainWETH</code>. The <code>SuperchainWETH</code> contract is a predeploy at address <code>0x4200000000000000000000000000000000000024</code></p>
-<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000024 "deposit()" --value 10ether --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 
-</code></pre>
-<h3 id="3-check-balance-of-superchainweth-on-chain-901"><a class="header" href="#3-check-balance-of-superchainweth-on-chain-901">3. Check balance of SuperchainWETH on chain 901</a></h3>
-<p>Verify that the balance of the SuperchainWETH on chain 901 has increased by <code>10000000000000000000</code>:</p>
-<pre><code class="language-sh">cast balance --erc20 0x4200000000000000000000000000000000000024 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545
-</code></pre>
-<h3 id="4-initiate-the-send-transaction-on-chain-901-through-the-superchaintokenbridge"><a class="header" href="#4-initiate-the-send-transaction-on-chain-901-through-the-superchaintokenbridge">4. Initiate the send transaction on chain 901 through the SuperchainTokenBridge</a></h3>
-<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000028 "sendERC20(address _token, address _to, uint256 _amount, uint256 _chainId)" 0x4200000000000000000000000000000000000024  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 10000000000000000000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-</code></pre>
-<p><strong>5. Wait for the relayed message to appear on chain 902</strong></p>
-<p>In a few seconds, you should see the RelayedMessage on chain 902:</p>
-<pre><code class="language-sh"># example
-INFO [08-30|14:30:14.698] SuperchainWETH#CrosschainMint to=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 amount=10,000,000,000,000,000,000
-</code></pre>
-<p><strong>6. Check the balance of SuperchainWETH on chain 902</strong></p>
-<p>Verify that the balance of SuperchainWETH on chain 902 has increased by 10000000000000000000:</p>
-<pre><code class="language-sh">cast balance --erc20 0x4200000000000000000000000000000000000024 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
-</code></pre>
-<p><strong>7. Unwrap the SuperchainWETH to native ETH on chain 902</strong></p>
-<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000024 "withdraw(uint256)" 10000000000000000000 --rpc-url http://127.0.0.1:9546 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 
-</code></pre>
-<p><strong>8. Check the balance of ETH on chain 902</strong>
-Verify that the balance of ETH on chain 902 has increased:</p>
-<pre><code class="language-sh">cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
-</code></pre>
-<h2 id="experimental-auto-wrapping-and-unwrapping-of-native-eth-and-sending-from-chain-901-to-902-using-l2-to-l2-message-passing"><a class="header" href="#experimental-auto-wrapping-and-unwrapping-of-native-eth-and-sending-from-chain-901-to-902-using-l2-to-l2-message-passing">(Experimental) auto-wrapping and unwrapping of native ETH and sending from chain 901 to 902 using L2 to L2 message passing</a></h2>
-<h3 id="note-this-example-uses-a-contract-superchainethwrapper-written-for-prototyping-and-testing-purposes-this-contract-has-not-been-audited-and-it-may-contain-bugs-or-security-vulnerabilities-we-are-not-liable-for-any-issues-arising-from-its-use-it-is-strongly-advised-that-this-contract-not-be-used-with-actual-funds-and-should-only-be-used-for-testing-on-testnets-or-in-a-controlled-development-environment-this-contract-is-deployed-at-a-special-address-0x420beef000000000000000000000000000000002-only-on-the-vanilla-version-of-supersim-and-will-not-be-found-at-this-address-in-fork-mode-or-in-any-other-environments-outside-of-supersim"><a class="header" href="#note-this-example-uses-a-contract-superchainethwrapper-written-for-prototyping-and-testing-purposes-this-contract-has-not-been-audited-and-it-may-contain-bugs-or-security-vulnerabilities-we-are-not-liable-for-any-issues-arising-from-its-use-it-is-strongly-advised-that-this-contract-not-be-used-with-actual-funds-and-should-only-be-used-for-testing-on-testnets-or-in-a-controlled-development-environment-this-contract-is-deployed-at-a-special-address-0x420beef000000000000000000000000000000002-only-on-the-vanilla-version-of-supersim-and-will-not-be-found-at-this-address-in-fork-mode-or-in-any-other-environments-outside-of-supersim">Note: this example uses a contract <code>SuperchainETHWrapper</code> written for prototyping and testing purposes. This contract has not been audited and it may contain bugs or security vulnerabilities. We are not liable for any issues arising from its use. It is strongly advised that this contract not be used with actual funds and should only be used for testing on testnets or in a controlled development environment. This contract is deployed at a special address <code>0x420beeF000000000000000000000000000000002</code> only on the vanilla version of supersim and will not be found at this address in fork mode or in any other environments outside of supersim.</a></h3>
-<p>In a typical L2 to L2 ETH cross-chain transfer, four transactions are required:</p>
-<ol>
-<li>Wrap Native ETH to SuperchainWETH on source chain</li>
-<li>Send SuperchainWETH to recipient using SuperchainTokenBridge#SendERC20</li>
-<li>Relay message transaction on the destination chain to receive SuperchainWETH on destination</li>
-<li>Unwrap SuperchainWETH to ETH on destination chain</li>
-</ol>
-<p>To simplify this process, you can use the <code>SuperchainETHWrapper</code> and the <code>--interop.autorelay</code> flag to get this down to just one step. The <code>SuperchainETHWrapper#SendETH</code> function handles wrapping the native ETH to SuperchainWETH and initiating the message to relay and unwrap the SuperchainWETH on the destination. The <code>--interop.autorelay</code> flag automatically triggers the relay message transaction once the initial send transaction is completed on the source chain, improving the developer experience by removing the need to manually send the relay message.</p>
-<h3 id="1-start-supersim-with-the-autorelayer-enabled-2"><a class="header" href="#1-start-supersim-with-the-autorelayer-enabled-2">1. Start <code>supersim</code> with the autorelayer enabled</a></h3>
-<pre><code class="language-sh">supersim --interop.autorelay 
-</code></pre>
-<h3 id="2-initiate-the-send-transaction-on-chain-901"><a class="header" href="#2-initiate-the-send-transaction-on-chain-901">2. Initiate the send transaction on chain 901</a></h3>
-<p>Send ETH from Chain 901 to account <code>0xCE35738E4bC96bB0a194F71B3d184809F3727f56</code> on Chain 902 using the following command:</p>
-<pre><code class="language-sh">cast send 0x420beeF000000000000000000000000000000002 "sendETH(address,uint256,bytes)" 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 902 0x --value 10ether --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-</code></pre>
-<h3 id="3-wait-for-the-relayed-message-to-appear-on-chain-902"><a class="header" href="#3-wait-for-the-relayed-message-to-appear-on-chain-902">3. Wait for the relayed message to appear on chain 902</a></h3>
-<p>In a few seconds, you should see the RelayedMessage on chain 902:</p>
-<pre><code class="language-sh"># example
-INFO [08-30|14:30:14.698] SuperchainWETH#CrosschainMint to=0x420bEEF000000000000000000000000000000002 amount=10,000,000,000,000,000,000
-</code></pre>
-<h3 id="4-check-the-balance-on-chain-902"><a class="header" href="#4-check-the-balance-on-chain-902">4. Check the balance on chain 902</a></h3>
-<p>Verify that the balance of ETH for account 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 on chain 902 has increased:</p>
-<pre><code class="language-sh">cast balance 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 --rpc-url http://127.0.0.1:9546
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><!-- omit in toc -->
-<h1 id="cross-chain-contract-via-the-l2tol2crossdomainmessenger"><a class="header" href="#cross-chain-contract-via-the-l2tol2crossdomainmessenger">Cross Chain Contract via the <code>L2ToL2CrossDomainMessenger</code></a></h1>
-<p>This guide walks through the <code>CrossChainPingPong.sol</code> contract, focusing on high level design and steps on integrating the <code>L2ToL2CrossChainMessenger</code> contract. The source code can be found <a href="https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/pingpong/CrossChainPingPong.sol">here</a>.</p>
-<ul>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#high-level-overview">High level overview</a>
-<ul>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#diagram">Diagram</a></li>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#flow">Flow</a>
-<ul>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#1-contract-deployment">1. Contract Deployment</a></li>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#2-hit-the-ball-starting-move">2. Hit the Ball (Starting Move)</a></li>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#3-receive-on-destination-chain">3. Receive on Destination Chain</a></li>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#4-continue-game-hit">4. Continue Game (Hit)</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#walkthrough">Walkthrough</a>
-<ul>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#initializing-contract-state">Initializing contract state</a>
-<ul>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#constructor-setup">Constructor Setup</a></li>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#reliance-on-create2-for-cross-chain-consistency">Reliance on CREATE2 for cross chain consistency</a></li>
-</ul>
-</li>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#hitting-the-ball">Hitting the ball</a>
-<ul>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#1-hitting-constraints">1. Hitting Constraints</a></li>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#2-define-the-receiving-handler">2. Define The Receiving Handler</a></li>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#3-hit-the-ball-cross-chain">3. Hit the Ball Cross Chain</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a href="guides/interop/cross-chain-contract-via-l2cdm.html#takeaways">Takeaways</a></li>
-</ul>
-<h2 id="high-level-overview"><a class="header" href="#high-level-overview">High level overview</a></h2>
-<p><code>CrossChainPingPong.sol</code> implements a cross-chain ping-pong game using the L2ToL2CrossDomainMessenger.</p>
-<ul>
-<li>Players hit a virtual ** <em>ball</em> ** back and forth between allowed L2 chains. The game starts with a serve</li>
-<li>from a designated start chain, and each hit increases the rally count. The contract tracks the last hitter's address, chain ID, and the current rally count.</li>
-</ul>
-<h3 id="diagram"><a class="header" href="#diagram">Diagram</a></h3>
-<pre class="mermaid">sequenceDiagram
-    participant Chain1 as Chain 1
-    participant Chain2 as Chain 2
-    
-    Note over Chain1: 🚀 Game Starts (starting chain)
-    Note over Chain1: 🏓 Hit Ball
-    Chain1-&gt;&gt;Chain2: 📤 Send PingPongBall {rallyCount: 1, lastHitter: Chain1}
-    Chain1--&gt;&gt;Chain1: Emit BallSent event
-    activate Chain2
-    Note over Chain2: 📥 Receive Ball
-        Chain2--&gt;&gt;Chain2: Emit BallReceived event
-
-    Note over Chain2: 🏓 Hit Ball
-    Chain2-&gt;&gt;Chain1: 📤 Send PingPongBall {rallyCount: 2, lastHitter: Chain2}
-    Chain2--&gt;&gt;Chain2: Emit BallSent event
-    deactivate Chain2
-    activate Chain1
-    Note over Chain1: 📥 Receive Ball
-        Chain1--&gt;&gt;Chain1: Emit BallReceived event
-
-    Note over Chain1,Chain2: Game continues...
-</pre>
-<h3 id="flow"><a class="header" href="#flow">Flow</a></h3>
-<h4 id="1-contract-deployment"><a class="header" href="#1-contract-deployment">1. Contract Deployment</a></h4>
-<ul>
-<li>Deployed on all participating chains</li>
-<li>Utilizes CREATE2 with the same parameter, <code>_serverChainId</code>, resulting in the same address and initial state.</li>
-</ul>
-<h4 id="2-hit-the-ball-starting-move"><a class="header" href="#2-hit-the-ball-starting-move">2. Hit the Ball (Starting Move)</a></h4>
-<ul>
-<li>Call <code>hitBallTo</code> on the chain with the ball, specifying a destination chain.</li>
-<li>Contract uses <code>L2ToL2CrossDomainMessenger</code> to send the ball data to the specified chain.</li>
-<li>The reference to the ball is deleted from the serving chain.</li>
-</ul>
-<h4 id="3-receive-on-destination-chain"><a class="header" href="#3-receive-on-destination-chain">3. Receive on Destination Chain</a></h4>
-<ul>
-<li>L2ToL2CrossDomainMessenger on destination chain calls <code>receiveBall</code>.</li>
-<li>Contract verifies the message sender and origin.</li>
-<li>Ball data is stored, indicating its presence on this chain.</li>
-</ul>
-<h4 id="4-continue-game-hit"><a class="header" href="#4-continue-game-hit">4. Continue Game (Hit)</a></h4>
-<ul>
-<li>Any user on the chain currently holding the ball calls <code>hitBallTo</code> to send it to another chain.</li>
-<li>Contract updates the <code>PingPongBall</code> data (increment rally count, update last hitter).</li>
-<li>Process repeats from step 2.</li>
-</ul>
-<h2 id="walkthrough"><a class="header" href="#walkthrough">Walkthrough</a></h2>
-<p>Here's an explanation of the functions in the contract, with a focus on how it interacts with <code>L2ToL2CrossChainMessenger</code>.</p>
-<h3 id="initializing-contract-state"><a class="header" href="#initializing-contract-state">Initializing contract state</a></h3>
-<h4 id="constructor-setup"><a class="header" href="#constructor-setup">Constructor Setup</a></h4>
-<pre><code class="language-solidity">constructor(uint256 _serverChainId) {
-    if (block.chainid == _serverChainId) {
-        ball = PingPongBall(1, block.chainid, msg.sender);
-    }
-}
-</code></pre>
-<p>If the starting chain, initialize the ball allowing it to be hittable.</p>
-<h4 id="reliance-on-create2-for-cross-chain-consistency"><a class="header" href="#reliance-on-create2-for-cross-chain-consistency">Reliance on CREATE2 for cross chain consistency</a></h4>
-<p>While not explicitly mentioned in the code, this contract's design implicitly assumes the use of CREATE2 for deployment. Here's why CREATE2 is crucial for this setup:</p>
-<ol>
-<li>
-<p><strong>Predictable Addresses</strong>:
-CREATE2 enables deployment at the same address on all chains, crucial for cross-chain message verification:</p>
-<pre><code class="language-solidity">if (messenger.crossDomainMessageSender() != address(this)) revert InvalidCrossDomainSender();
-</code></pre>
-</li>
-<li>
-<p><strong>Self-referential Messaging</strong>:
-The contract sends messages to itself on other chains:</p>
-<pre><code class="language-solidity">messenger.sendMessage(_toChainId, address(this), _message);
-</code></pre>
-<p>This requires <code>address(this)</code> to be consistent across chains.</p>
-</li>
-<li>
-<p><strong>Initialization State Considerations</strong>:</p>
-<p>The starting chain id is apart of the initcode, meaning a deployment with a differing value would result in a different address via CREATE2. This is a nice feature as there's an implicit agreement on the starting chain from the address.</p>
-<p>Without CREATE2, you would need to:</p>
-<ul>
-<li>Manually track contract addresses for each chain.</li>
-<li>Implement a more complex initialization process to register contract addresses across chains.</li>
-<li>Potentially redesign the security model that relies on address matching.</li>
-</ul>
-</li>
-</ol>
-<h3 id="hitting-the-ball"><a class="header" href="#hitting-the-ball">Hitting the ball</a></h3>
-<p><code>hitBallTo</code>: This function is used to hit the ball, when present, to another chain</p>
-<h4 id="1-hitting-constraints"><a class="header" href="#1-hitting-constraints">1. Hitting Constraints</a></h4>
-<pre><code class="language-solidity">function hitBallTo(uint256 _toChainId) public {
-    if (ball.lastHitterAddress == address(0)) revert BallNotPresent();
-    if (_toChainId == block.chainid) revert InvalidDestination();
-    ...
-}
-</code></pre>
-<ul>
-<li>The <code>ball</code> contract variable is populated on the chain, indicating its presence</li>
-<li>The destination must be a different chain</li>
-</ul>
-<h4 id="2-define-the-receiving-handler"><a class="header" href="#2-define-the-receiving-handler">2. Define The Receiving Handler</a></h4>
-<pre><code class="language-solidity">modifier onlyCrossDomainCallback() {
-    if (msg.sender != address(messenger)) revert CallerNotL2ToL2CrossDomainMessenger();
-    if (messenger.crossDomainMessageSender() != address(this)) revert InvalidCrossDomainSender();
-
-    _;
-}
-
-function receiveBall(PingPongBall memory _ball) onlyCrossDomainCallback() external {
-    // Hold reference to the ball
-    ball = _ball;
-
-    emit BallReceived(messenger.crossDomainMessageSource(), block.chainid, _ball);
-}
-</code></pre>
-<ul>
-<li>The handler simply stores reference to the received ball</li>
-<li>The handler can only be invokable by the cross chain messenger</li>
-<li>Since the contract is self-referential, the cross chain sender must be the same contract address</li>
-</ul>
-<h4 id="3-hit-the-ball-cross-chain"><a class="header" href="#3-hit-the-ball-cross-chain">3. Hit The Ball Cross Chain</a></h4>
-<pre><code class="language-solidity">function hitBallTo(uint256 _toChainId) public {
-    ...
-
-    // Construct a new ball
-    PingPongBall memory newBall = PingPongBall(ball.rallyCount + 1, block.chainid, msg.sender);
-
-    // Delete current reference
-    delete ball;
-
-    // Send to the destination
-    messenger.sendMessage(_toChainId, address(this), abi.encodeCall(this.receiveBall, (newBall)));
-
-    emit BallSent(block.chainid, _toChainId, newBall);
-}
-</code></pre>
-<ul>
-<li>Populate a new ball with updated properties</li>
-<li>Delete reference to the current ball so it's no longer hittable</li>
-<li>Invoke the contract on the destination chain matching the <code>receiveBall</code> handler defined in (2).</li>
-</ul>
-<h2 id="takeaways"><a class="header" href="#takeaways">Takeaways</a></h2>
-<p>This is just one of many patterns to use the L2ToL2CrossDomainMessenger in your contract to power cross chain calls. Key points to remember:</p>
-<ol>
-<li>
-<p><strong>Simple Message Passing</strong>: This design sends simple messages between identical contracts on different chains. Each message contains only the essential game state (rally count, last hitter). More complex systems might involve multiple contracts, intermediary relayers.</p>
-</li>
-<li>
-<p><strong>Cross Chain Sender Verification</strong>: Always verify the sender of cross-chain messages. This includes checking both the immediate caller (the messenger) and the original sender on the source chain.</p>
-</li>
-<li>
-<p><strong>Cross Chain Contract Coordination</strong>: This design uses CREATE2 for consistent contract addresses across chains, simplifying cross-chain verification. Alternative approaches include:</p>
-<ul>
-<li>Beacon proxy patterns for upgradeable contracts</li>
-<li>Post-deployment setup where contract addresses are specified after deployment</li>
-</ul>
-</li>
-</ol>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="cross-chain-tic-tac-toe"><a class="header" href="#cross-chain-tic-tac-toe">Cross-chain tic-tac-toe</a></h1>
 
                     </main>
 
