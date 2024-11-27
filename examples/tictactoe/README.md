@@ -2,12 +2,11 @@
 
 The frontend implementation for the horizontally scalable multichain TicTacToe game built on the superchain interop specification via Supersim.
 
-See the relevant section in the Supersim [docs](https://google.com) for how the contract is designed.
+See the relevant section in the Supersim [docs](http://supersim.pages.dev/guides/interop/cross-chain-event-reads-tictactoe.html) for how the contract was designed.
 
 ## Overview
 
-This frontend streams all game events across the superchain and presents a single view to the connected wallet. Since this frontend was built for local demonstrative purposes,
-it simply streams all game events from the genesis block on every refresh -- not a good idea for production.
+This frontend streams all game events across the superchain and presents a single view to the connected wallet. Since this frontend was built for local demonstrative purposes, it simply streams all game events from the genesis block on every refresh - *not a good idea for production*.
 
 When run in vanilla mode, Supersim instantiates two L2 chains, OP Chain A (901) and OP Chain B (902). The frontend represents OP Chain A as the OP Mainnet network and OP Chain B as the Mode network just for demonstrative purposes as to how this might look in production.
 
@@ -51,12 +50,12 @@ The frontend will be available at `http://localhost:5173`.
 
 ## Implementation Notes
 
-1. The "backend" is implemented as a React hook within [src/hooks/useGame.ts](./src/hooks/useGame.ts). Regardless of the connected wallet, this hook syncs all past events and listens for all new events emitted by the TicTacToe contract. All games can be looked up by the mapping provided from this hook.
+1. The "backend" is implemented as a React hook within [src/hooks/useGame.ts](./src/hooks/useGame.ts). Regardless of the connected wallet, this hook syncs all past events and listens for all new events emitted by the TicTacToe contract. All games can be looked up by the mapping provided from this hook. the [src/hooks/usePlayerGames.ts](./src/hooks/usePlayerGames.ts) hook filters this down to the games relevant to the connected wallet.
 
-2. Each Game is looked up per player via the GameKey, `<chainId>-<gameId>-<player>`. As a game progresses, the latest action -- the emitted event -- made by each player is locally stored. This allows provides a quick lookup for the player to make their move by simply querying the Game state by their opponents address.
+2. Each Game is looked up per player via the GameKey, `<chainId>-<gameId>-<player>`. As a game progresses, the latest action, the emitted event, made by each player is locally stored. This allows provides a quick lookup for the player to make their move by simply querying the Game state by their opponents address.
 
 ## Improvements
 
-- Install the contract directly from the frontend.
+1. **Install the contract directly from the frontend**. Since this contract can be permissionlessly deployed, we can envision users simply *installing* this game on new chains added into the superchain. From this, we can design our frontend to be flexible and react to new chains dynamically.
 
-- As a new chain is added, the frotend can simply detect this. Supersim for vanilla mode, superchain registry in production.
+2. **Chain abstraction**. The game allows players to *start* a game from any chain and must be finished in the same manner. However a player can do this simultaneously on multiple chains. How can we better design this in the frontend and provide a seamless experience initiating transactions between chains without requiring constant network switching.

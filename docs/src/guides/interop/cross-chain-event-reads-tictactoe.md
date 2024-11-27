@@ -1,6 +1,6 @@
 # Cross Chain Event Reading (TicTacToe)
 
-A horizontally scalable implementation of TicTacToe. This implementation allows players to play each other from any chain without cross-chain calls, instead relying on cross-chain event reading. Since superchain interop can allow for event reading with a 1-block latency, the experience is the **same as a single-chain implementation**
+A horizontally scalable implementation of TicTacToe. This [implementation](https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/tictactoe/TicTacToe.sol) allows players to play each other from any chain without cross-chain calls, instead relying on cross-chain event reading. Since superchain interop can allow for event reading with a 1-block latency, the experience is the **same as a single-chain implementation**
 
 See the documentation for the [frontend](https://github.com/ethereum-optimism/supersim/tree/main/examples/tictactoe) for how this game UI is presented to the player.
 
