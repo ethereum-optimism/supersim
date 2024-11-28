@@ -4,10 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "test -n \"$npm_config_address\" && TICTACTOE_ADDRESS=$npm_config_address vite || (echo 'Error: --address parameter is required' && exit 1)",
-    "build": "test -n \"$npm_config_address\" && TICTACTOE_ADDRESS=$npm_config_address tsc -b && vite build || (echo 'Error: --address parameter is required' && exit 1)",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "dev": "if [ -z \"$VITE_TICTACTOE_ADDRESS\" ]; then echo 'Error: VITE_TICTACTOE_ADDRESS env is required' && exit 1; else vite; fi",
+    "build": "if [ -z \"$VITE_TICTACTOE_ADDRESS\" ]; then echo 'Error: VITE_TICTACTOE_ADDRESS env is required' && exit 1; else tsc -b && vite build; fi",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@eth-optimism/viem": "^0.0.7",

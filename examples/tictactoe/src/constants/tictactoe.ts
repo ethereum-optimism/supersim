@@ -1,4 +1,4 @@
-export const address = import.meta.env.TICTACTOE_ADDRESS
+export const address = import.meta.env.VITE_TICTACTOE_ADDRESS
 
 export const abi = [
     {
