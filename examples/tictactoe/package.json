@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "test -n \"$npm_config_address\" && TICTACTOE_ADDRESS=$npm_config_address vite || (echo 'Error: --address parameter is required' && exit 1)",
+    "build": "test -n \"$npm_config_address\" && TICTACTOE_ADDRESS=$npm_config_address tsc -b && vite build || (echo 'Error: --address parameter is required' && exit 1)",
     "lint": "eslint .",
     "preview": "vite preview"
   },
