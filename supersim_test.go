@@ -282,7 +282,7 @@ func TestAccountBalances(t *testing.T) {
 	}
 }
 
-func TestDepositTxSimpleEthDeposit(t *testing.T) {
+func TestOptimismPortalDeposit(t *testing.T) {
 	t.Parallel()
 
 	testSuite := createTestSuite(t, &config.CLIConfig{})
@@ -336,6 +336,23 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestDirectDepositTxFails(t *testing.T) {
+	t.Parallel()
+
+	testSuite := createTestSuite(t, &config.CLIConfig{})
+	l2Chain := testSuite.Supersim.Orchestrator.L2Chains()[0]
+
+	l2EthClient, err := ethclient.Dial(l2Chain.Endpoint())
+	require.NoError(t, err)
+	defer l2EthClient.Close()
+
+	// Create a deposit transaction
+	depositTx := &types.DepositTx{Mint: big.NewInt(1e18), Value: big.NewInt(0)}
+
+	// Fails when sent to the L2
+	require.Error(t, l2EthClient.SendTransaction(context.Background(), types.NewTx(depositTx)))
 }
 
 func TestDependencySet(t *testing.T) {
@@ -819,7 +836,6 @@ func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 }
 
 func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
-
 	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -1023,7 +1039,6 @@ func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 }
 
 func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
-
 	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -1079,6 +1094,7 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 	assert.NoError(t, waitErr)
 
 	var message *JSONL2ToL2Message
+
 	// msgHash for the above sendERC20 txn
 	msgHash := "0x3656fd893944321663b2877d10db2895fb68e2346fd7e3f648ce5b986c200166"
 	rpcErr := client.CallContext(context.Background(), &message, "admin_getL2ToL2MessageByMsgHash", msgHash)
