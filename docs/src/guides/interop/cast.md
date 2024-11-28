@@ -1,5 +1,5 @@
 <!-- omit in toc -->
-# Manually relaying interop messages with `cast` and L2ToL2CrossDomainMessenger
+# `cast` commands to relay interop messages
 
 This guide describes how to form a [message identifier](https://specs.optimism.io/interop/messaging.html#message-identifier) to relay a [L2ToL2CrossDomainMessenger](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol) cross chain call.
 
