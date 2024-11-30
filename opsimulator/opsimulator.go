@@ -58,10 +58,12 @@ type OpSimulator struct {
 	ethClient *ethclient.Client
 
 	stopped atomic.Bool
+
+	l1DepositStoreManager *L1DepositStoreManager
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
-func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64) *OpSimulator {
+func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64, depositStoreManager *L1DepositStoreManager) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, l2Chain.EthClient())
@@ -87,6 +89,8 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host str
 				closeApp(err)
 			},
 		},
+
+		l1DepositStoreManager: depositStoreManager,
 
 		peers: peers,
 	}
@@ -148,8 +152,9 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 	// Relay deposit tx from L1 to L2
 	opSim.bgTasks.Go(func() error {
 		depositTxCh := make(chan *types.DepositTx)
+		l1DepositTxnLogCh := make(chan *types.Log)
 		portalAddress := common.Address(opSim.Config().L2Config.L1Addresses.OptimismPortalProxy)
-		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain.EthClient(), portalAddress, depositTxCh)
+		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain.EthClient(), portalAddress, depositTxCh, l1DepositTxnLogCh)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
 		}
@@ -160,6 +165,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			select {
 			case dep := <-depositTxCh:
 				depTx := types.NewTx(dep)
+				l1Log := <-l1DepositTxnLogCh
 				opSim.log.Debug("observed deposit event on L1", "hash", depTx.Hash().String())
 
 				clnt := opSim.Chain.EthClient()
@@ -168,6 +174,9 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 				}
 
 				opSim.log.Info("OptimismPortal#depositTransaction", "l2TxHash", depTx.Hash().String())
+				if err := opSim.l1DepositStoreManager.Set(l1Log.TxHash, dep); err != nil {
+					opSim.log.Error("failed to store deposit tx to chain: %w", "chain.id", chainId, "err", err)
+				}
 
 			case <-opSim.bgTasksCtx.Done():
 				sub.Unsubscribe()

@@ -36,7 +36,7 @@ type LogSubscriber interface {
 }
 
 // transforms Deposit event logs into DepositTx
-func SubscribeDepositTx(ctx context.Context, logSub LogSubscriber, depositContractAddr common.Address, ch chan<- *types.DepositTx) (ethereum.Subscription, error) {
+func SubscribeDepositTx(ctx context.Context, logSub LogSubscriber, depositContractAddr common.Address, ch chan<- *types.DepositTx, chLog chan<- *types.Log) (ethereum.Subscription, error) {
 	logCh := make(chan types.Log)
 	filterQuery := ethereum.FilterQuery{Addresses: []common.Address{depositContractAddr}, Topics: [][]common.Hash{{derive.DepositEventABIHash}}}
 	logSubscription, err := logSub.SubscribeFilterLogs(ctx, filterQuery, logCh)
@@ -61,6 +61,7 @@ func SubscribeDepositTx(ctx context.Context, logSub LogSubscriber, depositContra
 					continue
 				}
 				ch <- dep
+				chLog <- &log
 			case err := <-logErrCh:
 				errCh <- fmt.Errorf("log subscription error: %w", err)
 			case <-ctx.Done():
