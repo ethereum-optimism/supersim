@@ -32,17 +32,18 @@ The forge script will log the deployed deterministic contract address.
 ...
 Script ran successfully..
 == Logs ==
-  Deployed at:  0x14eFE545C60FB3b65B9eeb23E22b8013908e48Bc
-
+  Deployed at: 0x14eFE545C60FB3b65B9eeb23E22b8013908e48Bc
 ...
 ```
 
 ### 2. Run The Frontend
 
-Ensure the contract address matches the constant within `examples/tictactoe/src/constants/tictactoe.ts`
+Supply the address as an environment variable when running the frontend.
 
 ```bash
 cd examples/tictactoe
+
+export VITE_TICTACTOE_ADDRESS=0x14eFE545C60FB3b65B9eeb23E22b8013908e48Bc
 pnpn i && pnpm run dev
 ```
 
