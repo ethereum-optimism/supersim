@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Bridging SuperchainWETH - Supersim</title>
+        <title>Bridging ETH - Supersim</title>
 
 
         <!-- Custom HTML head -->
@@ -155,65 +155,26 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="bridging-superchainweth"><a class="header" href="#bridging-superchainweth">Bridging SuperchainWETH</a></h1>
-<p>Crosschain ETH transfers in the Superchain are facilitated through the SuperchainWETH contract. For more information on this checkout the spec for SuperchainWETH: https://specs.optimism.io/interop/superchain-weth.html.</p>
-<h2 id="send-native-eth-from-chain-901-to-902-via-superchainweth"><a class="header" href="#send-native-eth-from-chain-901-to-902-via-superchainweth">Send native ETH from chain 901 to 902 via SuperchainWETH</a></h2>
+                        <h1 id="bridging-eth"><a class="header" href="#bridging-eth">Bridging ETH</a></h1>
+<p>Crosschain ETH transfers in the Superchain are facilitated through the <a href="https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/SuperchainWETH.sol">SuperchainWETH</a> contract. For more information on this checkout the spec for SuperchainWETH: https://specs.optimism.io/interop/superchain-weth.html.</p>
+<h2 id="cross-chain-eth-transfer-from-chain-901-to-902"><a class="header" href="#cross-chain-eth-transfer-from-chain-901-to-902">Cross-chain ETH transfer from chain 901 to 902</a></h2>
 <p>This outlines how to send native ETH from chain 901 to 902. To simplify these steps supersim will be run with the <code>--interop.autorelay</code> flag. The <code>--interop.autorelay</code> flag automatically triggers the relay message transaction once the initial send transaction is completed on the source chain, improving the developer experience by removing the need to manually send the relay message.</p>
+<p><strong>Note</strong>: If the source chain uses native ETH as their gas token, but the destination chain uses a custom gas token, then the recipient will receive <code>SuperchainWETH</code> on the destination chain.</p>
 <h3 id="1-start-supersim-with-the-autorelayer-enabled"><a class="header" href="#1-start-supersim-with-the-autorelayer-enabled">1. Start <code>supersim</code> with the autorelayer enabled</a></h3>
 <pre><code class="language-sh">supersim --interop.autorelay 
 </code></pre>
-<h3 id="2-wrap-the-native-eth-to-superchainweth-on-chain-901"><a class="header" href="#2-wrap-the-native-eth-to-superchainweth-on-chain-901">2. Wrap the native ETH to SuperchainWETH on chain 901</a></h3>
-<p>Wrap 10 ETH to <code>SuperchainWETH</code>. The <code>SuperchainWETH</code> contract is a predeploy at address <code>0x4200000000000000000000000000000000000024</code></p>
-<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000024 "deposit()" --value 10ether --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 
-</code></pre>
-<h3 id="3-check-balance-of-superchainweth-on-chain-901"><a class="header" href="#3-check-balance-of-superchainweth-on-chain-901">3. Check balance of SuperchainWETH on chain 901</a></h3>
-<p>Verify that the balance of the SuperchainWETH on chain 901 has increased by <code>10000000000000000000</code>:</p>
-<pre><code class="language-sh">cast balance --erc20 0x4200000000000000000000000000000000000024 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545
-</code></pre>
-<h3 id="4-initiate-the-send-transaction-on-chain-901-through-the-superchaintokenbridge"><a class="header" href="#4-initiate-the-send-transaction-on-chain-901-through-the-superchaintokenbridge">4. Initiate the send transaction on chain 901 through the SuperchainTokenBridge</a></h3>
-<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000028 "sendERC20(address _token, address _to, uint256 _amount, uint256 _chainId)" 0x4200000000000000000000000000000000000024  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 10000000000000000000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-</code></pre>
-<p><strong>5. Wait for the relayed message to appear on chain 902</strong></p>
-<p>In a few seconds, you should see the RelayedMessage on chain 902:</p>
-<pre><code class="language-sh"># example
-INFO [08-30|14:30:14.698] SuperchainWETH#CrosschainMint to=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 amount=10,000,000,000,000,000,000
-</code></pre>
-<p><strong>6. Check the balance of SuperchainWETH on chain 902</strong></p>
-<p>Verify that the balance of SuperchainWETH on chain 902 has increased by 10000000000000000000:</p>
-<pre><code class="language-sh">cast balance --erc20 0x4200000000000000000000000000000000000024 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
-</code></pre>
-<p><strong>7. Unwrap the SuperchainWETH to native ETH on chain 902</strong></p>
-<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000024 "withdraw(uint256)" 10000000000000000000 --rpc-url http://127.0.0.1:9546 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 
-</code></pre>
-<p><strong>8. Check the balance of ETH on chain 902</strong>
-Verify that the balance of ETH on chain 902 has increased:</p>
-<pre><code class="language-sh">cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
-</code></pre>
-<h2 id="experimental-auto-wrapping-and-unwrapping-of-native-eth-and-sending-from-chain-901-to-902-using-l2-to-l2-message-passing"><a class="header" href="#experimental-auto-wrapping-and-unwrapping-of-native-eth-and-sending-from-chain-901-to-902-using-l2-to-l2-message-passing">(Experimental) auto-wrapping and unwrapping of native ETH and sending from chain 901 to 902 using L2 to L2 message passing</a></h2>
-<h3 id="note-this-example-uses-a-contract-superchainethwrapper-written-for-prototyping-and-testing-purposes-this-contract-has-not-been-audited-and-it-may-contain-bugs-or-security-vulnerabilities-we-are-not-liable-for-any-issues-arising-from-its-use-it-is-strongly-advised-that-this-contract-not-be-used-with-actual-funds-and-should-only-be-used-for-testing-on-testnets-or-in-a-controlled-development-environment-this-contract-is-deployed-at-a-special-address-0x420beef000000000000000000000000000000002-only-on-the-vanilla-version-of-supersim-and-will-not-be-found-at-this-address-in-fork-mode-or-in-any-other-environments-outside-of-supersim"><a class="header" href="#note-this-example-uses-a-contract-superchainethwrapper-written-for-prototyping-and-testing-purposes-this-contract-has-not-been-audited-and-it-may-contain-bugs-or-security-vulnerabilities-we-are-not-liable-for-any-issues-arising-from-its-use-it-is-strongly-advised-that-this-contract-not-be-used-with-actual-funds-and-should-only-be-used-for-testing-on-testnets-or-in-a-controlled-development-environment-this-contract-is-deployed-at-a-special-address-0x420beef000000000000000000000000000000002-only-on-the-vanilla-version-of-supersim-and-will-not-be-found-at-this-address-in-fork-mode-or-in-any-other-environments-outside-of-supersim">Note: this example uses a contract <code>SuperchainETHWrapper</code> written for prototyping and testing purposes. This contract has not been audited and it may contain bugs or security vulnerabilities. We are not liable for any issues arising from its use. It is strongly advised that this contract not be used with actual funds and should only be used for testing on testnets or in a controlled development environment. This contract is deployed at a special address <code>0x420beeF000000000000000000000000000000002</code> only on the vanilla version of supersim and will not be found at this address in fork mode or in any other environments outside of supersim.</a></h3>
-<p>In a typical L2 to L2 ETH cross-chain transfer, four transactions are required:</p>
-<ol>
-<li>Wrap Native ETH to SuperchainWETH on source chain</li>
-<li>Send SuperchainWETH to recipient using SuperchainTokenBridge#SendERC20</li>
-<li>Relay message transaction on the destination chain to receive SuperchainWETH on destination</li>
-<li>Unwrap SuperchainWETH to ETH on destination chain</li>
-</ol>
-<p>To simplify this process, you can use the <code>SuperchainETHWrapper</code> and the <code>--interop.autorelay</code> flag to get this down to just one step. The <code>SuperchainETHWrapper#SendETH</code> function handles wrapping the native ETH to SuperchainWETH and initiating the message to relay and unwrap the SuperchainWETH on the destination. The <code>--interop.autorelay</code> flag automatically triggers the relay message transaction once the initial send transaction is completed on the source chain, improving the developer experience by removing the need to manually send the relay message.</p>
-<h3 id="1-start-supersim-with-the-autorelayer-enabled-1"><a class="header" href="#1-start-supersim-with-the-autorelayer-enabled-1">1. Start <code>supersim</code> with the autorelayer enabled</a></h3>
-<pre><code class="language-sh">supersim --interop.autorelay 
-</code></pre>
-<h3 id="2-initiate-the-send-transaction-on-chain-901"><a class="header" href="#2-initiate-the-send-transaction-on-chain-901">2. Initiate the send transaction on chain 901</a></h3>
-<p>Send ETH from Chain 901 to account <code>0xCE35738E4bC96bB0a194F71B3d184809F3727f56</code> on Chain 902 using the following command:</p>
-<pre><code class="language-sh">cast send 0x420beeF000000000000000000000000000000002 "sendETH(address,uint256,bytes)" 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 902 0x --value 10ether --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+<h3 id="2-initiate-the-send-transaction-on-chain-901-through-superchainweth-contract-deployed-at-0x4200000000000000000000000000000000000024"><a class="header" href="#2-initiate-the-send-transaction-on-chain-901-through-superchainweth-contract-deployed-at-0x4200000000000000000000000000000000000024">2. Initiate the send transaction on chain 901 through <code>SuperchainWETH</code> contract deployed at <code>0x4200000000000000000000000000000000000024</code></a></h3>
+<p>Send ETH from Chain 901 to Chain 902 using the following command:</p>
+<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000024 "sendETH(address _to, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 902 --value 10ether --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
 <h3 id="3-wait-for-the-relayed-message-to-appear-on-chain-902"><a class="header" href="#3-wait-for-the-relayed-message-to-appear-on-chain-902">3. Wait for the relayed message to appear on chain 902</a></h3>
-<p>In a few seconds, you should see the RelayedMessage on chain 902:</p>
+<p>In a few seconds, you should see the relayed message on chain 902:</p>
 <pre><code class="language-sh"># example
-INFO [08-30|14:30:14.698] SuperchainWETH#CrosschainMint to=0x420bEEF000000000000000000000000000000002 amount=10,000,000,000,000,000,000
+INFO [12-02|14:53:02.434] SuperchainWETH#RelayETH chain.id=902 from=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 to=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 amount=10,000,000,000,000,000,000 source=901
 </code></pre>
 <h3 id="4-check-the-balance-on-chain-902"><a class="header" href="#4-check-the-balance-on-chain-902">4. Check the balance on chain 902</a></h3>
-<p>Verify that the balance of ETH for account 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 on chain 902 has increased:</p>
-<pre><code class="language-sh">cast balance 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 --rpc-url http://127.0.0.1:9546
+<p>Verify that the balance of the ETH on chain 902 has increased:</p>
+<pre><code class="language-sh">cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
 </code></pre>
 
                     </main>
