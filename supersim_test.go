@@ -484,7 +484,7 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -546,7 +546,7 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -603,7 +603,7 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 	require.NoError(t, err)
 
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(1), // Wrong index
@@ -656,7 +656,7 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	wrongMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), wrongBlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: wrongBlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -708,7 +708,7 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -760,7 +760,7 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -971,7 +971,7 @@ func TestInteropInvariantSucceedsWithDelay(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -1018,7 +1018,7 @@ func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),

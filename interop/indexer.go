@@ -173,13 +173,13 @@ func (i *L2ToL2MessageIndexer) createSubscription(key string, messageChan chan<-
 	}, nil
 }
 
-func getIdentifier(ctx context.Context, backend ethereum.ChainReader, chainID uint64, log *types.Log) (*bindings.ICrossL2InboxIdentifier, error) {
+func getIdentifier(ctx context.Context, backend ethereum.ChainReader, chainID uint64, log *types.Log) (*bindings.Identifier, error) {
 	blockHeader, err := backend.HeaderByNumber(ctx, big.NewInt(int64(log.BlockNumber)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get block: %w", err)
 	}
 
-	return &bindings.ICrossL2InboxIdentifier{
+	return &bindings.Identifier{
 		Origin:      log.Address,
 		BlockNumber: blockHeader.Number,
 		LogIndex:    big.NewInt(int64(log.Index)),

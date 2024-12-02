@@ -25,6 +25,6 @@
 - [Interoperability](./guides/interop/README.md)
   - [Cross Chain Contract Calls (PingPong)](./guides/interop/cross-chain-contract-calls-pingpong.md)
   - [Cross Chain Event Reading (TicTacToe)](./guides/interop/cross-chain-event-reads-tictactoe.md)
-  - [Bridging SuperchainWETH](./guides/interop/bridging-superchain-weth.md)
+  - [Bridging ETH](./guides/interop/bridging-eth.md)
   - [Viem bindings](./guides/interop/viem.md)
   - [Relay with Cast](./guides/interop/cast.md)
