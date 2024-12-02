@@ -21,7 +21,7 @@
 
 # Guides
 
-- [Sending deposit transactions](./guides/deposit-transactions.md)
+- [Deposit Transactions](./guides/deposit-transactions.md)
 - [Interoperability](./guides/interop/README.md)
   - [Cross Chain Contract Calls (PingPong)](./guides/interop/cross-chain-contract-calls-pingpong.md)
   - [Cross Chain Event Reading (TicTacToe)](./guides/interop/cross-chain-event-reads-tictactoe.md)

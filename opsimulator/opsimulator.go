@@ -137,7 +137,11 @@ func (opSim *OpSimulator) Stop(ctx context.Context) error {
 	}
 
 	opSim.bgTasksCancel()
-	return opSim.httpServer.Stop(ctx)
+	if opSim.httpServer != nil {
+		return opSim.httpServer.Stop(ctx)
+	}
+
+	return nil
 }
 
 func (opSim *OpSimulator) EthClient() *ethclient.Client {
@@ -292,12 +296,21 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 					batchRes[i] = msg.errorResponse(err)
 					continue
 				}
+
 				txHash := tx.Hash()
 
-				// Simulate the tx. If this fails, we let it pass through with a warning
+				// Deposits should not be directly sendable to the L2
+				if tx.IsDepositTx() {
+					opSim.log.Error("rejecting deposit tx", "hash", txHash.String())
+					batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: "cannot process deposit tx"})
+					continue
+				}
+
+				// Simulate the tx.
 				logs, err := opSim.SimulatedLogs(ctx, tx)
 				if err != nil {
-					opSim.log.Warn("failed to simulate transaction!!! filtering tx...", "err", err, "hash", txHash)
+					opSim.log.Warn("failed to simulate transaction!!!", "err", err, "hash", txHash)
+					batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: "failed tx simulation"})
 					continue
 				} else {
 					if err := opSim.checkInteropInvariants(ctx, logs); err != nil {
