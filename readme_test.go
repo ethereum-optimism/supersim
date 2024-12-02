@@ -89,7 +89,7 @@ func TestL2ToL2Transfer(t *testing.T) {
 	assert.NoError(t, waitErr)
 }
 
-func TestSuperchainETHTransfer(t *testing.T) {
+func TestCrosschainETHTransfer(t *testing.T) {
 	_ = createTestSuite(t, &config.CLIConfig{
 		L1Port:           8545,
 		L2StartingPort:   9545,
@@ -103,7 +103,7 @@ func TestSuperchainETHTransfer(t *testing.T) {
 	assert.Equal(t, "0", initialBalance, "Initial balance check failed")
 
 	// Initiate the send transaction on chain 901
-	sendCmd := `cast send 0x420beeF000000000000000000000000000000002 "sendETH(address,uint256,bytes)" 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 902 0x --value 10ether --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`
+	sendCmd := `cast send 0x4200000000000000000000000000000000000024 "sendETH(address _to, uint256 _chainId)" 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 902 --value 10ether --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`
 	_, err = runCmd(sendCmd)
 	assert.NoError(t, err)
 

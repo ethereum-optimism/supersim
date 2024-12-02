@@ -8,7 +8,7 @@ import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
 import {ERC20} from "@solady-v0.0.245/tokens/ERC20.sol";
 
 import {L2NativeSuperchainERC20, ZeroAddress} from "../src/L2NativeSuperchainERC20.sol";
-import {ICrosschainERC20} from "@contracts-bedrock/L2/interfaces/ICrosschainERC20.sol";
+import {IERC7802} from "@contracts-bedrock/L2/interfaces/IERC7802.sol";
 import {ISuperchainERC20} from "@contracts-bedrock/L2/interfaces/ISuperchainERC20.sol";
 
 contract L2NativeSuperchainERC20Test is Test {
@@ -84,7 +84,7 @@ contract L2NativeSuperchainERC20Test is Test {
 
         // Look for the emit of the `Mint` event
         vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit ICrosschainERC20.CrosschainMint(_to, _amount);
+        emit IERC7802.CrosschainMint(_to, _amount, SUPERCHAIN_TOKEN_BRIDGE);
 
         vm.prank(SUPERCHAIN_TOKEN_BRIDGE);
         superchainERC20.crosschainMint(_to, _amount);
@@ -126,7 +126,7 @@ contract L2NativeSuperchainERC20Test is Test {
         // Look for the emit of the `CrosschainBurn` event
         // vm.expectEmit(address(superchainERC20));
         vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit ICrosschainERC20.CrosschainBurn(_from, _amount);
+        emit IERC7802.CrosschainBurn(_from, _amount, SUPERCHAIN_TOKEN_BRIDGE);
 
         // Call the `burn` function with the bridge caller
         vm.prank(SUPERCHAIN_TOKEN_BRIDGE);

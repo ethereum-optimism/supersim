@@ -181,6 +181,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 		}
 	})
 
+	// Log SuperchainERC20 events
 	opSim.bgTasks.Go(func() error {
 		contracts := []struct {
 			name    string
@@ -199,12 +200,12 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			mintEventChan := make(chan *bindings.SuperchainERC20CrosschainMint)
 			burnEventChan := make(chan *bindings.SuperchainERC20CrosschainBurn)
 
-			mintSub, err := contract.WatchCrosschainMint(&bind.WatchOpts{Context: opSim.bgTasksCtx}, mintEventChan, nil)
+			mintSub, err := contract.WatchCrosschainMint(&bind.WatchOpts{Context: opSim.bgTasksCtx}, mintEventChan, nil, nil)
 			if err != nil {
 				return fmt.Errorf("failed to subscribe to %s#CrosschainMint: %w", c.name, err)
 			}
 
-			burnSub, err := contract.WatchCrosschainBurn(&bind.WatchOpts{Context: opSim.bgTasksCtx}, burnEventChan, nil)
+			burnSub, err := contract.WatchCrosschainBurn(&bind.WatchOpts{Context: opSim.bgTasksCtx}, burnEventChan, nil, nil)
 			if err != nil {
 				return fmt.Errorf("failed to subscribe to %s#CrosschainBurn: %w", c.name, err)
 			}
@@ -212,9 +213,9 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			for {
 				select {
 				case event := <-mintEventChan:
-					opSim.log.Info(c.name+"#CrosschainMint", "to", event.To, "amount", event.Amount)
+					opSim.log.Info(c.name+"#CrosschainMint", "to", event.To, "amount", event.Amount, "sender", event.Sender)
 				case event := <-burnEventChan:
-					opSim.log.Info(c.name+"#CrosschainBurn", "from", event.From, "amount", event.Amount)
+					opSim.log.Info(c.name+"#CrosschainBurn", "from", event.From, "amount", event.Amount, "sender", event.Sender)
 				case <-opSim.bgTasksCtx.Done():
 					mintSub.Unsubscribe()
 					burnSub.Unsubscribe()
@@ -250,6 +251,39 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 				opSim.log.Info("SuperchainTokenBridge#SendERC20", "token", event.Token, "from", event.From, "to", event.To, "amount", event.Amount, "destination", event.Destination)
 			case event := <-relayEventChan:
 				opSim.log.Info("SuperchainTokenBridge#RelayERC20", "token", event.Token, "from", event.From, "to", event.To, "amount", event.Amount, "source", event.Source)
+			case <-opSim.bgTasksCtx.Done():
+				sendSub.Unsubscribe()
+				relaySub.Unsubscribe()
+				return nil
+			}
+		}
+	})
+
+	// Log SuperchainWETH events
+	opSim.bgTasks.Go(func() error {
+		superchainWeth, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, opSim.Chain.EthClient())
+		if err != nil {
+			return fmt.Errorf("failed to create SuperchainWETH contract: %w", err)
+		}
+
+		sendEventChan := make(chan *bindings.SuperchainWETHSendETH)
+		sendSub, err := superchainWeth.WatchSendETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, sendEventChan, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to SuperchainWETH#SendETH: %w", err)
+		}
+
+		relayEventChan := make(chan *bindings.SuperchainWETHRelayETH)
+		relaySub, err := superchainWeth.WatchRelayETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, relayEventChan, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to SuperchainWETH#RelayETH: %w", err)
+		}
+
+		for {
+			select {
+			case event := <-sendEventChan:
+				opSim.log.Info("SuperchainWETH#SendETH", "from", event.From, "to", event.To, "amount", event.Amount, "destination", event.Destination)
+			case event := <-relayEventChan:
+				opSim.log.Info("SuperchainWETH#RelayETH", "from", event.From, "to", event.To, "amount", event.Amount, "source", event.Source)
 			case <-opSim.bgTasksCtx.Done():
 				sendSub.Unsubscribe()
 				relaySub.Unsubscribe()
