@@ -1,0 +1,20 @@
+procs:
+  supersim:
+    cwd: .
+    shell: pnpm exec supersim --interop.autorelay --logs.directory supersim-logs
+
+  l1-chain:
+    cwd: supersim-logs
+    shell: wait-port 8545 && tail -f anvil-900.log
+
+  supersim-chain-901:
+    cwd: supersim-logs
+    shell: wait-port 9545 && tail -f anvil-901.log
+
+  supersim-chain-902:
+    cwd: supersim-logs
+    shell: wait-port 9546 && tail -f anvil-902.log
+
+  super-echo:
+    cwd: .
+    shell: bash
