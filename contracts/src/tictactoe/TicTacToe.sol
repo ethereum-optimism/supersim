@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
-import {ICrossL2Inbox} from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
+import {Identifier, ICrossL2Inbox} from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
 
 /// @notice Thrown when cross l2 origin is not the TicTacToe contract
 error IdOriginNotTicTacToe();
@@ -63,7 +63,7 @@ contract TicTacToe {
         // `1` for the player's moves, `2` opposing.
         uint8[3][3] moves;
         uint8 movesLeft;
-        ICrossL2Inbox.Identifier lastOpponentId;
+        Identifier lastOpponentId;
     }
 
     /// @notice A game is identified from the (chainId, gameId) tuple from the chain it was initiated on
@@ -92,7 +92,7 @@ contract TicTacToe {
     }
 
     /// @notice Send out an acceptance event for a new game
-    function acceptGame(ICrossL2Inbox.Identifier calldata _newGameId, bytes calldata _newGameData) external {
+    function acceptGame(Identifier calldata _newGameId, bytes calldata _newGameData) external {
         // Validate Cross Chain Log
         if (_newGameId.origin != address(this)) revert IdOriginNotTicTacToe();
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_newGameId, keccak256(_newGameData));
@@ -116,12 +116,9 @@ contract TicTacToe {
     }
 
     /// @notice Start a game accepted by an opponent with a starting move
-    function startGame(
-        ICrossL2Inbox.Identifier calldata _acceptedGameId,
-        bytes calldata _acceptedGameData,
-        uint8 _x,
-        uint8 _y
-    ) external {
+    function startGame(Identifier calldata _acceptedGameId, bytes calldata _acceptedGameData, uint8 _x, uint8 _y)
+        external
+    {
         // Validate Cross Chain Log
         if (_acceptedGameId.origin != address(this)) revert IdOriginNotTicTacToe();
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_acceptedGameId, keccak256(_acceptedGameData));
@@ -156,12 +153,7 @@ contract TicTacToe {
     }
 
     /// @notice Make a move for a game.
-    function makeMove(
-        ICrossL2Inbox.Identifier calldata _movePlayedId,
-        bytes calldata _movePlayedData,
-        uint8 _x,
-        uint8 _y
-    ) external {
+    function makeMove(Identifier calldata _movePlayedId, bytes calldata _movePlayedData, uint8 _x, uint8 _y) external {
         // Validate Cross Chain Log
         if (_movePlayedId.origin != address(this)) revert IdOriginNotTicTacToe();
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_movePlayedId, keccak256(_movePlayedData));

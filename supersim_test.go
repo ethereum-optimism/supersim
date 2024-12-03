@@ -282,7 +282,7 @@ func TestAccountBalances(t *testing.T) {
 	}
 }
 
-func TestDepositTxSimpleEthDeposit(t *testing.T) {
+func TestOptimismPortalDeposit(t *testing.T) {
 	t.Parallel()
 
 	testSuite := createTestSuite(t, &config.CLIConfig{})
@@ -336,6 +336,23 @@ func TestDepositTxSimpleEthDeposit(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestDirectDepositTxFails(t *testing.T) {
+	t.Parallel()
+
+	testSuite := createTestSuite(t, &config.CLIConfig{})
+	l2Chain := testSuite.Supersim.Orchestrator.L2Chains()[0]
+
+	l2EthClient, err := ethclient.Dial(l2Chain.Endpoint())
+	require.NoError(t, err)
+	defer l2EthClient.Close()
+
+	// Create a deposit transaction
+	depositTx := &types.DepositTx{Mint: big.NewInt(1e18), Value: big.NewInt(0)}
+
+	// Fails when sent to the L2
+	require.Error(t, l2EthClient.SendTransaction(context.Background(), types.NewTx(depositTx)))
 }
 
 func TestDependencySet(t *testing.T) {
@@ -467,7 +484,7 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -529,7 +546,7 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -586,7 +603,7 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 	require.NoError(t, err)
 
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(1), // Wrong index
@@ -639,7 +656,7 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	wrongMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), wrongBlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: wrongBlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -691,7 +708,7 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -743,7 +760,7 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -819,7 +836,6 @@ func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 }
 
 func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
-
 	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -955,7 +971,7 @@ func TestInteropInvariantSucceedsWithDelay(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -1002,7 +1018,7 @@ func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
-	identifier := bindings.ICrossL2InboxIdentifier{
+	identifier := bindings.Identifier{
 		Origin:      origin,
 		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
 		LogIndex:    big.NewInt(0),
@@ -1023,7 +1039,6 @@ func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 }
 
 func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
-
 	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -1079,6 +1094,7 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 	assert.NoError(t, waitErr)
 
 	var message *JSONL2ToL2Message
+
 	// msgHash for the above sendERC20 txn
 	msgHash := "0x3656fd893944321663b2877d10db2895fb68e2346fd7e3f648ce5b986c200166"
 	rpcErr := client.CallContext(context.Background(), &message, "admin_getL2ToL2MessageByMsgHash", msgHash)

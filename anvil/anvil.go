@@ -76,6 +76,9 @@ func (a *Anvil) Start(ctx context.Context) error {
 	if a.cmd != nil {
 		return errors.New("anvil already started")
 	}
+	if a.cfg.Host == "" {
+		a.cfg.Host = "127.0.0.1"
+	}
 
 	args := []string{
 		"--host", a.cfg.Host,
@@ -239,7 +242,10 @@ func (a *Anvil) Stop(_ context.Context) error {
 		return nil // someone else stopped
 	}
 
-	a.rpcClient.Close()
+	if a.rpcClient != nil {
+		a.rpcClient.Close()
+	}
+
 	a.resourceCancel()
 	a.executeCleanup()
 	<-a.stoppedCh
