@@ -56,6 +56,8 @@ type Anvil struct {
 
 	stopped   atomic.Bool
 	stoppedCh chan struct{}
+
+	cleanupTasks []func()
 }
 
 func New(log log.Logger, closeApp context.CancelCauseFunc, cfg *config.ChainConfig) *Anvil {
@@ -97,7 +99,6 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 	if len(a.cfg.GenesisJSON) > 0 && a.cfg.ForkConfig == nil {
 		tempFile, err := os.CreateTemp("", "genesis-*.json")
-		defer a.removeFile(tempFile)
 
 		if err != nil {
 			return fmt.Errorf("error creating temporary genesis file: %w", err)
@@ -106,6 +107,10 @@ func (a *Anvil) Start(ctx context.Context) error {
 			return fmt.Errorf("error writing to genesis file: %w", err)
 		}
 		args = append(args, "--init", tempFile.Name())
+
+		a.registerCleanupTask(func() {
+			a.removeFile(tempFile)
+		})
 	}
 	if a.cfg.ForkConfig != nil {
 		args = append(args,
@@ -136,9 +141,10 @@ func (a *Anvil) Start(ctx context.Context) error {
 		}
 
 		logFile = tempLogFile
-		// Clean up the temp log file
-		// TODO (https://github.com/ethereum-optimism/supersim/issues/205) This results in the temp file being deleted right away instead of after shutdown.
-		defer a.removeFile(logFile)
+
+		a.registerCleanupTask(func() {
+			a.removeFile(logFile)
+		})
 	} else {
 		// Expand the path to the log file
 		absFilePath, err := filepath.Abs(fmt.Sprintf("%s/anvil-%d.log", a.cfg.LogsDirectory, a.cfg.ChainID))
@@ -241,6 +247,7 @@ func (a *Anvil) Stop(_ context.Context) error {
 	}
 
 	a.resourceCancel()
+	a.executeCleanup()
 	<-a.stoppedCh
 	return nil
 }
@@ -338,4 +345,14 @@ func (a *Anvil) removeFile(file *os.File) {
 	if err := os.Remove(file.Name()); err != nil {
 		a.log.Warn("failed to remove temp genesis file", "file.path", file.Name(), "err", err)
 	}
+}
+
+func (a *Anvil) executeCleanup() {
+	for _, task := range a.cleanupTasks {
+		task()
+	}
+}
+
+func (a *Anvil) registerCleanupTask(task func()) {
+	a.cleanupTasks = append(a.cleanupTasks, task)
 }
