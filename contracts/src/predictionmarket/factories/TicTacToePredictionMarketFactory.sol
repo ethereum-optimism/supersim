@@ -35,7 +35,7 @@ contract TicTacToePredictionMarketFactory {
 
     // @notice create a new market for an accepted TicTacToe game. The game creator being the
     //         yes outcome and the opponent being the no outcome.
-    function newMarket(ICrossL2Inbox.Identifier calldata _id, bytes calldata _data) external payable {
+    function newMarket(ICrossL2Inbox.Identifier calldata _id, bytes calldata _data) public payable {
         require(_id.origin == address(game));
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_data));
 
