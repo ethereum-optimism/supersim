@@ -1,0 +1,33 @@
+Title = "Supersim Configuration"
+Desc = "Configuration for the Supersim application."
+
+
+# Admin server settings
+admin_port = 8420  # Listening port for the admin server (Default: 8420)
+
+# Interoperability settings
+interop_autorelay = false  # Automatically relay messages sent to the L2ToL2CrossDomainMessenger (Default: false)
+interop_delay = 0          # Delay before relaying messages sent to the L2ToL2CrossDomainMessenger (Default: 0)
+
+# L1 instance settings
+l1_host = "127.0.0.1"     # Host address for the L1 instance (Default: "127.0.0.1")
+l1_port = 8545            # Listening port for the L1 instance. `0` binds to any available port (Default: 8545)
+
+# L2 instance settings
+l2_host = "127.0.0.1"     # Host address for L2 instances (Default: "127.0.0.1")
+l2_starting_port = 9545    # Starting port to increment from for L2 chains. `0` binds each chain to any available port (Default: 9545)
+
+# Logging settings
+log_color = false           # Color the log output if in terminal mode (Default: false)
+log_format = "text"        # Format the log output. Supported formats: 'text', 'terminal', 'logfmt', 'json', 'json-pretty' (Default: "text")
+log_level = "INFO"         # The lowest log level that will be output (Default: "INFO")
+log_pid = false             # Show pid in the log (Default: false)
+logs_directory = ""         # Directory to store logs
+
+[commands]
+
+[fork]
+# l1_fork_height = 0          # L1 height to fork the superchain (bounds L2 time). `0` for latest
+# chains = ["automata", "base"]  # Chains to fork in the superchain
+# network = "mainnet"         # Superchain network. Options: sepolia-dev-0, mainnet, sepolia
+# interop_enabled = true 
