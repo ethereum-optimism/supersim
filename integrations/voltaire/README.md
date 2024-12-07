@@ -40,3 +40,7 @@ Voltaire github: https://github.com/candidelabs/voltaire
 Candide Atelier: https://docs.candide.dev/
 
 Bundler rpc docs: https://docs.candide.dev/wallet/bundler/rpc-methods/
+
+# Notes
+* Voltaire supports both Entrypoint v0.6.0 and v0.7.0
+* Bundlers are running in the unsafe mode as debug_traceCall with javascript tracer is not supported in anvil currently
