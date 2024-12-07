@@ -27,11 +27,11 @@ source stop_bundlers.sh
 
 ## rpc url
 
-### L1Chain bundler rpc url: http://127.0.0.1:3000
+### L1Chain bundler rpc url: http://127.0.0.1:3000/rpc
 
-### OpChainA bundler rpc url: http://127.0.0.1:3001
+### OpChainA bundler rpc url: http://127.0.0.1:3001/rpc
 
-### OpChainB bundler rpc url: http://127.0.0.1:3002
+### OpChainB bundler rpc url: http://127.0.0.1:3002/rpc
 
 # docs
 
