@@ -2,9 +2,11 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
+	"github.com/pelletier/go-toml/v2"
 
 	"net"
 	"regexp"
@@ -154,31 +156,39 @@ type CLIConfig struct {
 	L2Host string
 }
 
+type ForkTOMLConfig struct {
+	L1ForkHeight uint64   `toml:"l1_fork_height"`
+	Network      string   `toml:"network"`
+	Chains       []string `toml:"chains"`
+
+	InteropEnabled bool `toml:"interop_enabled"`
+}
+
+type TOMLConfig struct {
+	AdminPort uint64 `toml:"admin_port"`
+
+	L1Port         uint64 `toml:"l1_port"`
+	L2StartingPort uint64 `toml:"l2_starting_port"`
+
+	InteropAutoRelay bool   `toml:"interop_autorelay"`
+	InteropDelay     uint64 `toml:"interop_delay"`
+
+	LogsDirectory string `toml:"logs_directory"`
+
+	ForkConfig *ForkTOMLConfig `toml:"fork"`
+
+	L1Host string `toml:"l1_host"`
+	L2Host string `toml:"l2_host"`
+}
+
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
-	cfg := &CLIConfig{
-		AdminPort: ctx.Uint64(AdminPortFlagName),
+	cfg := &CLIConfig{}
 
-		L1Port:         ctx.Uint64(L1PortFlagName),
-		L2StartingPort: ctx.Uint64(L2StartingPortFlagName),
-
-		InteropAutoRelay: ctx.Bool(InteropAutoRelayFlagName),
-		InteropDelay:     ctx.Uint64(InteropDelayFlagName),
-
-		LogsDirectory: ctx.String(LogsDirectoryFlagName),
-
-		L1Host: ctx.String(L1HostFlagName),
-		L2Host: ctx.String(L2HostFlagName),
+	if err := readTOMLConfig(cfg); err != nil {
+		return nil, err
 	}
 
-	if ctx.Command.Name == ForkCommandName {
-		cfg.ForkConfig = &ForkCLIConfig{
-			L1ForkHeight: ctx.Uint64(L1ForkHeightFlagName),
-			Network:      ctx.String(NetworkFlagName),
-			Chains:       ctx.StringSlice(ChainsFlagName),
-
-			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
-		}
-	}
+	populateFromCLIContext(cfg, ctx)
 
 	return cfg, cfg.Check()
 }
@@ -243,4 +253,88 @@ func validateHost(host string) error {
 	}
 
 	return nil
+}
+
+func readTOMLConfig(cfg *CLIConfig) error {
+	tomlCfgFile := "config.toml"
+	if _, err := os.Stat(tomlCfgFile); err == nil {
+		content, err := os.ReadFile(tomlCfgFile)
+		if err != nil {
+			return fmt.Errorf("failed to read TOML config: %w", err)
+		}
+
+		var tomlCfg TOMLConfig
+		if err := toml.Unmarshal(content, &tomlCfg); err != nil {
+			return fmt.Errorf("error parsing TOML: %v", err)
+		}
+
+		cfg.AdminPort = tomlCfg.AdminPort
+		cfg.L1Port = tomlCfg.L1Port
+		cfg.L2StartingPort = tomlCfg.L2StartingPort
+		cfg.InteropAutoRelay = tomlCfg.InteropAutoRelay
+		cfg.InteropDelay = tomlCfg.InteropDelay
+		cfg.LogsDirectory = tomlCfg.LogsDirectory
+		cfg.L1Host = tomlCfg.L1Host
+		cfg.L2Host = tomlCfg.L2Host
+
+		if tomlCfg.ForkConfig != nil {
+			cfg.ForkConfig = &ForkCLIConfig{}
+			if tomlCfg.ForkConfig.L1ForkHeight != 0 {
+				cfg.ForkConfig.L1ForkHeight = tomlCfg.ForkConfig.L1ForkHeight
+			}
+			if len(tomlCfg.ForkConfig.Chains) > 0 {
+				cfg.ForkConfig.Chains = tomlCfg.ForkConfig.Chains
+			}
+			if tomlCfg.ForkConfig.Network != "" {
+				cfg.ForkConfig.Network = tomlCfg.ForkConfig.Network
+			}
+			if tomlCfg.ForkConfig.InteropEnabled {
+				cfg.ForkConfig.InteropEnabled = tomlCfg.ForkConfig.InteropEnabled
+			}
+
+			if cfg.ForkConfig.L1ForkHeight == 0 && len(cfg.ForkConfig.Chains) == 0 && cfg.ForkConfig.Network == "" {
+				cfg.ForkConfig = nil
+			}
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("error checking TOML config file: %w", err)
+	}
+
+	return nil
+}
+
+func populateFromCLIContext(cfg *CLIConfig, ctx *cli.Context) {
+	if cfg.AdminPort == 0 {
+		cfg.AdminPort = ctx.Uint64(AdminPortFlagName)
+	}
+	if cfg.L1Port == 0 {
+		cfg.L1Port = ctx.Uint64(L1PortFlagName)
+	}
+	if cfg.L2StartingPort == 0 {
+		cfg.L2StartingPort = ctx.Uint64(L2StartingPortFlagName)
+	}
+	if !cfg.InteropAutoRelay {
+		cfg.InteropAutoRelay = ctx.Bool(InteropAutoRelayFlagName)
+	}
+	if cfg.InteropDelay == 0 {
+		cfg.InteropDelay = ctx.Uint64(InteropDelayFlagName)
+	}
+	if cfg.LogsDirectory == "" {
+		cfg.LogsDirectory = ctx.String(LogsDirectoryFlagName)
+	}
+	if cfg.L1Host == "" {
+		cfg.L1Host = ctx.String(L1HostFlagName)
+	}
+	if cfg.L2Host == "" {
+		cfg.L2Host = ctx.String(L2HostFlagName)
+	}
+
+	if ctx.Command.Name == ForkCommandName {
+		cfg.ForkConfig = &ForkCLIConfig{
+			L1ForkHeight:   ctx.Uint64(L1ForkHeightFlagName),
+			Network:        ctx.String(NetworkFlagName),
+			Chains:         ctx.StringSlice(ChainsFlagName),
+			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
+		}
+	}
 }
