@@ -2,7 +2,7 @@
 
 Supersim supports deposits transactions as described in the [explainer](https://docs.optimism.io/stack/transactions/deposit-flow). However in a very lightweight manner without the op-node derivation pipeline by listening directly to the `TransactionDeposited` events on the OptimsimPortal contract and simply forwarding the transaction to the applicable L2.
 
-This implies the the exeuction engine used with Supersim must support the optimism [Deposit Transaction Type](https://specs.optimism.io/protocol/deposits.html#the-deposited-transaction-type).
+This implies the execution engine used with Supersim must support the optimism [Deposit Transaction Type](https://specs.optimism.io/protocol/deposits.html#the-deposited-transaction-type).
 
 ## OptimismPortal 
 
