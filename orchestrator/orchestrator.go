@@ -82,11 +82,11 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 
 func (o *Orchestrator) Start(ctx context.Context) error {
 	o.log.Debug("starting orchestrator")
+
 	// Start Chains
 	if err := o.l1Chain.Start(ctx); err != nil {
 		return fmt.Errorf("l1 chain %s failed to start: %w", o.l1Chain.Config().Name, err)
 	}
-
 	for _, chain := range o.l2Chains {
 		if err := chain.Start(ctx); err != nil {
 			return fmt.Errorf("l2 chain %s failed to start: %w", chain.Config().Name, err)
@@ -120,8 +120,11 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		var wg sync.WaitGroup
 		wg.Add(len(o.l2Chains))
 		errs := make([]error, len(o.l2Chains))
-		for i, chain := range o.L2Chains() {
-			go func(i int) {
+
+		// Iterate over the underlying l2Chains for configuration as it relies
+		// on deposit txs from system addresses which opsimulator will reject
+		for i, chain := range o.l2Chains {
+			go func(i uint64) {
 				if err := interop.Configure(ctx, chain); err != nil {
 					errs[i] = fmt.Errorf("failed to configure interop for chain %s: %w", chain.Config().Name, err)
 				}
@@ -130,7 +133,6 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		}
 
 		wg.Wait()
-
 		if err := errors.Join(errs...); err != nil {
 			return err
 		}

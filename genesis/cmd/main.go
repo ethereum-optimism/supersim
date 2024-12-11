@@ -6,8 +6,8 @@ import (
 	"path"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/foundry"
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/pipeline"
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/artifacts"
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/bootstrap"
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
@@ -43,11 +43,13 @@ func worldgenMain(ctx *cli.Context) error {
 		logger.Info("monorepo artifacts download progress", "current", curr, "total", total)
 	}
 
-	locator := &opcm.ArtifactsLocator{
-		URL: cliConfig.MonorepoArtifactsURL,
+	monorepoOPCMConfig := &bootstrap.OPCMConfig{
+		ArtifactsLocator: &artifacts.Locator{
+			URL: cliConfig.MonorepoArtifactsURL,
+		},
 	}
 
-	monorepoArtifactsFS, monorepoArtifactsCleanup, err := pipeline.DownloadArtifacts(ctx.Context, (*opcm.ArtifactsLocator)(locator), monorepoProgressor)
+	monorepoArtifactsFS, monorepoArtifactsCleanup, err := artifacts.Download(ctx.Context, monorepoOPCMConfig.ArtifactsLocator, monorepoProgressor)
 	if err != nil {
 		return fmt.Errorf("failed to download monorepo artifacts: %w", err)
 	}
@@ -62,11 +64,13 @@ func worldgenMain(ctx *cli.Context) error {
 		logger.Info("monorepo artifacts download progress", "current", curr, "total", total)
 	}
 
-	peripheryLocator := &opcm.ArtifactsLocator{
-		URL: cliConfig.PeripheryArtifactsURL,
+	peripheryOPCMConfig := &bootstrap.OPCMConfig{
+		ArtifactsLocator: &artifacts.Locator{
+			URL: cliConfig.PeripheryArtifactsURL,
+		},
 	}
 
-	peripheryArtifactsFS, peripheryArtifactsCleanup, err := pipeline.DownloadArtifacts(ctx.Context, (*opcm.ArtifactsLocator)(peripheryLocator), peripheryProgressor)
+	peripheryArtifactsFS, peripheryArtifactsCleanup, err := artifacts.Download(ctx.Context, peripheryOPCMConfig.ArtifactsLocator, peripheryProgressor)
 	if err != nil {
 		return fmt.Errorf("failed to download periphery artifacts: %w", err)
 	}
