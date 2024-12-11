@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
+	"github.com/ethereum-optimism/supersim/admin"
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
@@ -1089,7 +1090,7 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 	})
 	assert.NoError(t, waitErr)
 
-	var message *JSONL2ToL2Message
+	var message *admin.JSONL2ToL2Message
 	// msgHash for the above sendERC20 txn
 	msgHash := "0x3656fd893944321663b2877d10db2895fb68e2346fd7e3f648ce5b986c200166"
 	rpcErr := client.CallContext(context.Background(), &message, "admin_getL2ToL2MessageByMsgHash", msgHash)
@@ -1153,7 +1154,7 @@ func TestAdminGetL1ToL2MessageByTxnHash(t *testing.T) {
 			// check that balance was increased
 			require.Equal(t, oneEth, postBalance.Sub(postBalance, prevBalance), "Recipient balance is incorrect")
 
-			var message *JSONDepositTx
+			var message *admin.JSONDepositTx
 			// msgHash for the above sendERC20 txn
 			l1TxnHash := txReceipt.TxHash
 			rpcErr := adminRPCClient.CallContext(context.Background(), &message, "admin_getL1ToL2MessageByTxnHash", l1TxnHash)

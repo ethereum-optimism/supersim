@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 )
 
@@ -16,20 +17,21 @@ type L1ToL2MessageIndexer struct {
 	log          log.Logger
 	storeManager *L1DepositStoreManager
 	eb           EventBus.Bus
-	l1Chain      config.Chain
+	l2Chain      config.Chain
 	tasks        tasks.Group
 	tasksCtx     context.Context
 	tasksCancel  context.CancelFunc
+	ethClient    *ethclient.Client
 }
 
-func NewL1ToL2MessageIndexer(log log.Logger, l1Chain config.Chain) *L1ToL2MessageIndexer {
+func NewL1ToL2MessageIndexer(log log.Logger, l2Chain config.Chain) *L1ToL2MessageIndexer {
 	tasksCtx, tasksCancel := context.WithCancel(context.Background())
 
 	return &L1ToL2MessageIndexer{
 		log:          log,
 		storeManager: NewL1DepositStoreManager(),
 		eb:           EventBus.New(),
-		l1Chain:      l1Chain,
+		l2Chain:      l2Chain,
 		tasks: tasks.Group{
 			HandleCrit: func(err error) {
 				fmt.Printf("unhandled indexer error: %v\n", err)
@@ -40,24 +42,22 @@ func NewL1ToL2MessageIndexer(log log.Logger, l1Chain config.Chain) *L1ToL2Messag
 	}
 }
 
-func (i *L1ToL2MessageIndexer) Start(ctx context.Context) error {
+func (i *L1ToL2MessageIndexer) Start(ctx context.Context, client *ethclient.Client) error {
 
 	i.tasks.Go(func() error {
 		depositTxCh := make(chan *types.DepositTx)
-		l1DepositTxnLogCh := make(chan *types.Log)
-		portalAddress := common.Address(i.l1Chain.Config().L2Config.L1Addresses.OptimismPortalProxy)
-		sub, err := SubscribeDepositTx(i.tasksCtx, i.l1Chain.EthClient(), portalAddress, depositTxCh, l1DepositTxnLogCh)
+		portalAddress := common.Address(i.l2Chain.Config().L2Config.L1Addresses.OptimismPortalProxy)
+		sub, err := SubscribeDepositTx(i.tasksCtx, i.l2Chain.EthClient(), portalAddress, depositTxCh)
 
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
 		}
 
-		chainID := i.l1Chain.Config().ChainID
+		chainID := i.l2Chain.Config().ChainID
 
 		for {
 			select {
 			case dep := <-depositTxCh:
-
 				if err := i.processEvent(dep, chainID); err != nil {
 					fmt.Printf("failed to process log: %v\n", err)
 				}

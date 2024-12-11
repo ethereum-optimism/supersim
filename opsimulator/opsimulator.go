@@ -63,7 +63,7 @@ type OpSimulator struct {
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
-func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64, depositStoreManager *L1DepositStoreManager) *OpSimulator {
+func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, l2Chain.EthClient())
@@ -91,7 +91,7 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host str
 		},
 
 		peers:   peers,
-		indexer: NewL1ToL2MessageIndexer(log, l1Chain),
+		indexer: NewL1ToL2MessageIndexer(log, l2Chain),
 	}
 }
 
@@ -126,7 +126,7 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to create eth client: %w", err)
 	}
 
-	if err := opSim.indexer.Start(ctx); err != nil {
+	if err := opSim.indexer.Start(ctx, ethClient); err != nil {
 		return fmt.Errorf("L1ToL2Indexer failed to start: %w", err)
 	}
 
