@@ -24,14 +24,13 @@ type L1ToL2MessageIndexer struct {
 	ethClient    *ethclient.Client
 }
 
-func NewL1ToL2MessageIndexer(log log.Logger, l2Chain config.Chain) *L1ToL2MessageIndexer {
+func NewL1ToL2MessageIndexer(log log.Logger, storeManager *L1DepositStoreManager) *L1ToL2MessageIndexer {
 	tasksCtx, tasksCancel := context.WithCancel(context.Background())
 
 	return &L1ToL2MessageIndexer{
 		log:          log,
-		storeManager: NewL1DepositStoreManager(),
+		storeManager: storeManager,
 		eb:           EventBus.New(),
-		l2Chain:      l2Chain,
 		tasks: tasks.Group{
 			HandleCrit: func(err error) {
 				fmt.Printf("unhandled indexer error: %v\n", err)
@@ -42,11 +41,13 @@ func NewL1ToL2MessageIndexer(log log.Logger, l2Chain config.Chain) *L1ToL2Messag
 	}
 }
 
-func (i *L1ToL2MessageIndexer) Start(ctx context.Context, client *ethclient.Client) error {
+func (i *L1ToL2MessageIndexer) Start(ctx context.Context, client *ethclient.Client, l2Chain config.Chain) error {
+
+	i.l2Chain = l2Chain
 
 	i.tasks.Go(func() error {
 		depositTxCh := make(chan *types.DepositTx)
-		portalAddress := common.Address(i.l2Chain.Config().L2Config.L1Addresses.OptimismPortalProxy)
+		portalAddress := common.Address(l2Chain.Config().L2Config.L1Addresses.OptimismPortalProxy)
 		sub, err := SubscribeDepositTx(i.tasksCtx, client, portalAddress, depositTxCh)
 
 		if err != nil {
@@ -76,12 +77,12 @@ func (i *L1ToL2MessageIndexer) Stop(ctx context.Context) error {
 	return nil
 }
 
-func depositMessageInfoKey() string {
-	return fmt.Sprintln("DepositMessageKey")
+func depositMessageInfoKey(destinationChainID uint64) string {
+	return fmt.Sprintf("DepositMessageKey:destination:%d", destinationChainID)
 }
 
-func (i *L1ToL2MessageIndexer) SubscribeDepositMessage(depositMessageChan chan<- *types.Transaction) (func(), error) {
-	return i.createSubscription(depositMessageInfoKey(), depositMessageChan)
+func (i *L1ToL2MessageIndexer) SubscribeDepositMessage(destinationChainID uint64, depositMessageChan chan<- *types.Transaction) (func(), error) {
+	return i.createSubscription(depositMessageInfoKey(destinationChainID), depositMessageChan)
 }
 
 func (i *L1ToL2MessageIndexer) createSubscription(key string, depositMessageChan chan<- *types.Transaction) (func(), error) {
@@ -109,7 +110,6 @@ func (i *L1ToL2MessageIndexer) processEvent(dep *types.DepositTx, chainID uint64
 		return err
 	}
 
-	i.eb.Publish(depositMessageInfoKey(), depTx)
-
+	i.eb.Publish(depositMessageInfoKey(chainID), depTx)
 	return nil
 }

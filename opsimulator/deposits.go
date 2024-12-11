@@ -23,8 +23,15 @@ type depositTxSubscription struct {
 }
 
 func (d *depositTxSubscription) Unsubscribe() {
-	d.logSubscription.Unsubscribe()
-	d.doneCh <- struct{}{}
+	// since mul opsims run sub to indexer twice, a select needs to be added to avoid and race condition
+	select {
+	case <-d.doneCh:
+		// Already closed, do nothing
+		return
+	default:
+		d.logSubscription.Unsubscribe()
+		close(d.doneCh) // Close it here to signal termination
+	}
 }
 
 func (d *depositTxSubscription) Err() <-chan error {
@@ -51,7 +58,6 @@ func SubscribeDepositTx(ctx context.Context, logSub LogSubscriber, depositContra
 	go func() {
 		defer close(logCh)
 		defer close(errCh)
-		defer close(doneCh)
 		for {
 			select {
 			case log := <-logCh:

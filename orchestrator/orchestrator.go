@@ -55,7 +55,7 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
 
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay)
+		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay, depositStoreMngr)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
