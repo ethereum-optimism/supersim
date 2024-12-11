@@ -47,7 +47,7 @@ func (i *L1ToL2MessageIndexer) Start(ctx context.Context, client *ethclient.Clie
 	i.tasks.Go(func() error {
 		depositTxCh := make(chan *types.DepositTx)
 		portalAddress := common.Address(i.l2Chain.Config().L2Config.L1Addresses.OptimismPortalProxy)
-		sub, err := SubscribeDepositTx(i.tasksCtx, i.l2Chain.EthClient(), portalAddress, depositTxCh)
+		sub, err := SubscribeDepositTx(i.tasksCtx, client, portalAddress, depositTxCh)
 
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
@@ -80,12 +80,12 @@ func depositMessageInfoKey() string {
 	return fmt.Sprintln("DepositMessageKey")
 }
 
-func (i *L1ToL2MessageIndexer) SubscribeDepositMessage(depositMessageChan chan<- *types.DepositTx) (func(), error) {
+func (i *L1ToL2MessageIndexer) SubscribeDepositMessage(depositMessageChan chan<- *types.Transaction) (func(), error) {
 	return i.createSubscription(depositMessageInfoKey(), depositMessageChan)
 }
 
-func (i *L1ToL2MessageIndexer) createSubscription(key string, depositMessageChan chan<- *types.DepositTx) (func(), error) {
-	handler := func(e *types.DepositTx) {
+func (i *L1ToL2MessageIndexer) createSubscription(key string, depositMessageChan chan<- *types.Transaction) (func(), error) {
+	handler := func(e *types.Transaction) {
 		depositMessageChan <- e
 	}
 
@@ -101,7 +101,8 @@ func (i *L1ToL2MessageIndexer) createSubscription(key string, depositMessageChan
 func (i *L1ToL2MessageIndexer) processEvent(dep *types.DepositTx, chainID uint64) error {
 
 	depTx := types.NewTx(dep)
-	i.log.Debug("observed deposit event on L1", "hash", depTx.Hash().String())
+	i.log.Info("observed deposit event on L1", "hash", depTx.Hash().String())
+	fmt.Println(depTx.Hash().String())
 
 	if err := i.storeManager.Set(depTx.Hash(), dep); err != nil {
 		i.log.Error("failed to store deposit tx to chain: %w", "chain.id", chainID, "err", err)

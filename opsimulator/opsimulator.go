@@ -71,10 +71,12 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host str
 		closeApp(fmt.Errorf("failed to create cross L2 inbox: %w", err))
 	}
 
+	newLog := log.New("chain.id", l2Chain.Config().ChainID)
+
 	return &OpSimulator{
 		Chain: l2Chain,
 
-		log:          log.New("chain.id", l2Chain.Config().ChainID),
+		log:          newLog,
 		port:         port,
 		host:         host,
 		l1Chain:      l1Chain,
@@ -91,7 +93,7 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host str
 		},
 
 		peers:   peers,
-		indexer: NewL1ToL2MessageIndexer(log, l2Chain),
+		indexer: NewL1ToL2MessageIndexer(newLog, l2Chain),
 	}
 }
 
@@ -126,7 +128,7 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to create eth client: %w", err)
 	}
 
-	if err := opSim.indexer.Start(ctx, ethClient); err != nil {
+	if err := opSim.indexer.Start(ctx, opSim.l1Chain.EthClient()); err != nil {
 		return fmt.Errorf("L1ToL2Indexer failed to start: %w", err)
 	}
 
@@ -162,7 +164,7 @@ func (opSim *OpSimulator) EthClient() *ethclient.Client {
 func (opSim *OpSimulator) startBackgroundTasks() {
 	// Relay deposit tx from L1 to L2
 	opSim.bgTasks.Go(func() error {
-		depositTxCh := make(chan *types.DepositTx)
+		depositTxCh := make(chan *types.Transaction)
 		unsubscribe, err := opSim.indexer.SubscribeDepositMessage(depositTxCh)
 
 		if err != nil {
@@ -174,13 +176,14 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 		for {
 			select {
 			case dep := <-depositTxCh:
-				depTx := types.NewTx(dep)
-				opSim.log.Debug("observed deposit event on L1", "hash", depTx.Hash().String())
+				opSim.log.Debug("observed deposit event on L1", "hash", dep.Hash().String())
 
 				clnt := opSim.Chain.EthClient()
-				if err := clnt.SendTransaction(opSim.bgTasksCtx, depTx); err != nil {
+				if err := clnt.SendTransaction(opSim.bgTasksCtx, dep); err != nil {
 					opSim.log.Error("failed to submit deposit tx to chain: %w", "chain.id", chainId, "err", err)
 				}
+
+				opSim.log.Info("OptimismPortal#depositTransaction", "l2TxHash", dep.Hash().String())
 
 			case <-opSim.bgTasksCtx.Done():
 				unsubscribe()
