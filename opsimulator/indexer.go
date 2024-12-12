@@ -47,8 +47,15 @@ func (i *L1ToL2MessageIndexer) Start(ctx context.Context, client *ethclient.Clie
 
 	i.tasks.Go(func() error {
 		depositTxCh := make(chan *types.DepositTx)
+		logCh := make(chan types.Log)
+
+		channels := DepositChannels{
+			DepositTxCh: depositTxCh,
+			LogCh:       logCh,
+		}
+
 		portalAddress := common.Address(l2Chain.Config().L2Config.L1Addresses.OptimismPortalProxy)
-		sub, err := SubscribeDepositTx(i.tasksCtx, client, portalAddress, depositTxCh)
+		sub, err := SubscribeDepositTx(i.tasksCtx, client, portalAddress, channels)
 
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
