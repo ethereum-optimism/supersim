@@ -1156,13 +1156,13 @@ func TestAdminGetL1ToL2MessageByTxnHash(t *testing.T) {
 			depositTx, err := derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
 			require.NoError(t, err)
 
-			var message *admin.JSONDepositTx
+			var message *admin.JSONDepositMessage
 			rpcErr := adminRPCClient.CallContext(context.Background(), &message, "admin_getL1ToL2MessageByTxnHash", depositTx.SourceHash)
 			require.NoError(t, rpcErr)
 
-			assert.Equal(t, oneEth.String(), message.Value.String())
-			assert.Equal(t, oneEth.String(), message.Mint.String())
-			assert.Equal(t, false, message.IsSystemTransaction)
+			assert.Equal(t, oneEth.String(), message.DepositTxn.Value.String())
+			assert.Equal(t, oneEth.String(), message.DepositTxn.Mint.String())
+			assert.Equal(t, false, message.DepositTxn.IsSystemTransaction)
 		}()
 	}
 

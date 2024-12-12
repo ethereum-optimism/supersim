@@ -64,6 +64,23 @@ type JSONDepositTx struct {
 	Data                hexutil.Bytes   `json:"Data"`
 }
 
+type JSONDepositLog struct {
+	Address     common.Address `json:"Address"`
+	Topics      []common.Hash  `json:"Topics"`
+	Data        []byte         `json:"Data"`
+	BlockNumber uint64         `json:"BlockNumber"`
+	TxHash      common.Hash    `json:"TxHash"`
+	TxIndex     uint           `json:"TxIndex"`
+	BlockHash   common.Hash    `json:"BlockHash"`
+	Index       uint           `json:"Index"`
+	Removed     bool           `json:"Removed"`
+}
+
+type JSONDepositMessage struct {
+	DepositTxn JSONDepositTx
+	DepositLog JSONDepositLog
+}
+
 func (e *JSONRPCError) Error() string {
 	return e.Message
 }
@@ -239,7 +256,7 @@ func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) (*JSONL2ToL2Me
 	}, nil
 }
 
-func (m *RPCMethods) GetL1ToL2MessageByTxnHash(args *common.Hash) (*JSONDepositTx, error) {
+func (m *RPCMethods) GetL1ToL2MessageByTxnHash(args *common.Hash) (*JSONDepositMessage, error) {
 	if m.l1DepositStore == nil {
 		return nil, &JSONRPCError{
 			Code:    -32601,
@@ -263,14 +280,31 @@ func (m *RPCMethods) GetL1ToL2MessageByTxnHash(args *common.Hash) (*JSONDepositT
 		}
 	}
 
-	return &JSONDepositTx{
-		SourceHash:          storeEntry.SourceHash,
-		From:                storeEntry.From,
-		To:                  storeEntry.To,
-		Mint:                storeEntry.Mint,
-		Value:               storeEntry.Value,
-		Gas:                 storeEntry.Gas,
-		IsSystemTransaction: storeEntry.IsSystemTransaction,
-		Data:                storeEntry.Data,
+	depositTxn := JSONDepositTx{
+		SourceHash:          storeEntry.DepositTxn.SourceHash,
+		From:                storeEntry.DepositTxn.From,
+		To:                  storeEntry.DepositTxn.To,
+		Mint:                storeEntry.DepositTxn.Mint,
+		Value:               storeEntry.DepositTxn.Value,
+		Gas:                 storeEntry.DepositTxn.Gas,
+		IsSystemTransaction: storeEntry.DepositTxn.IsSystemTransaction,
+		Data:                storeEntry.DepositTxn.Data,
+	}
+
+	depositLog := JSONDepositLog{
+		Address:     storeEntry.DepositLog.Address,
+		Topics:      storeEntry.DepositLog.Topics,
+		Data:        storeEntry.DepositLog.Data,
+		BlockNumber: storeEntry.DepositLog.BlockNumber,
+		TxHash:      storeEntry.DepositLog.TxHash,
+		TxIndex:     storeEntry.DepositLog.TxIndex,
+		BlockHash:   storeEntry.DepositLog.BlockHash,
+		Index:       storeEntry.DepositLog.Index,
+		Removed:     storeEntry.DepositLog.Removed,
+	}
+
+	return &JSONDepositMessage{
+		DepositTxn: depositTxn,
+		DepositLog: depositLog,
 	}, nil
 }

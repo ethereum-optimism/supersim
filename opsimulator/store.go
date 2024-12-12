@@ -8,8 +8,13 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
+type L1DepositMessage struct {
+	DepositTxn *types.DepositTx
+	DepositLog types.Log
+}
+
 type L1DepositStore struct {
-	entryByHash map[common.Hash]*types.DepositTx
+	entryByHash map[common.Hash]*L1DepositMessage
 	mu          sync.RWMutex
 }
 
@@ -19,7 +24,7 @@ type L1DepositStoreManager struct {
 
 func NewL1DepositStore() *L1DepositStore {
 	return &L1DepositStore{
-		entryByHash: make(map[common.Hash]*types.DepositTx),
+		entryByHash: make(map[common.Hash]*L1DepositMessage),
 	}
 }
 
@@ -29,7 +34,7 @@ func NewL1DepositStoreManager() *L1DepositStoreManager {
 	}
 }
 
-func (s *L1DepositStore) Set(txnHash common.Hash, entry *types.DepositTx) error {
+func (s *L1DepositStore) Set(txnHash common.Hash, entry *L1DepositMessage) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -37,7 +42,7 @@ func (s *L1DepositStore) Set(txnHash common.Hash, entry *types.DepositTx) error 
 	return nil
 }
 
-func (s *L1DepositStore) Get(txnHash common.Hash) (*types.DepositTx, error) {
+func (s *L1DepositStore) Get(txnHash common.Hash) (*L1DepositMessage, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -50,11 +55,11 @@ func (s *L1DepositStore) Get(txnHash common.Hash) (*types.DepositTx, error) {
 	return entry, nil
 }
 
-func (s *L1DepositStoreManager) Get(txnHash common.Hash) (*types.DepositTx, error) {
+func (s *L1DepositStoreManager) Get(txnHash common.Hash) (*L1DepositMessage, error) {
 	return s.store.Get(txnHash)
 }
 
-func (s *L1DepositStoreManager) Set(txnHash common.Hash, entry *types.DepositTx) error {
+func (s *L1DepositStoreManager) Set(txnHash common.Hash, entry *L1DepositMessage) error {
 	if err := s.store.Set(txnHash, entry); err != nil {
 		return fmt.Errorf("failed to store message: %w", err)
 	}

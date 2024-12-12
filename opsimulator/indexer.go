@@ -49,6 +49,9 @@ func (i *L1ToL2MessageIndexer) Start(ctx context.Context, client *ethclient.Clie
 		depositTxCh := make(chan *types.DepositTx)
 		logCh := make(chan types.Log)
 
+		defer close(depositTxCh)
+		defer close(logCh)
+
 		channels := DepositChannels{
 			DepositTxCh: depositTxCh,
 			LogCh:       logCh,
@@ -66,7 +69,8 @@ func (i *L1ToL2MessageIndexer) Start(ctx context.Context, client *ethclient.Clie
 		for {
 			select {
 			case dep := <-depositTxCh:
-				if err := i.processEvent(dep, chainID); err != nil {
+				log := <-logCh
+				if err := i.processEvent(dep, log, chainID); err != nil {
 					fmt.Printf("failed to process log: %v\n", err)
 				}
 
@@ -106,12 +110,17 @@ func (i *L1ToL2MessageIndexer) createSubscription(key string, depositMessageChan
 	}, nil
 }
 
-func (i *L1ToL2MessageIndexer) processEvent(dep *types.DepositTx, chainID uint64) error {
+func (i *L1ToL2MessageIndexer) processEvent(dep *types.DepositTx, log types.Log, chainID uint64) error {
 
 	depTx := types.NewTx(dep)
 	i.log.Info("observed deposit event on L1", "hash", depTx.Hash().String(), "SourceHash", dep.SourceHash.String())
 
-	if err := i.storeManager.Set(dep.SourceHash, dep); err != nil {
+	depositMessage := L1DepositMessage{
+		DepositTxn: dep,
+		DepositLog: log,
+	}
+
+	if err := i.storeManager.Set(dep.SourceHash, &depositMessage); err != nil {
 		i.log.Error("failed to store deposit tx to chain: %w", "chain.id", chainID, "err", err)
 		return err
 	}
