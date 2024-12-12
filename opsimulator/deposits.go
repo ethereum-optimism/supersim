@@ -23,14 +23,13 @@ type depositTxSubscription struct {
 }
 
 func (d *depositTxSubscription) Unsubscribe() {
-	// since mul opsims run sub to indexer twice, a select needs to be added to avoid and race condition
+	// since multiple opsims run subcription to indexer multiple times, a select needs to be added to avoid any race condition
 	select {
 	case <-d.doneCh:
-		// Already closed, do nothing
 		return
 	default:
 		d.logSubscription.Unsubscribe()
-		close(d.doneCh) // Close it here to signal termination
+		close(d.doneCh)
 	}
 }
 
