@@ -68,26 +68,6 @@ type TestSuite struct {
 	Supersim *Supersim
 }
 
-type JSONL2ToL2Message struct {
-	Destination uint64         `json:"Destination"`
-	Source      uint64         `json:"Source"`
-	Nonce       *big.Int       `json:"Nonce"`
-	Sender      common.Address `json:"Sender"`
-	Target      common.Address `json:"Target"`
-	Message     hexutil.Bytes  `json:"Message"`
-}
-
-type JSONDepositTx struct {
-	SourceHash          common.Hash     `json:"SourceHash"`
-	From                common.Address  `json:"From"`
-	To                  *common.Address `json:"To"`
-	Mint                *big.Int        `json:"Mint"`
-	Value               *big.Int        `json:"Value"`
-	Gas                 uint64          `json:"Gas"`
-	IsSystemTransaction bool            `json:"IsSystemTransaction"`
-	Data                hexutil.Bytes   `json:"Data"`
-}
-
 type InteropTestSuite struct {
 	t *testing.T
 
