@@ -49,6 +49,7 @@ func (i *L2ToL2MessageIndexer) Start(ctx context.Context, clients map[uint64]*et
 
 	for chainID, client := range i.clients {
 		i.tasks.Go(func() error {
+
 			logCh := make(chan types.Log)
 			fq := ethereum.FilterQuery{Addresses: []common.Address{predeploys.L2toL2CrossDomainMessengerAddr}}
 			sub, err := client.SubscribeFilterLogs(i.tasksCtx, fq, logCh)

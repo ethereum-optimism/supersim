@@ -49,11 +49,13 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		l2Anvils[cfg.ChainID] = l2Anvil
 	}
 
+	depositStoreMngr := opsimulator.NewL1DepositStoreManager()
+
 	// Sping up OpSim to fornt the L2 instances
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
 
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay)
+		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay, depositStoreMngr)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
@@ -71,7 +73,10 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		}
 	}
 
-	o.AdminServer = admin.NewAdminServer(log, adminPort, networkConfig, o.l2ToL2MsgIndexer)
+	a := admin.NewAdminServer(log, adminPort, networkConfig, o.l2ToL2MsgIndexer, depositStoreMngr)
+
+	o.AdminServer = a
+
 	return &o, nil
 }
 

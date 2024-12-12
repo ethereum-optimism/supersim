@@ -22,9 +22,20 @@ type depositTxSubscription struct {
 	doneCh          chan struct{}
 }
 
+type DepositChannels struct {
+	DepositTxCh chan<- *types.DepositTx
+	LogCh       chan<- types.Log
+}
+
 func (d *depositTxSubscription) Unsubscribe() {
-	d.logSubscription.Unsubscribe()
-	d.doneCh <- struct{}{}
+	// since multiple opsims run subcription to indexer multiple times, a select needs to be added to avoid any race condition leading to a panic
+	select {
+	case <-d.doneCh:
+		return
+	default:
+		d.logSubscription.Unsubscribe()
+		close(d.doneCh)
+	}
 }
 
 func (d *depositTxSubscription) Err() <-chan error {
@@ -36,7 +47,7 @@ type LogSubscriber interface {
 }
 
 // transforms Deposit event logs into DepositTx
-func SubscribeDepositTx(ctx context.Context, logSub LogSubscriber, depositContractAddr common.Address, ch chan<- *types.DepositTx) (ethereum.Subscription, error) {
+func SubscribeDepositTx(ctx context.Context, logSub LogSubscriber, depositContractAddr common.Address, channels DepositChannels) (ethereum.Subscription, error) {
 	logCh := make(chan types.Log)
 	filterQuery := ethereum.FilterQuery{Addresses: []common.Address{depositContractAddr}, Topics: [][]common.Hash{{derive.DepositEventABIHash}}}
 	logSubscription, err := logSub.SubscribeFilterLogs(ctx, filterQuery, logCh)
@@ -51,7 +62,6 @@ func SubscribeDepositTx(ctx context.Context, logSub LogSubscriber, depositContra
 	go func() {
 		defer close(logCh)
 		defer close(errCh)
-		defer close(doneCh)
 		for {
 			select {
 			case log := <-logCh:
@@ -60,7 +70,9 @@ func SubscribeDepositTx(ctx context.Context, logSub LogSubscriber, depositContra
 					errCh <- err
 					continue
 				}
-				ch <- dep
+
+				channels.DepositTxCh <- dep
+				channels.LogCh <- log
 			case err := <-logErrCh:
 				errCh <- fmt.Errorf("log subscription error: %w", err)
 			case <-ctx.Done():

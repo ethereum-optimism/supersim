@@ -62,8 +62,14 @@ func TestSubscribeDepositTx(t *testing.T) {
 	ctx := context.Background()
 
 	depositTxCh := make(chan *types.DepositTx, len(mockDepositTxs))
+	logCh := make(chan types.Log, len(mockDepositTxs))
 
-	sub, err := SubscribeDepositTx(ctx, &chain, common.HexToAddress(""), depositTxCh)
+	channels := DepositChannels{
+		DepositTxCh: depositTxCh,
+		LogCh:       logCh,
+	}
+
+	sub, err := SubscribeDepositTx(ctx, &chain, common.HexToAddress(""), channels)
 	if err != nil {
 		require.NoError(t, err)
 	}

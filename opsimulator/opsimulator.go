@@ -58,10 +58,12 @@ type OpSimulator struct {
 	ethClient *ethclient.Client
 
 	stopped atomic.Bool
+
+	indexer *L1ToL2MessageIndexer
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
-func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64) *OpSimulator {
+func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64, storeManager *L1DepositStoreManager) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, l2Chain.EthClient())
@@ -69,10 +71,12 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host str
 		closeApp(fmt.Errorf("failed to create cross L2 inbox: %w", err))
 	}
 
+	newLog := log.New("chain.id", l2Chain.Config().ChainID)
+
 	return &OpSimulator{
 		Chain: l2Chain,
 
-		log:          log.New("chain.id", l2Chain.Config().ChainID),
+		log:          newLog,
 		port:         port,
 		host:         host,
 		l1Chain:      l1Chain,
@@ -88,7 +92,8 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host str
 			},
 		},
 
-		peers: peers,
+		peers:   peers,
+		indexer: NewL1ToL2MessageIndexer(newLog, storeManager),
 	}
 }
 
@@ -123,6 +128,10 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to create eth client: %w", err)
 	}
 
+	if err := opSim.indexer.Start(ctx, opSim.l1Chain.EthClient(), opSim.Chain); err != nil {
+		return fmt.Errorf("L1ToL2Indexer failed to start: %w", err)
+	}
+
 	opSim.ethClient = ethClient
 	opSim.startBackgroundTasks()
 	return nil
@@ -134,6 +143,10 @@ func (opSim *OpSimulator) Stop(ctx context.Context) error {
 	}
 	if !opSim.stopped.CompareAndSwap(false, true) {
 		return nil // someone else stopped
+	}
+
+	if err := opSim.indexer.Stop(ctx); err != nil {
+		return errors.New("Failed to stop L1ToL2Indexer")
 	}
 
 	opSim.bgTasksCancel()
@@ -151,11 +164,11 @@ func (opSim *OpSimulator) EthClient() *ethclient.Client {
 func (opSim *OpSimulator) startBackgroundTasks() {
 	// Relay deposit tx from L1 to L2
 	opSim.bgTasks.Go(func() error {
-		depositTxCh := make(chan *types.DepositTx)
-		portalAddress := common.Address(opSim.Config().L2Config.L1Addresses.OptimismPortalProxy)
-		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain.EthClient(), portalAddress, depositTxCh)
+		depositTxCh := make(chan *types.Transaction)
+		unsubscribe, err := opSim.indexer.SubscribeDepositMessage(opSim.Config().ChainID, depositTxCh)
+
 		if err != nil {
-			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
+			opSim.log.Error("Failed to subscribe to indexer")
 		}
 
 		chainId := opSim.Config().ChainID
@@ -163,18 +176,17 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 		for {
 			select {
 			case dep := <-depositTxCh:
-				depTx := types.NewTx(dep)
-				opSim.log.Debug("observed deposit event on L1", "hash", depTx.Hash().String())
+				opSim.log.Debug("observed deposit event on L1", "hash", dep.Hash().String())
 
 				clnt := opSim.Chain.EthClient()
-				if err := clnt.SendTransaction(opSim.bgTasksCtx, depTx); err != nil {
+				if err := clnt.SendTransaction(opSim.bgTasksCtx, dep); err != nil {
 					opSim.log.Error("failed to submit deposit tx to chain: %w", "chain.id", chainId, "err", err)
 				}
 
-				opSim.log.Info("OptimismPortal#depositTransaction", "l2TxHash", depTx.Hash().String())
+				opSim.log.Info("OptimismPortal#depositTransaction", "l2TxHash", dep.Hash().String())
 
 			case <-opSim.bgTasksCtx.Done():
-				sub.Unsubscribe()
+				unsubscribe()
 				close(depositTxCh)
 				return nil
 			}
