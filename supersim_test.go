@@ -10,7 +10,9 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	opbindings "github.com/ethereum-optimism/optimism/op-e2e/bindings"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/receipts"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
@@ -1169,10 +1171,13 @@ func TestAdminGetL1ToL2MessageByTxnHash(t *testing.T) {
 			// check that balance was increased
 			require.Equal(t, oneEth, postBalance.Sub(postBalance, prevBalance), "Recipient balance is incorrect")
 
+			depositEvent, err := receipts.FindLog(txReceipt.Logs, optimismPortal.ParseTransactionDeposited)
+			require.NoError(t, err, "Should emit deposit event")
+			depositTx, err := derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
+			require.NoError(t, err)
+
 			var message *admin.JSONDepositTx
-			// msgHash for the above sendERC20 txn
-			l1TxnHash := txReceipt.TxHash
-			rpcErr := adminRPCClient.CallContext(context.Background(), &message, "admin_getL1ToL2MessageByTxnHash", l1TxnHash)
+			rpcErr := adminRPCClient.CallContext(context.Background(), &message, "admin_getL1ToL2MessageByTxnHash", depositTx.SourceHash)
 			require.NoError(t, rpcErr)
 
 			assert.Equal(t, oneEth.String(), message.Value.String())

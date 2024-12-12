@@ -102,10 +102,9 @@ func (i *L1ToL2MessageIndexer) createSubscription(key string, depositMessageChan
 func (i *L1ToL2MessageIndexer) processEvent(dep *types.DepositTx, chainID uint64) error {
 
 	depTx := types.NewTx(dep)
-	i.log.Info("observed deposit event on L1", "hash", depTx.Hash().String())
-	fmt.Println(depTx.Hash().String())
+	i.log.Info("observed deposit event on L1", "hash", depTx.Hash().String(), "SourceHash", dep.SourceHash.String())
 
-	if err := i.storeManager.Set(depTx.Hash(), dep); err != nil {
+	if err := i.storeManager.Set(dep.SourceHash, dep); err != nil {
 		i.log.Error("failed to store deposit tx to chain: %w", "chain.id", chainID, "err", err)
 		return err
 	}
