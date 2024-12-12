@@ -28,7 +28,7 @@ type DepositChannels struct {
 }
 
 func (d *depositTxSubscription) Unsubscribe() {
-	// since multiple opsims run subcription to indexer multiple times, a select needs to be added to avoid any race condition
+	// since multiple opsims run subcription to indexer multiple times, a select needs to be added to avoid any race condition leading to a panic
 	select {
 	case <-d.doneCh:
 		return
