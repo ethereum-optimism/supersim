@@ -67,7 +67,7 @@ type JSONDepositTx struct {
 type JSONDepositLog struct {
 	Address     common.Address `json:"Address"`
 	Topics      []common.Hash  `json:"Topics"`
-	Data        []byte         `json:"Data"`
+	Data        hexutil.Bytes  `json:"Data"`
 	BlockNumber uint64         `json:"BlockNumber"`
 	TxHash      common.Hash    `json:"TxHash"`
 	TxIndex     uint           `json:"TxIndex"`
