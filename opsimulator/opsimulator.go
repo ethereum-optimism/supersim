@@ -175,15 +175,15 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 
 		for {
 			select {
-			case dep := <-depositTxCh:
-				opSim.log.Debug("observed deposit event on L1", "hash", dep.Hash().String())
+			case depTx := <-depositTxCh:
+				opSim.log.Debug("observed deposit event on L1", "hash", depTx.Hash().String())
 
 				clnt := opSim.Chain.EthClient()
-				if err := clnt.SendTransaction(opSim.bgTasksCtx, dep); err != nil {
+				if err := clnt.SendTransaction(opSim.bgTasksCtx, depTx); err != nil {
 					opSim.log.Error("failed to submit deposit tx to chain: %w", "chain.id", chainId, "err", err)
 				}
 
-				opSim.log.Info("OptimismPortal#depositTransaction", "l2TxHash", dep.Hash().String())
+				opSim.log.Info("OptimismPortal#depositTransaction", "l2TxHash", depTx.Hash().String())
 
 			case <-opSim.bgTasksCtx.Done():
 				unsubscribe()
