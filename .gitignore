@@ -30,3 +30,7 @@ go.work.sum
 /main
 dist/
 cache/
+
+# Ignore customized configuration files
+*.toml
+!*.toml.template
