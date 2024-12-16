@@ -34,15 +34,24 @@ type Orchestrator struct {
 	AdminServer *admin.AdminServer
 }
 
-func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig, adminPort uint64) (*Orchestrator, error) {
+func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig *config.CLIConfig, networkConfig *config.NetworkConfig, adminPort uint64) (*Orchestrator, error) {
 	// Spin up L1 anvil instance
-	l1Anvil := anvil.New(log, closeApp, &networkConfig.L1Config)
+	l1Cfg := networkConfig.L1Config
+	if cliConfig != nil {
+		l1Cfg.OdysseyEnabled = cliConfig.OdysseyEnabled
+	}
+	l1Anvil := anvil.New(log, closeApp, &l1Cfg)
 
 	// Spin up L2 anvil instances
 	nextL2Port := networkConfig.L2StartingPort
 	l2Anvils, l2OpSims := make(map[uint64]config.Chain), make(map[uint64]*opsimulator.OpSimulator)
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
+
+		if cliConfig != nil {
+			cfg.OdysseyEnabled = cliConfig.OdysseyEnabled
+		}
+
 		cfg.Port = 0 // explicitly set to zero as this anvil sits behind a proxy
 
 		l2Anvil := anvil.New(log, closeApp, &cfg)
@@ -52,7 +61,6 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 	// Spin up OpSim to front the L2 instances
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
-
 		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay)
 
 		// only increment expected port if it has been specified

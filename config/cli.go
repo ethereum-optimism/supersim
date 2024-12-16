@@ -34,6 +34,8 @@ const (
 	InteropEnabledFlagName   = "interop.enabled"
 	InteropAutoRelayFlagName = "interop.autorelay"
 	InteropDelayFlagName     = "interop.delay"
+
+	OdysseyEnabledFlagName = "odyssey.enabled"
 )
 
 var documentationLinks = []struct {
@@ -95,6 +97,12 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "Delay before relaying messages sent to the L2ToL2CrossDomainMessenger",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_DELAY"),
 		},
+		&cli.BoolFlag{
+			Name:    OdysseyEnabledFlagName,
+			Value:   false, // disabled by default
+			Usage:   "Enable odyssey experimental features",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "ODYSSEY_ENABLED"),
+		},
 	}
 }
 
@@ -135,6 +143,7 @@ type ForkCLIConfig struct {
 	Chains       []string
 
 	InteropEnabled bool
+	OdysseyEnabled bool
 }
 
 type CLIConfig struct {
@@ -145,6 +154,8 @@ type CLIConfig struct {
 
 	InteropAutoRelay bool
 	InteropDelay     uint64
+
+	OdysseyEnabled bool
 
 	LogsDirectory string
 
@@ -166,6 +177,8 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 
+		OdysseyEnabled: ctx.Bool(OdysseyEnabledFlagName),
+
 		L1Host: ctx.String(L1HostFlagName),
 		L2Host: ctx.String(L2HostFlagName),
 	}
@@ -177,6 +190,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 			Chains:       ctx.StringSlice(ChainsFlagName),
 
 			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
+			OdysseyEnabled: ctx.Bool(OdysseyEnabledFlagName),
 		}
 	}
 

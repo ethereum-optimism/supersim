@@ -64,7 +64,7 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 	networkConfig.InteropAutoRelay = cliConfig.InteropAutoRelay
 	networkConfig.InteropDelay = cliConfig.InteropDelay
 
-	o, err := orchestrator.NewOrchestrator(log, closeApp, &networkConfig, cliConfig.AdminPort)
+	o, err := orchestrator.NewOrchestrator(log, closeApp, cliConfig, &networkConfig, cliConfig.AdminPort)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create orchestrator")
 	}
