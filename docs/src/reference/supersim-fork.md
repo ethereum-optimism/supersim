@@ -100,6 +100,9 @@ OPTIONS:
           --log.pid                           (default: false)                   ($SUPERSIM_LOG_PID)
                 Show pid in the log
 
+          --odyssey.enabled                   (default: false)                   ($SUPERSIM_ODYSSEY_ENABLED)
+                Enable odyssey experimental features
+
           --help, -h                          (default: false)
                 show help
 ```

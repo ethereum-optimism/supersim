@@ -63,6 +63,9 @@ type ChainConfig struct {
 
 	// Optional
 	LogsDirectory string
+
+	// Optional
+	OdysseyEnabled bool
 }
 
 type NetworkConfig struct {
