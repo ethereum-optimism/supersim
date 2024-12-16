@@ -108,6 +108,9 @@ GLOBAL OPTIONS:
     --logs.directory value                                                 ($SUPERSIM_LOGS_DIRECTORY)
           Directory to store logs
 
+    --odyssey.enabled                   (default: false)                   ($SUPERSIM_ODYSSEY_ENABLED)
+          Enable odyssey experimental features
+
    MISC
 
 
