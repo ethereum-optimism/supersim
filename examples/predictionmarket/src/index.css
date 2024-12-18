@@ -1,0 +1,27 @@
+:root {
+  font-family: Inter, sans-serif;
+
+  background-color: #FBFCFE;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  color: black;
+  background-color: #FBFCFE;
+  font-family: Inter, sans-serif;
+}
+
+button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.6em 1.2em;
+  font-family: inherit;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
