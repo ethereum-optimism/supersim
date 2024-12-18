@@ -30,3 +30,6 @@ go.work.sum
 /main
 dist/
 cache/
+
+supersim-logs/*
+node_modules/*
