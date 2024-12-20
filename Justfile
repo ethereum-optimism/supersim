@@ -35,7 +35,7 @@ fetch-monorepo-contracts version:
     git fetch origin {{version}}
 
 install-monorepo-go version:
-    go get github.com/ethereum-optimism/optimism@{{version}}
+    go get github.com/ethereum-optimism/optimism@{{version}} && go mod tidy
 
 install-monorepo-contracts version: (fetch-monorepo-contracts version)
     cd contracts && \

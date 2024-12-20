@@ -36,7 +36,6 @@ var (
 )
 
 const (
-	host                 = "127.0.0.1"
 	anvilListeningLogStr = "Listening on"
 )
 
@@ -57,6 +56,8 @@ type Anvil struct {
 
 	stopped   atomic.Bool
 	stoppedCh chan struct{}
+
+	cleanupTasks []func()
 }
 
 func New(log log.Logger, closeApp context.CancelCauseFunc, cfg *config.ChainConfig) *Anvil {
@@ -75,15 +76,22 @@ func (a *Anvil) Start(ctx context.Context) error {
 	if a.cmd != nil {
 		return errors.New("anvil already started")
 	}
+	if a.cfg.Host == "" {
+		a.cfg.Host = "127.0.0.1"
+	}
 
 	args := []string{
-		"--host", host,
+		"--host", a.cfg.Host,
 		"--accounts", fmt.Sprintf("%d", a.cfg.SecretsConfig.Accounts),
 		"--mnemonic", a.cfg.SecretsConfig.Mnemonic,
 		"--derivation-path", a.cfg.SecretsConfig.DerivationPath.String(),
 		"--chain-id", fmt.Sprintf("%d", a.cfg.ChainID),
 		"--port", fmt.Sprintf("%d", a.cfg.Port),
 		"--max-persisted-states", "5",
+	}
+
+	if a.cfg.OdysseyEnabled {
+		args = append(args, "--odyssey")
 	}
 
 	if a.cfg.L2Config != nil {
@@ -95,7 +103,6 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 	if len(a.cfg.GenesisJSON) > 0 && a.cfg.ForkConfig == nil {
 		tempFile, err := os.CreateTemp("", "genesis-*.json")
-		defer a.removeFile(tempFile)
 
 		if err != nil {
 			return fmt.Errorf("error creating temporary genesis file: %w", err)
@@ -104,6 +111,10 @@ func (a *Anvil) Start(ctx context.Context) error {
 			return fmt.Errorf("error writing to genesis file: %w", err)
 		}
 		args = append(args, "--init", tempFile.Name())
+
+		a.registerCleanupTask(func() {
+			a.removeFile(tempFile)
+		})
 	}
 	if a.cfg.ForkConfig != nil {
 		args = append(args,
@@ -134,9 +145,10 @@ func (a *Anvil) Start(ctx context.Context) error {
 		}
 
 		logFile = tempLogFile
-		// Clean up the temp log file
-		// TODO (https://github.com/ethereum-optimism/supersim/issues/205) This results in the temp file being deleted right away instead of after shutdown.
-		defer a.removeFile(logFile)
+
+		a.registerCleanupTask(func() {
+			a.removeFile(logFile)
+		})
 	} else {
 		// Expand the path to the log file
 		absFilePath, err := filepath.Abs(fmt.Sprintf("%s/anvil-%d.log", a.cfg.LogsDirectory, a.cfg.ChainID))
@@ -234,18 +246,22 @@ func (a *Anvil) Stop(_ context.Context) error {
 		return nil // someone else stopped
 	}
 
-	a.rpcClient.Close()
+	if a.rpcClient != nil {
+		a.rpcClient.Close()
+	}
+
 	a.resourceCancel()
+	a.executeCleanup()
 	<-a.stoppedCh
 	return nil
 }
 
 func (a *Anvil) Endpoint() string {
-	return fmt.Sprintf("http://%s:%d", host, a.cfg.Port)
+	return fmt.Sprintf("http://%s:%d", a.cfg.Host, a.cfg.Port)
 }
 
 func (a *Anvil) wsEndpoint() string {
-	return fmt.Sprintf("ws://%s:%d", host, a.cfg.Port)
+	return fmt.Sprintf("ws://%s:%d", a.cfg.Host, a.cfg.Port)
 }
 
 func (a *Anvil) Name() string {
@@ -311,7 +327,7 @@ func (a *Anvil) SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]typ
 
 	txArgs := txArgs{From: from, To: tx.To(), Gas: hexutil.Uint64(tx.Gas()), GasPrice: (*hexutil.Big)(tx.GasPrice()), Data: tx.Data(), Value: (*hexutil.Big)(tx.Value())}
 	result := callFrame{}
-	if err := a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "latest", logTracerParams); err != nil {
+	if err := a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "pending", logTracerParams); err != nil {
 		return nil, err
 	}
 
@@ -333,4 +349,14 @@ func (a *Anvil) removeFile(file *os.File) {
 	if err := os.Remove(file.Name()); err != nil {
 		a.log.Warn("failed to remove temp genesis file", "file.path", file.Name(), "err", err)
 	}
+}
+
+func (a *Anvil) executeCleanup() {
+	for _, task := range a.cleanupTasks {
+		task()
+	}
+}
+
+func (a *Anvil) registerCleanupTask(task func()) {
+	a.cleanupTasks = append(a.cleanupTasks, task)
 }

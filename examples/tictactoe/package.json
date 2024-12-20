@@ -4,10 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "dev": "if [ -z \"$VITE_TICTACTOE_ADDRESS\" ]; then echo 'Error: VITE_TICTACTOE_ADDRESS env is required' && exit 1; else vite; fi",
+    "build": "if [ -z \"$VITE_TICTACTOE_ADDRESS\" ]; then echo 'Error: VITE_TICTACTOE_ADDRESS env is required' && exit 1; else tsc -b && vite build; fi",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@eth-optimism/viem": "^0.0.7",

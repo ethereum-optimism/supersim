@@ -82,6 +82,9 @@ GLOBAL OPTIONS:
           Automatically relay messages sent to the L2ToL2CrossDomainMessenger using
           account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
 
+    --interop.delay value               (default: 0)                       ($SUPERSIM_INTEROP_DELAY)
+          Delay before relaying messages sent to the L2ToL2CrossDomainMessenger
+
     --l1.port value                     (default: 8545)                    ($SUPERSIM_L1_PORT)
           Listening port for the L1 instance. `0` binds to any available port
 
@@ -104,6 +107,9 @@ GLOBAL OPTIONS:
 
     --logs.directory value                                                 ($SUPERSIM_LOGS_DIRECTORY)
           Directory to store logs
+
+    --odyssey.enabled                   (default: false)                   ($SUPERSIM_ODYSSEY_ENABLED)
+          Enable odyssey experimental features
 
    MISC
 

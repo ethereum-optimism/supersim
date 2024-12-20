@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ethereum-optimism/supersim/admin"
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
@@ -29,27 +30,38 @@ type Orchestrator struct {
 
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 	l2ToL2MsgRelayer *interop.L2ToL2MessageRelayer
+
+	AdminServer *admin.AdminServer
 }
 
-func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig) (*Orchestrator, error) {
+func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig *config.CLIConfig, networkConfig *config.NetworkConfig, adminPort uint64) (*Orchestrator, error) {
 	// Spin up L1 anvil instance
-	l1Anvil := anvil.New(log, closeApp, &networkConfig.L1Config)
+	l1Cfg := networkConfig.L1Config
+	if cliConfig != nil {
+		l1Cfg.OdysseyEnabled = cliConfig.OdysseyEnabled
+	}
+	l1Anvil := anvil.New(log, closeApp, &l1Cfg)
 
 	// Spin up L2 anvil instances
 	nextL2Port := networkConfig.L2StartingPort
 	l2Anvils, l2OpSims := make(map[uint64]config.Chain), make(map[uint64]*opsimulator.OpSimulator)
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
+
+		if cliConfig != nil {
+			cfg.OdysseyEnabled = cliConfig.OdysseyEnabled
+		}
+
 		cfg.Port = 0 // explicitly set to zero as this anvil sits behind a proxy
 
 		l2Anvil := anvil.New(log, closeApp, &cfg)
 		l2Anvils[cfg.ChainID] = l2Anvil
 	}
 
-	// Sping up OpSim to fornt the L2 instances
+	// Spin up OpSim to front the L2 instances
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils)
+		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
@@ -67,6 +79,7 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkCo
 		}
 	}
 
+	o.AdminServer = admin.NewAdminServer(log, adminPort, networkConfig, o.l2ToL2MsgIndexer)
 	return &o, nil
 }
 
@@ -110,8 +123,11 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		var wg sync.WaitGroup
 		wg.Add(len(o.l2Chains))
 		errs := make([]error, len(o.l2Chains))
-		for i, chain := range o.L2Chains() {
-			go func(i int) {
+
+		// Iterate over the underlying l2Chains for configuration as it relies
+		// on deposit txs from system addresses which opsimulator will reject
+		for i, chain := range o.l2Chains {
+			go func(i uint64) {
 				if err := interop.Configure(ctx, chain); err != nil {
 					errs[i] = fmt.Errorf("failed to configure interop for chain %s: %w", chain.Config().Name, err)
 				}
@@ -120,7 +136,6 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		}
 
 		wg.Wait()
-
 		if err := errors.Join(errs...); err != nil {
 			return err
 		}
@@ -135,6 +150,10 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 				return fmt.Errorf("l2 to l2 message relayer failed to start: %w", err)
 			}
 		}
+	}
+
+	if err := o.AdminServer.Start(ctx); err != nil {
+		return fmt.Errorf("admin server failed to start: %w", err)
 	}
 
 	o.log.Debug("orchestrator is ready")
@@ -172,6 +191,10 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 	if err := o.l1Chain.Stop(ctx); err != nil {
 		o.log.Debug("stopping l1 chain", "chain.id", o.l1Chain.Config().ChainID)
 		errs = append(errs, fmt.Errorf("l1 chain %s failed to stop: %w", o.l1Chain.Config().Name, err))
+	}
+
+	if err := o.AdminServer.Stop(ctx); err != nil {
+		errs = append(errs, fmt.Errorf("admin server failed to stop: %w", err))
 	}
 
 	return errors.Join(errs...)
@@ -221,6 +244,12 @@ func (o *Orchestrator) Endpoint(chainId uint64) string {
 func (o *Orchestrator) ConfigAsString() string {
 	var b strings.Builder
 	l1Cfg := o.l1Chain.Config()
+
+	fmt.Fprintln(&b, o.AdminServer.ConfigAsString())
+
+	fmt.Fprintln(&b, "Chain Configuration")
+	fmt.Fprintln(&b, "-----------------------")
+
 	fmt.Fprintf(&b, "L1: Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", l1Cfg.Name, l1Cfg.ChainID, o.l1Chain.Endpoint(), o.l1Chain.LogPath())
 
 	fmt.Fprintf(&b, "\nL2: Predeploy Contracts Spec ( %s )\n", "https://specs.optimism.io/protocol/predeploys.html")

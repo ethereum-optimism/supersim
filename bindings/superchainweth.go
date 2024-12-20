@@ -31,7 +31,7 @@ var (
 
 // SuperchainWETHMetaData contains all meta data concerning the SuperchainWETH contract.
 var SuperchainWETHMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"fallback\",\"stateMutability\":\"payable\"},{\"type\":\"receive\",\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"allowance\",\"inputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"approve\",\"inputs\":[{\"name\":\"guy\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"balanceOf\",\"inputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"crosschainBurn\",\"inputs\":[{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"crosschainMint\",\"inputs\":[{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"decimals\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"deposit\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"name\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"symbol\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"totalSupply\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"transfer\",\"inputs\":[{\"name\":\"dst\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"transferFrom\",\"inputs\":[{\"name\":\"src\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"dst\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"version\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"withdraw\",\"inputs\":[{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"event\",\"name\":\"Approval\",\"inputs\":[{\"name\":\"src\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"guy\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CrosschainBurn\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CrosschainMint\",\"inputs\":[{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Deposit\",\"inputs\":[{\"name\":\"dst\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Transfer\",\"inputs\":[{\"name\":\"src\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"dst\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Withdrawal\",\"inputs\":[{\"name\":\"src\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"NotCustomGasToken\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"Unauthorized\",\"inputs\":[]}]",
+	ABI: "[{\"type\":\"fallback\",\"stateMutability\":\"payable\"},{\"type\":\"receive\",\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"allowance\",\"inputs\":[{\"name\":\"owner\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"spender\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"approve\",\"inputs\":[{\"name\":\"guy\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"balanceOf\",\"inputs\":[{\"name\":\"src\",\"type\":\"address\",\"internalType\":\"address\"}],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"crosschainBurn\",\"inputs\":[{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"crosschainMint\",\"inputs\":[{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"decimals\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint8\",\"internalType\":\"uint8\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"deposit\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"name\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"relayETH\",\"inputs\":[{\"name\":\"_from\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"sendETH\",\"inputs\":[{\"name\":\"_to\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_chainId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"msgHash_\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"supportsInterface\",\"inputs\":[{\"name\":\"_interfaceId\",\"type\":\"bytes4\",\"internalType\":\"bytes4\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"symbol\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"totalSupply\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"transfer\",\"inputs\":[{\"name\":\"dst\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"transferFrom\",\"inputs\":[{\"name\":\"src\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"dst\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"version\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"withdraw\",\"inputs\":[{\"name\":\"_amount\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"event\",\"name\":\"Approval\",\"inputs\":[{\"name\":\"src\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"guy\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CrosschainBurn\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"sender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"CrosschainMint\",\"inputs\":[{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"sender\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Deposit\",\"inputs\":[{\"name\":\"dst\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"RelayETH\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"source\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"SendETH\",\"inputs\":[{\"name\":\"from\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"to\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"amount\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"},{\"name\":\"destination\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Transfer\",\"inputs\":[{\"name\":\"src\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"dst\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"Withdrawal\",\"inputs\":[{\"name\":\"src\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"wad\",\"type\":\"uint256\",\"indexed\":false,\"internalType\":\"uint256\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"InvalidCrossDomainSender\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotCustomGasToken\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"Unauthorized\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ZeroAddress\",\"inputs\":[]}]",
 }
 
 // SuperchainWETHABI is the input ABI used to generate the binding from.
@@ -182,10 +182,10 @@ func (_SuperchainWETH *SuperchainWETHTransactorRaw) Transact(opts *bind.Transact
 
 // Allowance is a free data retrieval call binding the contract method 0xdd62ed3e.
 //
-// Solidity: function allowance(address , address ) view returns(uint256)
-func (_SuperchainWETH *SuperchainWETHCaller) Allowance(opts *bind.CallOpts, arg0 common.Address, arg1 common.Address) (*big.Int, error) {
+// Solidity: function allowance(address owner, address spender) view returns(uint256)
+func (_SuperchainWETH *SuperchainWETHCaller) Allowance(opts *bind.CallOpts, owner common.Address, spender common.Address) (*big.Int, error) {
 	var out []interface{}
-	err := _SuperchainWETH.contract.Call(opts, &out, "allowance", arg0, arg1)
+	err := _SuperchainWETH.contract.Call(opts, &out, "allowance", owner, spender)
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -199,24 +199,24 @@ func (_SuperchainWETH *SuperchainWETHCaller) Allowance(opts *bind.CallOpts, arg0
 
 // Allowance is a free data retrieval call binding the contract method 0xdd62ed3e.
 //
-// Solidity: function allowance(address , address ) view returns(uint256)
-func (_SuperchainWETH *SuperchainWETHSession) Allowance(arg0 common.Address, arg1 common.Address) (*big.Int, error) {
-	return _SuperchainWETH.Contract.Allowance(&_SuperchainWETH.CallOpts, arg0, arg1)
+// Solidity: function allowance(address owner, address spender) view returns(uint256)
+func (_SuperchainWETH *SuperchainWETHSession) Allowance(owner common.Address, spender common.Address) (*big.Int, error) {
+	return _SuperchainWETH.Contract.Allowance(&_SuperchainWETH.CallOpts, owner, spender)
 }
 
 // Allowance is a free data retrieval call binding the contract method 0xdd62ed3e.
 //
-// Solidity: function allowance(address , address ) view returns(uint256)
-func (_SuperchainWETH *SuperchainWETHCallerSession) Allowance(arg0 common.Address, arg1 common.Address) (*big.Int, error) {
-	return _SuperchainWETH.Contract.Allowance(&_SuperchainWETH.CallOpts, arg0, arg1)
+// Solidity: function allowance(address owner, address spender) view returns(uint256)
+func (_SuperchainWETH *SuperchainWETHCallerSession) Allowance(owner common.Address, spender common.Address) (*big.Int, error) {
+	return _SuperchainWETH.Contract.Allowance(&_SuperchainWETH.CallOpts, owner, spender)
 }
 
 // BalanceOf is a free data retrieval call binding the contract method 0x70a08231.
 //
-// Solidity: function balanceOf(address ) view returns(uint256)
-func (_SuperchainWETH *SuperchainWETHCaller) BalanceOf(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
+// Solidity: function balanceOf(address src) view returns(uint256)
+func (_SuperchainWETH *SuperchainWETHCaller) BalanceOf(opts *bind.CallOpts, src common.Address) (*big.Int, error) {
 	var out []interface{}
-	err := _SuperchainWETH.contract.Call(opts, &out, "balanceOf", arg0)
+	err := _SuperchainWETH.contract.Call(opts, &out, "balanceOf", src)
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -230,16 +230,16 @@ func (_SuperchainWETH *SuperchainWETHCaller) BalanceOf(opts *bind.CallOpts, arg0
 
 // BalanceOf is a free data retrieval call binding the contract method 0x70a08231.
 //
-// Solidity: function balanceOf(address ) view returns(uint256)
-func (_SuperchainWETH *SuperchainWETHSession) BalanceOf(arg0 common.Address) (*big.Int, error) {
-	return _SuperchainWETH.Contract.BalanceOf(&_SuperchainWETH.CallOpts, arg0)
+// Solidity: function balanceOf(address src) view returns(uint256)
+func (_SuperchainWETH *SuperchainWETHSession) BalanceOf(src common.Address) (*big.Int, error) {
+	return _SuperchainWETH.Contract.BalanceOf(&_SuperchainWETH.CallOpts, src)
 }
 
 // BalanceOf is a free data retrieval call binding the contract method 0x70a08231.
 //
-// Solidity: function balanceOf(address ) view returns(uint256)
-func (_SuperchainWETH *SuperchainWETHCallerSession) BalanceOf(arg0 common.Address) (*big.Int, error) {
-	return _SuperchainWETH.Contract.BalanceOf(&_SuperchainWETH.CallOpts, arg0)
+// Solidity: function balanceOf(address src) view returns(uint256)
+func (_SuperchainWETH *SuperchainWETHCallerSession) BalanceOf(src common.Address) (*big.Int, error) {
+	return _SuperchainWETH.Contract.BalanceOf(&_SuperchainWETH.CallOpts, src)
 }
 
 // Decimals is a free data retrieval call binding the contract method 0x313ce567.
@@ -302,6 +302,37 @@ func (_SuperchainWETH *SuperchainWETHSession) Name() (string, error) {
 // Solidity: function name() view returns(string)
 func (_SuperchainWETH *SuperchainWETHCallerSession) Name() (string, error) {
 	return _SuperchainWETH.Contract.Name(&_SuperchainWETH.CallOpts)
+}
+
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
+//
+// Solidity: function supportsInterface(bytes4 _interfaceId) view returns(bool)
+func (_SuperchainWETH *SuperchainWETHCaller) SupportsInterface(opts *bind.CallOpts, _interfaceId [4]byte) (bool, error) {
+	var out []interface{}
+	err := _SuperchainWETH.contract.Call(opts, &out, "supportsInterface", _interfaceId)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
+//
+// Solidity: function supportsInterface(bytes4 _interfaceId) view returns(bool)
+func (_SuperchainWETH *SuperchainWETHSession) SupportsInterface(_interfaceId [4]byte) (bool, error) {
+	return _SuperchainWETH.Contract.SupportsInterface(&_SuperchainWETH.CallOpts, _interfaceId)
+}
+
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
+//
+// Solidity: function supportsInterface(bytes4 _interfaceId) view returns(bool)
+func (_SuperchainWETH *SuperchainWETHCallerSession) SupportsInterface(_interfaceId [4]byte) (bool, error) {
+	return _SuperchainWETH.Contract.SupportsInterface(&_SuperchainWETH.CallOpts, _interfaceId)
 }
 
 // Symbol is a free data retrieval call binding the contract method 0x95d89b41.
@@ -479,6 +510,48 @@ func (_SuperchainWETH *SuperchainWETHSession) Deposit() (*types.Transaction, err
 // Solidity: function deposit() payable returns()
 func (_SuperchainWETH *SuperchainWETHTransactorSession) Deposit() (*types.Transaction, error) {
 	return _SuperchainWETH.Contract.Deposit(&_SuperchainWETH.TransactOpts)
+}
+
+// RelayETH is a paid mutator transaction binding the contract method 0x4f0edcc9.
+//
+// Solidity: function relayETH(address _from, address _to, uint256 _amount) returns()
+func (_SuperchainWETH *SuperchainWETHTransactor) RelayETH(opts *bind.TransactOpts, _from common.Address, _to common.Address, _amount *big.Int) (*types.Transaction, error) {
+	return _SuperchainWETH.contract.Transact(opts, "relayETH", _from, _to, _amount)
+}
+
+// RelayETH is a paid mutator transaction binding the contract method 0x4f0edcc9.
+//
+// Solidity: function relayETH(address _from, address _to, uint256 _amount) returns()
+func (_SuperchainWETH *SuperchainWETHSession) RelayETH(_from common.Address, _to common.Address, _amount *big.Int) (*types.Transaction, error) {
+	return _SuperchainWETH.Contract.RelayETH(&_SuperchainWETH.TransactOpts, _from, _to, _amount)
+}
+
+// RelayETH is a paid mutator transaction binding the contract method 0x4f0edcc9.
+//
+// Solidity: function relayETH(address _from, address _to, uint256 _amount) returns()
+func (_SuperchainWETH *SuperchainWETHTransactorSession) RelayETH(_from common.Address, _to common.Address, _amount *big.Int) (*types.Transaction, error) {
+	return _SuperchainWETH.Contract.RelayETH(&_SuperchainWETH.TransactOpts, _from, _to, _amount)
+}
+
+// SendETH is a paid mutator transaction binding the contract method 0x64a197f3.
+//
+// Solidity: function sendETH(address _to, uint256 _chainId) payable returns(bytes32 msgHash_)
+func (_SuperchainWETH *SuperchainWETHTransactor) SendETH(opts *bind.TransactOpts, _to common.Address, _chainId *big.Int) (*types.Transaction, error) {
+	return _SuperchainWETH.contract.Transact(opts, "sendETH", _to, _chainId)
+}
+
+// SendETH is a paid mutator transaction binding the contract method 0x64a197f3.
+//
+// Solidity: function sendETH(address _to, uint256 _chainId) payable returns(bytes32 msgHash_)
+func (_SuperchainWETH *SuperchainWETHSession) SendETH(_to common.Address, _chainId *big.Int) (*types.Transaction, error) {
+	return _SuperchainWETH.Contract.SendETH(&_SuperchainWETH.TransactOpts, _to, _chainId)
+}
+
+// SendETH is a paid mutator transaction binding the contract method 0x64a197f3.
+//
+// Solidity: function sendETH(address _to, uint256 _chainId) payable returns(bytes32 msgHash_)
+func (_SuperchainWETH *SuperchainWETHTransactorSession) SendETH(_to common.Address, _chainId *big.Int) (*types.Transaction, error) {
+	return _SuperchainWETH.Contract.SendETH(&_SuperchainWETH.TransactOpts, _to, _chainId)
 }
 
 // Transfer is a paid mutator transaction binding the contract method 0xa9059cbb.
@@ -811,37 +884,48 @@ func (it *SuperchainWETHCrosschainBurnIterator) Close() error {
 type SuperchainWETHCrosschainBurn struct {
 	From   common.Address
 	Amount *big.Int
+	Sender common.Address
 	Raw    types.Log // Blockchain specific contextual infos
 }
 
-// FilterCrosschainBurn is a free log retrieval operation binding the contract event 0x017c33ab728c93e2be949ec7e4a35b76d607957c5fac4253f5d623b4a3b13036.
+// FilterCrosschainBurn is a free log retrieval operation binding the contract event 0xb90795a66650155983e242cac3e1ac1a4dc26f8ed2987f3ce416a34e00111fd4.
 //
-// Solidity: event CrosschainBurn(address indexed from, uint256 amount)
-func (_SuperchainWETH *SuperchainWETHFilterer) FilterCrosschainBurn(opts *bind.FilterOpts, from []common.Address) (*SuperchainWETHCrosschainBurnIterator, error) {
+// Solidity: event CrosschainBurn(address indexed from, uint256 amount, address indexed sender)
+func (_SuperchainWETH *SuperchainWETHFilterer) FilterCrosschainBurn(opts *bind.FilterOpts, from []common.Address, sender []common.Address) (*SuperchainWETHCrosschainBurnIterator, error) {
 
 	var fromRule []interface{}
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
 
-	logs, sub, err := _SuperchainWETH.contract.FilterLogs(opts, "CrosschainBurn", fromRule)
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+
+	logs, sub, err := _SuperchainWETH.contract.FilterLogs(opts, "CrosschainBurn", fromRule, senderRule)
 	if err != nil {
 		return nil, err
 	}
 	return &SuperchainWETHCrosschainBurnIterator{contract: _SuperchainWETH.contract, event: "CrosschainBurn", logs: logs, sub: sub}, nil
 }
 
-// WatchCrosschainBurn is a free log subscription operation binding the contract event 0x017c33ab728c93e2be949ec7e4a35b76d607957c5fac4253f5d623b4a3b13036.
+// WatchCrosschainBurn is a free log subscription operation binding the contract event 0xb90795a66650155983e242cac3e1ac1a4dc26f8ed2987f3ce416a34e00111fd4.
 //
-// Solidity: event CrosschainBurn(address indexed from, uint256 amount)
-func (_SuperchainWETH *SuperchainWETHFilterer) WatchCrosschainBurn(opts *bind.WatchOpts, sink chan<- *SuperchainWETHCrosschainBurn, from []common.Address) (event.Subscription, error) {
+// Solidity: event CrosschainBurn(address indexed from, uint256 amount, address indexed sender)
+func (_SuperchainWETH *SuperchainWETHFilterer) WatchCrosschainBurn(opts *bind.WatchOpts, sink chan<- *SuperchainWETHCrosschainBurn, from []common.Address, sender []common.Address) (event.Subscription, error) {
 
 	var fromRule []interface{}
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
 
-	logs, sub, err := _SuperchainWETH.contract.WatchLogs(opts, "CrosschainBurn", fromRule)
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+
+	logs, sub, err := _SuperchainWETH.contract.WatchLogs(opts, "CrosschainBurn", fromRule, senderRule)
 	if err != nil {
 		return nil, err
 	}
@@ -873,9 +957,9 @@ func (_SuperchainWETH *SuperchainWETHFilterer) WatchCrosschainBurn(opts *bind.Wa
 	}), nil
 }
 
-// ParseCrosschainBurn is a log parse operation binding the contract event 0x017c33ab728c93e2be949ec7e4a35b76d607957c5fac4253f5d623b4a3b13036.
+// ParseCrosschainBurn is a log parse operation binding the contract event 0xb90795a66650155983e242cac3e1ac1a4dc26f8ed2987f3ce416a34e00111fd4.
 //
-// Solidity: event CrosschainBurn(address indexed from, uint256 amount)
+// Solidity: event CrosschainBurn(address indexed from, uint256 amount, address indexed sender)
 func (_SuperchainWETH *SuperchainWETHFilterer) ParseCrosschainBurn(log types.Log) (*SuperchainWETHCrosschainBurn, error) {
 	event := new(SuperchainWETHCrosschainBurn)
 	if err := _SuperchainWETH.contract.UnpackLog(event, "CrosschainBurn", log); err != nil {
@@ -956,37 +1040,48 @@ func (it *SuperchainWETHCrosschainMintIterator) Close() error {
 type SuperchainWETHCrosschainMint struct {
 	To     common.Address
 	Amount *big.Int
+	Sender common.Address
 	Raw    types.Log // Blockchain specific contextual infos
 }
 
-// FilterCrosschainMint is a free log retrieval operation binding the contract event 0x7ca16db12dad0e1c536f8062fd9e2e4fbb3d1a503b59df12a0cfa9f96abf1c59.
+// FilterCrosschainMint is a free log retrieval operation binding the contract event 0xde22baff038e3a3e08407cbdf617deed74e869a7ba517df611e33131c6e6ea04.
 //
-// Solidity: event CrosschainMint(address indexed to, uint256 amount)
-func (_SuperchainWETH *SuperchainWETHFilterer) FilterCrosschainMint(opts *bind.FilterOpts, to []common.Address) (*SuperchainWETHCrosschainMintIterator, error) {
+// Solidity: event CrosschainMint(address indexed to, uint256 amount, address indexed sender)
+func (_SuperchainWETH *SuperchainWETHFilterer) FilterCrosschainMint(opts *bind.FilterOpts, to []common.Address, sender []common.Address) (*SuperchainWETHCrosschainMintIterator, error) {
 
 	var toRule []interface{}
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
 
-	logs, sub, err := _SuperchainWETH.contract.FilterLogs(opts, "CrosschainMint", toRule)
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+
+	logs, sub, err := _SuperchainWETH.contract.FilterLogs(opts, "CrosschainMint", toRule, senderRule)
 	if err != nil {
 		return nil, err
 	}
 	return &SuperchainWETHCrosschainMintIterator{contract: _SuperchainWETH.contract, event: "CrosschainMint", logs: logs, sub: sub}, nil
 }
 
-// WatchCrosschainMint is a free log subscription operation binding the contract event 0x7ca16db12dad0e1c536f8062fd9e2e4fbb3d1a503b59df12a0cfa9f96abf1c59.
+// WatchCrosschainMint is a free log subscription operation binding the contract event 0xde22baff038e3a3e08407cbdf617deed74e869a7ba517df611e33131c6e6ea04.
 //
-// Solidity: event CrosschainMint(address indexed to, uint256 amount)
-func (_SuperchainWETH *SuperchainWETHFilterer) WatchCrosschainMint(opts *bind.WatchOpts, sink chan<- *SuperchainWETHCrosschainMint, to []common.Address) (event.Subscription, error) {
+// Solidity: event CrosschainMint(address indexed to, uint256 amount, address indexed sender)
+func (_SuperchainWETH *SuperchainWETHFilterer) WatchCrosschainMint(opts *bind.WatchOpts, sink chan<- *SuperchainWETHCrosschainMint, to []common.Address, sender []common.Address) (event.Subscription, error) {
 
 	var toRule []interface{}
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
 
-	logs, sub, err := _SuperchainWETH.contract.WatchLogs(opts, "CrosschainMint", toRule)
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+
+	logs, sub, err := _SuperchainWETH.contract.WatchLogs(opts, "CrosschainMint", toRule, senderRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1018,9 +1113,9 @@ func (_SuperchainWETH *SuperchainWETHFilterer) WatchCrosschainMint(opts *bind.Wa
 	}), nil
 }
 
-// ParseCrosschainMint is a log parse operation binding the contract event 0x7ca16db12dad0e1c536f8062fd9e2e4fbb3d1a503b59df12a0cfa9f96abf1c59.
+// ParseCrosschainMint is a log parse operation binding the contract event 0xde22baff038e3a3e08407cbdf617deed74e869a7ba517df611e33131c6e6ea04.
 //
-// Solidity: event CrosschainMint(address indexed to, uint256 amount)
+// Solidity: event CrosschainMint(address indexed to, uint256 amount, address indexed sender)
 func (_SuperchainWETH *SuperchainWETHFilterer) ParseCrosschainMint(log types.Log) (*SuperchainWETHCrosschainMint, error) {
 	event := new(SuperchainWETHCrosschainMint)
 	if err := _SuperchainWETH.contract.UnpackLog(event, "CrosschainMint", log); err != nil {
@@ -1169,6 +1264,316 @@ func (_SuperchainWETH *SuperchainWETHFilterer) WatchDeposit(opts *bind.WatchOpts
 func (_SuperchainWETH *SuperchainWETHFilterer) ParseDeposit(log types.Log) (*SuperchainWETHDeposit, error) {
 	event := new(SuperchainWETHDeposit)
 	if err := _SuperchainWETH.contract.UnpackLog(event, "Deposit", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// SuperchainWETHRelayETHIterator is returned from FilterRelayETH and is used to iterate over the raw logs and unpacked data for RelayETH events raised by the SuperchainWETH contract.
+type SuperchainWETHRelayETHIterator struct {
+	Event *SuperchainWETHRelayETH // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *SuperchainWETHRelayETHIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(SuperchainWETHRelayETH)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(SuperchainWETHRelayETH)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *SuperchainWETHRelayETHIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *SuperchainWETHRelayETHIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// SuperchainWETHRelayETH represents a RelayETH event raised by the SuperchainWETH contract.
+type SuperchainWETHRelayETH struct {
+	From   common.Address
+	To     common.Address
+	Amount *big.Int
+	Source *big.Int
+	Raw    types.Log // Blockchain specific contextual infos
+}
+
+// FilterRelayETH is a free log retrieval operation binding the contract event 0xe5479bb8ebad3b9ac81f55f424a6289cf0a54ff2641708f41dcb2b26f264d359.
+//
+// Solidity: event RelayETH(address indexed from, address indexed to, uint256 amount, uint256 source)
+func (_SuperchainWETH *SuperchainWETHFilterer) FilterRelayETH(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*SuperchainWETHRelayETHIterator, error) {
+
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _SuperchainWETH.contract.FilterLogs(opts, "RelayETH", fromRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return &SuperchainWETHRelayETHIterator{contract: _SuperchainWETH.contract, event: "RelayETH", logs: logs, sub: sub}, nil
+}
+
+// WatchRelayETH is a free log subscription operation binding the contract event 0xe5479bb8ebad3b9ac81f55f424a6289cf0a54ff2641708f41dcb2b26f264d359.
+//
+// Solidity: event RelayETH(address indexed from, address indexed to, uint256 amount, uint256 source)
+func (_SuperchainWETH *SuperchainWETHFilterer) WatchRelayETH(opts *bind.WatchOpts, sink chan<- *SuperchainWETHRelayETH, from []common.Address, to []common.Address) (event.Subscription, error) {
+
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _SuperchainWETH.contract.WatchLogs(opts, "RelayETH", fromRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(SuperchainWETHRelayETH)
+				if err := _SuperchainWETH.contract.UnpackLog(event, "RelayETH", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseRelayETH is a log parse operation binding the contract event 0xe5479bb8ebad3b9ac81f55f424a6289cf0a54ff2641708f41dcb2b26f264d359.
+//
+// Solidity: event RelayETH(address indexed from, address indexed to, uint256 amount, uint256 source)
+func (_SuperchainWETH *SuperchainWETHFilterer) ParseRelayETH(log types.Log) (*SuperchainWETHRelayETH, error) {
+	event := new(SuperchainWETHRelayETH)
+	if err := _SuperchainWETH.contract.UnpackLog(event, "RelayETH", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// SuperchainWETHSendETHIterator is returned from FilterSendETH and is used to iterate over the raw logs and unpacked data for SendETH events raised by the SuperchainWETH contract.
+type SuperchainWETHSendETHIterator struct {
+	Event *SuperchainWETHSendETH // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *SuperchainWETHSendETHIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(SuperchainWETHSendETH)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(SuperchainWETHSendETH)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *SuperchainWETHSendETHIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *SuperchainWETHSendETHIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// SuperchainWETHSendETH represents a SendETH event raised by the SuperchainWETH contract.
+type SuperchainWETHSendETH struct {
+	From        common.Address
+	To          common.Address
+	Amount      *big.Int
+	Destination *big.Int
+	Raw         types.Log // Blockchain specific contextual infos
+}
+
+// FilterSendETH is a free log retrieval operation binding the contract event 0xed98a2ff78833375c368471a747cdf0633024dde3f870feb08a934ac5be83402.
+//
+// Solidity: event SendETH(address indexed from, address indexed to, uint256 amount, uint256 destination)
+func (_SuperchainWETH *SuperchainWETHFilterer) FilterSendETH(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*SuperchainWETHSendETHIterator, error) {
+
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _SuperchainWETH.contract.FilterLogs(opts, "SendETH", fromRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return &SuperchainWETHSendETHIterator{contract: _SuperchainWETH.contract, event: "SendETH", logs: logs, sub: sub}, nil
+}
+
+// WatchSendETH is a free log subscription operation binding the contract event 0xed98a2ff78833375c368471a747cdf0633024dde3f870feb08a934ac5be83402.
+//
+// Solidity: event SendETH(address indexed from, address indexed to, uint256 amount, uint256 destination)
+func (_SuperchainWETH *SuperchainWETHFilterer) WatchSendETH(opts *bind.WatchOpts, sink chan<- *SuperchainWETHSendETH, from []common.Address, to []common.Address) (event.Subscription, error) {
+
+	var fromRule []interface{}
+	for _, fromItem := range from {
+		fromRule = append(fromRule, fromItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _SuperchainWETH.contract.WatchLogs(opts, "SendETH", fromRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(SuperchainWETHSendETH)
+				if err := _SuperchainWETH.contract.UnpackLog(event, "SendETH", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseSendETH is a log parse operation binding the contract event 0xed98a2ff78833375c368471a747cdf0633024dde3f870feb08a934ac5be83402.
+//
+// Solidity: event SendETH(address indexed from, address indexed to, uint256 amount, uint256 destination)
+func (_SuperchainWETH *SuperchainWETHFilterer) ParseSendETH(log types.Log) (*SuperchainWETHSendETH, error) {
+	event := new(SuperchainWETHSendETH)
+	if err := _SuperchainWETH.contract.UnpackLog(event, "SendETH", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

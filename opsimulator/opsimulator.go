@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"sync/atomic"
 
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
@@ -33,7 +32,6 @@ import (
 )
 
 const (
-	host                        = "127.0.0.1"
 	l2NativeSuperchainERC20Addr = "0x420beeF000000000000000000000000000000001"
 )
 
@@ -44,12 +42,15 @@ type OpSimulator struct {
 
 	l1Chain config.Chain
 
+	interopDelay uint64
+
 	// Long running tasks
 	bgTasks       tasks.Group
 	bgTasksCtx    context.Context
 	bgTasksCancel context.CancelFunc
 	peers         map[uint64]config.Chain
 
+	host         string
 	port         uint64
 	httpServer   *ophttp.HTTPServer
 	crossL2Inbox *bindings.CrossL2Inbox
@@ -60,7 +61,7 @@ type OpSimulator struct {
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
-func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain) *OpSimulator {
+func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, l2Chain.EthClient())
@@ -73,8 +74,10 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, l1Chain,
 
 		log:          log.New("chain.id", l2Chain.Config().ChainID),
 		port:         port,
+		host:         host,
 		l1Chain:      l1Chain,
 		crossL2Inbox: crossL2Inbox,
+		interopDelay: interopDelay,
 
 		bgTasksCtx:    bgTasksCtx,
 		bgTasksCancel: bgTasksCancel,
@@ -93,20 +96,26 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.Handle("/", corsHandler(opSim.handler(ctx)))
 
-	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(host, fmt.Sprintf("%d", opSim.port)), mux)
+	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(opSim.host, fmt.Sprintf("%d", opSim.port)), mux)
 	if err != nil {
 		return fmt.Errorf("failed to start HTTP RPC server: %w", err)
 	}
 
 	cfg := opSim.Config()
 	opSim.log.Debug("started opsimulator", "name", cfg.Name, "chain.id", cfg.ChainID, "addr", hs.Addr())
-
 	opSim.httpServer = hs
+
 	if opSim.port == 0 {
-		opSim.port, err = strconv.ParseUint(strings.Split(hs.Addr().String(), ":")[1], 10, 64)
+		_, portStr, err := net.SplitHostPort(hs.Addr().String())
+		if err != nil {
+			panic(fmt.Errorf("failed to parse address: %w", err))
+		}
+
+		port, err := strconv.ParseUint(portStr, 10, 64)
 		if err != nil {
 			panic(fmt.Errorf("unexpected opsimulator listening port: %w", err))
 		}
+		opSim.port = port
 	}
 
 	ethClient, err := ethclient.Dial(opSim.Endpoint())
@@ -128,7 +137,11 @@ func (opSim *OpSimulator) Stop(ctx context.Context) error {
 	}
 
 	opSim.bgTasksCancel()
-	return opSim.httpServer.Stop(ctx)
+	if opSim.httpServer != nil {
+		return opSim.httpServer.Stop(ctx)
+	}
+
+	return nil
 }
 
 func (opSim *OpSimulator) EthClient() *ethclient.Client {
@@ -168,6 +181,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 		}
 	})
 
+	// Log SuperchainERC20 events
 	opSim.bgTasks.Go(func() error {
 		contracts := []struct {
 			name    string
@@ -186,12 +200,12 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			mintEventChan := make(chan *bindings.SuperchainERC20CrosschainMint)
 			burnEventChan := make(chan *bindings.SuperchainERC20CrosschainBurn)
 
-			mintSub, err := contract.WatchCrosschainMint(&bind.WatchOpts{Context: opSim.bgTasksCtx}, mintEventChan, nil)
+			mintSub, err := contract.WatchCrosschainMint(&bind.WatchOpts{Context: opSim.bgTasksCtx}, mintEventChan, nil, nil)
 			if err != nil {
 				return fmt.Errorf("failed to subscribe to %s#CrosschainMint: %w", c.name, err)
 			}
 
-			burnSub, err := contract.WatchCrosschainBurn(&bind.WatchOpts{Context: opSim.bgTasksCtx}, burnEventChan, nil)
+			burnSub, err := contract.WatchCrosschainBurn(&bind.WatchOpts{Context: opSim.bgTasksCtx}, burnEventChan, nil, nil)
 			if err != nil {
 				return fmt.Errorf("failed to subscribe to %s#CrosschainBurn: %w", c.name, err)
 			}
@@ -199,9 +213,9 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			for {
 				select {
 				case event := <-mintEventChan:
-					opSim.log.Info(c.name+"#CrosschainMint", "to", event.To, "amount", event.Amount)
+					opSim.log.Info(c.name+"#CrosschainMint", "to", event.To, "amount", event.Amount, "sender", event.Sender)
 				case event := <-burnEventChan:
-					opSim.log.Info(c.name+"#CrosschainBurn", "from", event.From, "amount", event.Amount)
+					opSim.log.Info(c.name+"#CrosschainBurn", "from", event.From, "amount", event.Amount, "sender", event.Sender)
 				case <-opSim.bgTasksCtx.Done():
 					mintSub.Unsubscribe()
 					burnSub.Unsubscribe()
@@ -237,6 +251,39 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 				opSim.log.Info("SuperchainTokenBridge#SendERC20", "token", event.Token, "from", event.From, "to", event.To, "amount", event.Amount, "destination", event.Destination)
 			case event := <-relayEventChan:
 				opSim.log.Info("SuperchainTokenBridge#RelayERC20", "token", event.Token, "from", event.From, "to", event.To, "amount", event.Amount, "source", event.Source)
+			case <-opSim.bgTasksCtx.Done():
+				sendSub.Unsubscribe()
+				relaySub.Unsubscribe()
+				return nil
+			}
+		}
+	})
+
+	// Log SuperchainWETH events
+	opSim.bgTasks.Go(func() error {
+		superchainWeth, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, opSim.Chain.EthClient())
+		if err != nil {
+			return fmt.Errorf("failed to create SuperchainWETH contract: %w", err)
+		}
+
+		sendEventChan := make(chan *bindings.SuperchainWETHSendETH)
+		sendSub, err := superchainWeth.WatchSendETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, sendEventChan, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to SuperchainWETH#SendETH: %w", err)
+		}
+
+		relayEventChan := make(chan *bindings.SuperchainWETHRelayETH)
+		relaySub, err := superchainWeth.WatchRelayETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, relayEventChan, nil, nil)
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to SuperchainWETH#RelayETH: %w", err)
+		}
+
+		for {
+			select {
+			case event := <-sendEventChan:
+				opSim.log.Info("SuperchainWETH#SendETH", "from", event.From, "to", event.To, "amount", event.Amount, "destination", event.Destination)
+			case event := <-relayEventChan:
+				opSim.log.Info("SuperchainWETH#RelayETH", "from", event.From, "to", event.To, "amount", event.Amount, "source", event.Source)
 			case <-opSim.bgTasksCtx.Done():
 				sendSub.Unsubscribe()
 				relaySub.Unsubscribe()
@@ -283,12 +330,21 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 					batchRes[i] = msg.errorResponse(err)
 					continue
 				}
+
 				txHash := tx.Hash()
 
-				// Simulate the tx. If this fails, we let it pass through with a warning
+				// Deposits should not be directly sendable to the L2
+				if tx.IsDepositTx() {
+					opSim.log.Error("rejecting deposit tx", "hash", txHash.String())
+					batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: "cannot process deposit tx"})
+					continue
+				}
+
+				// Simulate the tx.
 				logs, err := opSim.SimulatedLogs(ctx, tx)
 				if err != nil {
-					opSim.log.Warn("failed to simulate transaction!!! filtering tx...", "err", err, "hash", txHash)
+					opSim.log.Warn("failed to simulate transaction!!!", "err", err, "hash", txHash)
+					batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: "failed tx simulation"})
 					continue
 				} else {
 					if err := opSim.checkInteropInvariants(ctx, logs); err != nil {
@@ -411,6 +467,18 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 			if common.BytesToHash(executingMessage.MsgHash[:]).Cmp(initiatingMsgPayloadHash) != 0 {
 				return fmt.Errorf("executing and initiating message fields are not equal")
 			}
+
+			if opSim.interopDelay != 0 {
+				header, err := opSim.ethClient.HeaderByNumber(ctx, nil)
+				if err != nil {
+					return fmt.Errorf("failed to fetch executing block header: %w", err)
+				}
+
+				if header.Time < identifierBlockHeader.Time+opSim.interopDelay {
+					return fmt.Errorf("not enough time has passed since initiating message (need %ds, got %ds)",
+						opSim.interopDelay, header.Time-identifierBlockHeader.Time)
+				}
+			}
 		}
 	}
 
@@ -428,7 +496,7 @@ func (opSim *OpSimulator) Config() *config.ChainConfig {
 
 // Overridden such that the correct port is used
 func (opSim *OpSimulator) Endpoint() string {
-	return fmt.Sprintf("http://%s:%d", host, opSim.port)
+	return fmt.Sprintf("http://%s:%d", opSim.host, opSim.port)
 }
 
 func corsHandler(next http.Handler) http.Handler {

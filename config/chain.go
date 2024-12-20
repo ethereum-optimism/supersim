@@ -45,6 +45,7 @@ type L2Config struct {
 
 type ChainConfig struct {
 	Name    string
+	Host    string
 	Port    uint64
 	ChainID uint64
 
@@ -62,6 +63,9 @@ type ChainConfig struct {
 
 	// Optional
 	LogsDirectory string
+
+	// Optional
+	OdysseyEnabled bool
 }
 
 type NetworkConfig struct {
@@ -74,6 +78,7 @@ type NetworkConfig struct {
 	// check if Interop is enabled
 	InteropEnabled   bool
 	InteropAutoRelay bool
+	InteropDelay     uint64
 }
 
 type Chain interface {

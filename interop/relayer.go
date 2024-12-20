@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
@@ -91,9 +92,9 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 					close(sentMessageCh)
 					return nil
 				case sentMessage := <-sentMessageCh:
-					if _, err := l2tol2CDM.RelayMessage(transactor, *sentMessage.Identifier(), sentMessage.MessagePayload()); err != nil {
-						r.logger.Debug("failed to relay message", "err", err)
-						return fmt.Errorf("failed to relay message: %w", err)
+					if err := r.relayMessageWithRetry(l2tol2CDM, transactor, sentMessage, 1); err != nil {
+						r.logger.Error("failed to relay message after retries", "err", err)
+						return err
 					}
 				}
 			}
@@ -106,4 +107,19 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 
 func (r *L2ToL2MessageRelayer) Stop(ctx context.Context) {
 	r.tasksCancel()
+}
+
+func (r *L2ToL2MessageRelayer) relayMessageWithRetry(l2tol2CDM *bindings.L2ToL2CrossDomainMessengerTransactor, transactor *bind.TransactOpts, sentMessage *L2ToL2MessageStoreEntry, maxRetries int) error {
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if _, err := l2tol2CDM.RelayMessage(transactor, *sentMessage.Identifier(), sentMessage.MessagePayload()); err != nil {
+			r.logger.Debug("failed to relay message", "err", err, "attempt", attempt+1, "maxRetries", maxRetries)
+			if attempt == maxRetries-1 {
+				return fmt.Errorf("failed to relay message after %d attempts: %w", maxRetries, err)
+			}
+			time.Sleep(time.Second * time.Duration(1<<attempt))
+			continue
+		}
+		return nil
+	}
+	return nil
 }

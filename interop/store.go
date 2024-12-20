@@ -56,7 +56,7 @@ type L2ToL2MessageSentEvent struct {
 
 type L2ToL2MessageStoreEntry struct {
 	message    *L2ToL2Message
-	identifier *bindings.ICrossL2InboxIdentifier
+	identifier *bindings.Identifier
 	log        *types.Log
 	lifecycle  *L2ToL2MessageLifecycle
 }
@@ -65,7 +65,7 @@ func (e *L2ToL2MessageStoreEntry) Message() *L2ToL2Message {
 	return e.message
 }
 
-func (e *L2ToL2MessageStoreEntry) Identifier() *bindings.ICrossL2InboxIdentifier {
+func (e *L2ToL2MessageStoreEntry) Identifier() *bindings.Identifier {
 	return e.identifier
 }
 
@@ -147,7 +147,7 @@ func (s *L2ToL2MessageStoreManager) Get(msgHash common.Hash) (*L2ToL2MessageStor
 	return s.store.Get(msgHash)
 }
 
-func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log, identifier *bindings.ICrossL2InboxIdentifier) (*L2ToL2MessageStoreEntry, error) {
+func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log, identifier *bindings.Identifier) (*L2ToL2MessageStoreEntry, error) {
 	msg, err := NewL2ToL2MessageFromSentMessageEventData(log, identifier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create L2ToL2Message: %w", err)

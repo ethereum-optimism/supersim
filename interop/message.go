@@ -53,7 +53,7 @@ func (m *L2ToL2Message) Hash() (common.Hash, error) {
 	return crypto.Keccak256Hash(encoded), nil
 }
 
-func NewL2ToL2MessageFromSentMessageEventData(log *types.Log, identifier *bindings.ICrossL2InboxIdentifier) (*L2ToL2Message, error) {
+func NewL2ToL2MessageFromSentMessageEventData(log *types.Log, identifier *bindings.Identifier) (*L2ToL2Message, error) {
 	event := new(bindings.L2ToL2CrossDomainMessengerSentMessage)
 	err := bindings.L2ToL2CrossDomainMessengerParsedABI.UnpackIntoInterface(event, "SentMessage", log.Data)
 	if err != nil {

@@ -104,8 +104,9 @@ contract CrossChainPingPongTest is Test {
         bytes memory message = abi.encodeCall(crossChainPingPong.receiveBall, (newBall));
         _mockAndExpect(
             Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
-            abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.sendMessage.selector,
-                toChainId, address(crossChainPingPong), message),
+            abi.encodeWithSelector(
+                IL2ToL2CrossDomainMessenger.sendMessage.selector, toChainId, address(crossChainPingPong), message
+            ),
             abi.encode("")
         );
 
@@ -116,7 +117,7 @@ contract CrossChainPingPongTest is Test {
         crossChainPingPong.hitBallTo(toChainId);
 
         // ball is not present on the chain
-        (,,address lastHitterAddress) = crossChainPingPong.ball();
+        (,, address lastHitterAddress) = crossChainPingPong.ball();
         vm.assertEq(lastHitterAddress, address(0));
     }
 

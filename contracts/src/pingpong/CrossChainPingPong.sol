@@ -42,7 +42,8 @@ contract CrossChainPingPong {
     event BallReceived(uint256 indexed fromChainId, uint256 indexed toChainId, PingPongBall ball);
 
     /// @dev The L2 to L2 cross domain messenger predeploy to handle message passing
-    IL2ToL2CrossDomainMessenger internal messenger = IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    IL2ToL2CrossDomainMessenger internal messenger =
+        IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
     /// @dev Modifier to restrict a function to only be a cross-domain callback into this contract
     modifier onlyCrossDomainCallback() {
@@ -90,7 +91,7 @@ contract CrossChainPingPong {
      * @dev Only callable by the L2ToL2CrossDomainMessenger.
      * @param _ball The PingPongBall received from the other chain.
      */
-    function receiveBall(PingPongBall memory _ball) onlyCrossDomainCallback() external {
+    function receiveBall(PingPongBall memory _ball) external onlyCrossDomainCallback {
         // Hold reference to the ball
         ball = _ball;
 

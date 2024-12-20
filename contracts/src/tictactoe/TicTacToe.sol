@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
-import {ICrossL2Inbox} from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
+import {Identifier, ICrossL2Inbox} from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
 
 /// @notice Thrown when cross l2 origin is not the TicTacToe contract
 error IdOriginNotTicTacToe();
@@ -59,10 +59,11 @@ contract TicTacToe {
     struct Game {
         address player;
         address opponent;
+        uint256 gameId;
         // `1` for the player's moves, `2` opposing.
         uint8[3][3] moves;
         uint8 movesLeft;
-        ICrossL2Inbox.Identifier lastOpponentId;
+        Identifier lastOpponentId;
     }
 
     /// @notice A game is identified from the (chainId, gameId) tuple from the chain it was initiated on
@@ -91,7 +92,7 @@ contract TicTacToe {
     }
 
     /// @notice Send out an acceptance event for a new game
-    function acceptGame(ICrossL2Inbox.Identifier calldata _newGameId, bytes calldata _newGameData) external {
+    function acceptGame(Identifier calldata _newGameId, bytes calldata _newGameData) external {
         // Validate Cross Chain Log
         if (_newGameId.origin != address(this)) revert IdOriginNotTicTacToe();
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_newGameId, keccak256(_newGameData));
@@ -107,6 +108,7 @@ contract TicTacToe {
         Game storage game = games[chainId][gameId][msg.sender];
         game.player = msg.sender;
         game.opponent = opponent;
+        game.gameId = gameId;
         game.lastOpponentId = _newGameId;
         game.movesLeft = 9;
 
@@ -114,12 +116,9 @@ contract TicTacToe {
     }
 
     /// @notice Start a game accepted by an opponent with a starting move
-    function startGame(
-        ICrossL2Inbox.Identifier calldata _acceptedGameId,
-        bytes calldata _acceptedGameData,
-        uint8 _x,
-        uint8 _y
-    ) external {
+    function startGame(Identifier calldata _acceptedGameId, bytes calldata _acceptedGameData, uint8 _x, uint8 _y)
+        external
+    {
         // Validate Cross Chain Log
         if (_acceptedGameId.origin != address(this)) revert IdOriginNotTicTacToe();
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_acceptedGameId, keccak256(_acceptedGameData));
@@ -142,6 +141,7 @@ contract TicTacToe {
         // Record Game Metadata
         game.player = msg.sender;
         game.opponent = opponent;
+        game.gameId = gameId;
         game.lastOpponentId = _acceptedGameId;
         game.movesLeft = 9;
 
@@ -153,12 +153,7 @@ contract TicTacToe {
     }
 
     /// @notice Make a move for a game.
-    function makeMove(
-        ICrossL2Inbox.Identifier calldata _movePlayedId,
-        bytes calldata _movePlayedData,
-        uint8 _x,
-        uint8 _y
-    ) external {
+    function makeMove(Identifier calldata _movePlayedId, bytes calldata _movePlayedData, uint8 _x, uint8 _y) external {
         // Validate Cross Chain Log
         if (_movePlayedId.origin != address(this)) revert IdOriginNotTicTacToe();
         ICrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_movePlayedId, keccak256(_movePlayedData));
@@ -170,9 +165,10 @@ contract TicTacToe {
         (uint256 chainId, uint256 gameId,, uint8 oppX, uint8 oppY) =
             abi.decode(_movePlayedData[32:], (uint256, uint256, address, uint8, uint8));
 
-        // Game was instantiated for this player
+        // Game was instantiated for this player & the move is for the same game
         Game storage game = games[chainId][gameId][msg.sender];
         if (game.player != msg.sender) revert GameNotExists();
+        if (game.gameId != gameId) revert GameNotExists();
 
         // The move played is forward progressing from the same chain
         if (_movePlayedId.chainId != game.lastOpponentId.chainId) revert IdChainMismatch();
