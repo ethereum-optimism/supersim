@@ -37,9 +37,9 @@ const (
 	InteropDelayFlagName     = "interop.delay"
 
 	OdysseyEnabledFlagName = "odyssey.enabled"
-)
 
-const maxL2Chains = 5
+	MaxL2Count = 5
+)
 
 var documentationLinks = []struct {
 	url  string
@@ -66,7 +66,7 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 		},
 		&cli.Uint64Flag{
 			Name:    L2CountFlagName,
-			Usage:   fmt.Sprintf("Number of L2s. Max of %d", maxL2Chains),
+			Usage:   fmt.Sprintf("Number of L2s. Max of %d", MaxL2Count),
 			Value:   2,
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "L2_COUNT"),
 		},
@@ -218,8 +218,8 @@ func (c *CLIConfig) Check() error {
 		return fmt.Errorf("invalid L2 host address: %w", err)
 	}
 
-	if c.L2Count > maxL2Chains {
-		return fmt.Errorf("max of %d L2 chains", maxL2Chains)
+	if c.L2Count == 0 || c.L2Count > MaxL2Count {
+		return fmt.Errorf("min 1, max %d L2 chains", MaxL2Count)
 	}
 
 	if c.ForkConfig != nil {

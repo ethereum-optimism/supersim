@@ -24,9 +24,13 @@ type Supersim struct {
 }
 
 func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseFunc, cliConfig *config.CLIConfig) (*Supersim, error) {
-	networkConfig := config.GetNetworkConfig(cliConfig)
+	// re-check cliConfig as a sanity
+	if err := cliConfig.Check(); err != nil {
+		return nil, fmt.Errorf("failed config check: %w", err)
+	}
 
-	// If Forking, override the network config with the generated fork config
+	// Generate conifg. If Forking, override the network config with the generated fork config
+	networkConfig := config.GetNetworkConfig(cliConfig)
 	if cliConfig.ForkConfig != nil {
 		superchain := registry.Superchains[cliConfig.ForkConfig.Network]
 		log.Info("generating fork configuration", "superchain", superchain.Superchain)

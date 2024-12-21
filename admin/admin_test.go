@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/genesis"
-	"github.com/ethereum-optimism/supersim/testutils"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/assert"
@@ -52,15 +52,14 @@ func TestGetL1AddressesRPC(t *testing.T) {
 	require.NoError(t, adminServer.Start(ctx))
 
 	var client *rpc.Client
-	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+	require.NoError(t, wait.For(context.Background(), 500*time.Millisecond, func() (bool, error) {
 		newClient, err := rpc.Dial(adminServer.Endpoint())
 		if err != nil {
 			return false, err
 		}
 		client = newClient
 		return true, nil
-	})
-	assert.NoError(t, waitErr)
+	}))
 
 	var addresses map[string]string
 	chainID := genesis.GeneratedGenesisDeployment.L2s[1].ChainID
