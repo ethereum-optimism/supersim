@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
@@ -100,10 +101,16 @@ type Chain interface {
 	Stop(ctx context.Context) error
 }
 
-func GetDefaultNetworkConfig(startingTimestamp uint64, logsDirectory string) NetworkConfig {
-	return NetworkConfig{
+func GetNetworkConfig(cliConfig *CLIConfig) NetworkConfig {
+	startingTimestamp := uint64(time.Now().Unix())
+	nameSuffix := []string{"A", "B", "C", "D", "E"}
+
+	cfg := NetworkConfig{
 		// Enabled by default as it is included in genesis
 		InteropEnabled: true,
+
+		// Populated based on L2 count
+		L2Configs: make([]ChainConfig, cliConfig.L2Count),
 
 		L1Config: ChainConfig{
 			Name:              "Local",
@@ -111,42 +118,43 @@ func GetDefaultNetworkConfig(startingTimestamp uint64, logsDirectory string) Net
 			SecretsConfig:     DefaultSecretsConfig,
 			GenesisJSON:       genesis.GeneratedGenesisDeployment.L1.GenesisJSON,
 			StartingTimestamp: startingTimestamp,
-			LogsDirectory:     logsDirectory,
-		},
-		L2Configs: []ChainConfig{
-			{
-				Name:          "OPChainA",
-				ChainID:       genesis.GeneratedGenesisDeployment.L2s[0].ChainID,
-				SecretsConfig: DefaultSecretsConfig,
-				GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[0].GenesisJSON,
-				L2Config: &L2Config{
-					L1ChainID:     genesis.GeneratedGenesisDeployment.L1.ChainID,
-					L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[0].RegistryAddressList(),
-					DependencySet: []uint64{genesis.GeneratedGenesisDeployment.L2s[1].ChainID},
-				},
-				StartingTimestamp: startingTimestamp,
-				LogsDirectory:     logsDirectory,
-			},
-			{
-				Name:          "OPChainB",
-				ChainID:       genesis.GeneratedGenesisDeployment.L2s[1].ChainID,
-				SecretsConfig: DefaultSecretsConfig,
-				GenesisJSON:   genesis.GeneratedGenesisDeployment.L2s[1].GenesisJSON,
-				L2Config: &L2Config{
-					L1ChainID:     genesis.GeneratedGenesisDeployment.L1.ChainID,
-					L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[1].RegistryAddressList(),
-					DependencySet: []uint64{genesis.GeneratedGenesisDeployment.L2s[0].ChainID},
-				},
-				StartingTimestamp: startingTimestamp,
-				LogsDirectory:     logsDirectory,
-			},
+			LogsDirectory:     cliConfig.LogsDirectory,
 		},
 	}
+
+	for i := uint64(0); i < cliConfig.L2Count; i++ {
+		l2Cfg := ChainConfig{
+			Name:              fmt.Sprintf("OPChain%s", nameSuffix[i]),
+			ChainID:           genesis.GeneratedGenesisDeployment.L2s[i].ChainID,
+			SecretsConfig:     DefaultSecretsConfig,
+			GenesisJSON:       genesis.GeneratedGenesisDeployment.L2s[i].GenesisJSON,
+			StartingTimestamp: startingTimestamp,
+			LogsDirectory:     cliConfig.LogsDirectory,
+			L2Config: &L2Config{
+				L1ChainID:     genesis.GeneratedGenesisDeployment.L1.ChainID,
+				L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[i].RegistryAddressList(),
+				DependencySet: []uint64{},
+			},
+		}
+
+		// populate dep set
+		for j := uint64(0); j < cliConfig.L2Count; j++ {
+			if i == j {
+				continue
+			}
+
+			peerChainID := genesis.GeneratedGenesisDeployment.L2s[j].ChainID
+			l2Cfg.L2Config.DependencySet = append(l2Cfg.L2Config.DependencySet, peerChainID)
+		}
+
+		cfg.L2Configs[i] = l2Cfg
+	}
+
+	return cfg
 }
 
 // Note: The default secrets config is used everywhere
 func DefaultSecretsConfigAsString() string {
-
 	keys, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
 	if err != nil {
 		panic(err)

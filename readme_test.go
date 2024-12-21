@@ -24,9 +24,10 @@ func runCmd(command string) (string, error) {
 }
 
 func TestL1ToL2Deposit(t *testing.T) {
-	_ = createTestSuite(t, &config.CLIConfig{
-		L1Port:         8545,
-		L2StartingPort: 9545,
+	_ = createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.L1Port = 8545
+		cfg.L2StartingPort = 9545
+		return cfg
 	})
 
 	// Get the initial balance on L2
@@ -54,10 +55,11 @@ func TestL1ToL2Deposit(t *testing.T) {
 }
 
 func TestL2ToL2Transfer(t *testing.T) {
-	_ = createTestSuite(t, &config.CLIConfig{
-		L1Port:           8545,
-		L2StartingPort:   9545,
-		InteropAutoRelay: true,
+	_ = createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.L1Port = 8545
+		cfg.L2StartingPort = 9545
+		cfg.InteropAutoRelay = true
+		return cfg
 	})
 
 	// Mint tokens on chain 901
@@ -89,11 +91,12 @@ func TestL2ToL2Transfer(t *testing.T) {
 	assert.NoError(t, waitErr)
 }
 
-func TestCrosschainETHTransfer(t *testing.T) {
-	_ = createTestSuite(t, &config.CLIConfig{
-		L1Port:           8545,
-		L2StartingPort:   9545,
-		InteropAutoRelay: true,
+func TestSuperchainETHTransfer(t *testing.T) {
+	_ = createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.L1Port = 8545
+		cfg.L2StartingPort = 9545
+		cfg.InteropAutoRelay = true
+		return cfg
 	})
 
 	// Check initial balance on chain 902

@@ -121,15 +121,15 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		o.log.Info("configuring interop contracts")
 
 		var wg sync.WaitGroup
+		var errs []error
 		wg.Add(len(o.l2Chains))
-		errs := make([]error, len(o.l2Chains))
 
 		// Iterate over the underlying l2Chains for configuration as it relies
 		// on deposit txs from system addresses which opsimulator will reject
 		for i, chain := range o.l2Chains {
 			go func(i uint64) {
 				if err := interop.Configure(ctx, chain); err != nil {
-					errs[i] = fmt.Errorf("failed to configure interop for chain %s: %w", chain.Config().Name, err)
+					errs = append(errs, fmt.Errorf("failed to configure interop for chain %s: %w", chain.Config().Name, err))
 				}
 				wg.Done()
 			}(i)

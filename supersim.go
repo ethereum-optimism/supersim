@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
@@ -25,7 +24,7 @@ type Supersim struct {
 }
 
 func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseFunc, cliConfig *config.CLIConfig) (*Supersim, error) {
-	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()), cliConfig.LogsDirectory)
+	networkConfig := config.GetNetworkConfig(cliConfig)
 
 	// If Forking, override the network config with the generated fork config
 	if cliConfig.ForkConfig != nil {
