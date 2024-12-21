@@ -19,7 +19,7 @@ import (
 )
 
 func TestAdminServerBasicFunctionality(t *testing.T) {
-	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()), "")
+	networkConfig := config.GetNetworkConfig(&config.CLIConfig{L2Count: 2})
 	testlog := testlog.Logger(t, log.LevelInfo)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -42,7 +42,7 @@ func TestAdminServerBasicFunctionality(t *testing.T) {
 }
 
 func TestGetL1AddressesRPC(t *testing.T) {
-	networkConfig := config.GetDefaultNetworkConfig(uint64(time.Now().Unix()), "")
+	networkConfig := config.GetNetworkConfig(&config.CLIConfig{L2Count: 2})
 	testlog := testlog.Logger(t, log.LevelInfo)
 
 	ctx, cancel := context.WithCancel(context.Background())
