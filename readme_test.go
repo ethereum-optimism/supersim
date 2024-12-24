@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/supersim/config"
-	"github.com/ethereum-optimism/supersim/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func runCmd(command string) (string, error) {
@@ -24,9 +25,10 @@ func runCmd(command string) (string, error) {
 }
 
 func TestL1ToL2Deposit(t *testing.T) {
-	_ = createTestSuite(t, &config.CLIConfig{
-		L1Port:         8545,
-		L2StartingPort: 9545,
+	_ = createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.L1Port = 8545
+		cfg.L2StartingPort = 9545
+		return cfg
 	})
 
 	// Get the initial balance on L2
@@ -41,7 +43,7 @@ func TestL1ToL2Deposit(t *testing.T) {
 	assert.NoError(t, err, "Failed to bridge ETH")
 
 	// Wait for bridge transaction to be processed
-	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+	require.NoError(t, wait.For(context.Background(), 500*time.Millisecond, func() (bool, error) {
 		finalBalanceCmd := "cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545"
 		finalBalance, err := runCmd(finalBalanceCmd)
 		if err != nil {
@@ -49,15 +51,15 @@ func TestL1ToL2Deposit(t *testing.T) {
 		}
 
 		return finalBalance == "10000100000000000000000", nil
-	})
-	assert.NoError(t, waitErr)
+	}))
 }
 
 func TestL2ToL2Transfer(t *testing.T) {
-	_ = createTestSuite(t, &config.CLIConfig{
-		L1Port:           8545,
-		L2StartingPort:   9545,
-		InteropAutoRelay: true,
+	_ = createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.L1Port = 8545
+		cfg.L2StartingPort = 9545
+		cfg.InteropAutoRelay = true
+		return cfg
 	})
 
 	// Mint tokens on chain 901
@@ -77,7 +79,7 @@ func TestL2ToL2Transfer(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Check the final balance on chain 902
-	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+	require.NoError(t, wait.For(context.Background(), 500*time.Millisecond, func() (bool, error) {
 		finalBalanceCmd := `cast balance --erc20 0x420beeF000000000000000000000000000000001 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546`
 		finalBalance, err := runCmd(finalBalanceCmd)
 		if err != nil {
@@ -85,15 +87,15 @@ func TestL2ToL2Transfer(t *testing.T) {
 		}
 
 		return finalBalance == "1000", nil
-	})
-	assert.NoError(t, waitErr)
+	}))
 }
 
-func TestCrosschainETHTransfer(t *testing.T) {
-	_ = createTestSuite(t, &config.CLIConfig{
-		L1Port:           8545,
-		L2StartingPort:   9545,
-		InteropAutoRelay: true,
+func TestSuperchainETHTransfer(t *testing.T) {
+	_ = createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.L1Port = 8545
+		cfg.L2StartingPort = 9545
+		cfg.InteropAutoRelay = true
+		return cfg
 	})
 
 	// Check initial balance on chain 902
@@ -108,7 +110,7 @@ func TestCrosschainETHTransfer(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Check the final balance on chain 902
-	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+	require.NoError(t, wait.For(context.Background(), 500*time.Millisecond, func() (bool, error) {
 		finalBalanceCmd := `cast balance 0xCE35738E4bC96bB0a194F71B3d184809F3727f56 --rpc-url http://127.0.0.1:9546`
 		finalBalance, err := runCmd(finalBalanceCmd)
 		if err != nil {
@@ -116,6 +118,5 @@ func TestCrosschainETHTransfer(t *testing.T) {
 		}
 
 		return finalBalance == "10000000000000000000", nil
-	})
-	assert.NoError(t, waitErr)
+	}))
 }
