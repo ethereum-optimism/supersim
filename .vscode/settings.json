@@ -1,6 +1,6 @@
 {
-  "editor.defaultFormatter": "golang.go",
-  "go.lintTool": "golangci-lint",
+  "editor.defaultFormatter": "golan.go",
+  "go.lintTool": "golanci-lint",
   "go.lintFlags": [
     "--fast"
   ]
