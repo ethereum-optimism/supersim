@@ -60,6 +60,7 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, cliConfig 
 			RPCUrl:      l1RpcUrl,
 			BlockNumber: l1Header.Number.Uint64(),
 		},
+		OdysseyEnabled: cliConfig.OdysseyEnabled,
 	}
 
 	// L2s
@@ -106,6 +107,7 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, cliConfig 
 				L1ChainID:   superchain.Config.L1.ChainID,
 				L1Addresses: registry.Addresses[chainCfg.ChainID],
 			},
+			OdysseyEnabled: cliConfig.OdysseyEnabled,
 		}
 
 		if forkConfig.InteropEnabled {

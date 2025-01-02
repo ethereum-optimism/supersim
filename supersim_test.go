@@ -20,7 +20,6 @@ import (
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
-	"github.com/ethereum-optimism/supersim/testutils"
 	"github.com/joho/godotenv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -82,12 +81,20 @@ type InteropTestSuite struct {
 	DestChainID     *big.Int
 }
 
-func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
+type ConfigOption = func(cfg *config.CLIConfig) *config.CLIConfig
+
+func createTestSuite(t *testing.T, ConfigOption ...ConfigOption) *TestSuite {
+	cliConfig := &config.CLIConfig{L2Count: 2, L1Host: "127.0.0.1", L2Host: "127.0.0.1"}
+	for _, configure := range ConfigOption {
+		cliConfig = configure(cliConfig)
+	}
+
 	// Load the .env file
 	err := godotenv.Load()
 	if err != nil {
 		log.Warn("Error loading .env file", "err", err)
 	}
+
 	testlog := testlog.Logger(t, log.LevelInfo)
 	dk, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
 	if err != nil {
@@ -96,7 +103,11 @@ func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
 	}
 
 	ctx, closeApp := context.WithCancelCause(context.Background())
-	supersim, _ := NewSupersim(testlog, "SUPERSIM", closeApp, cliConfig)
+	supersim, err := NewSupersim(testlog, "SUPERSIM", closeApp, cliConfig)
+	if err != nil {
+		t.Fatalf("failed to create supersim: %s", err)
+	}
+
 	t.Cleanup(func() {
 		closeApp(nil)
 		if err := supersim.Stop(context.Background()); err != nil {
@@ -117,28 +128,27 @@ func createTestSuite(t *testing.T, cliConfig *config.CLIConfig) *TestSuite {
 	}
 }
 
-type ForkInteropTestSuiteOptions struct {
-	interopAutoRelay bool
-	interopDelay     uint64
-}
-
-func createForkedInteropTestSuite(t *testing.T, testOptions ForkInteropTestSuiteOptions) *InteropTestSuite {
+func createForkedInteropTestSuite(t *testing.T, opts ...ConfigOption) *InteropTestSuite {
 	srcChain := "op"
 	destChain := "base"
-	cliConfig := &config.CLIConfig{
-		ForkConfig: &config.ForkCLIConfig{
+	cfgOpt := func(cfg *config.CLIConfig) *config.CLIConfig {
+		for _, opt := range opts {
+			cfg = opt(cfg)
+		}
+		cfg.ForkConfig = &config.ForkCLIConfig{
 			Chains:         []string{srcChain, destChain},
 			Network:        "mainnet",
 			InteropEnabled: true,
-		},
-		InteropAutoRelay: testOptions.interopAutoRelay,
-		InteropDelay:     testOptions.interopDelay,
+		}
+		return cfg
 	}
-	superchain := registry.Superchains[cliConfig.ForkConfig.Network]
+
+	testSuite := createTestSuite(t, cfgOpt)
+
+	superchain := registry.Superchains[testSuite.Cfg.ForkConfig.Network]
 	srcChainCfg := config.OPChainByName(superchain, srcChain)
 	destChainCfg := config.OPChainByName(superchain, destChain)
 
-	testSuite := createTestSuite(t, cliConfig)
 	sourceURL := testSuite.Supersim.Orchestrator.Endpoint(srcChainCfg.ChainID)
 	sourceEthClient, _ := ethclient.Dial(sourceURL)
 	defer sourceEthClient.Close()
@@ -162,8 +172,8 @@ func createForkedInteropTestSuite(t *testing.T, testOptions ForkInteropTestSuite
 	}
 }
 
-func createInteropTestSuite(t *testing.T, cliConfig config.CLIConfig) *InteropTestSuite {
-	testSuite := createTestSuite(t, &cliConfig)
+func createInteropTestSuite(t *testing.T, opts ...ConfigOption) *InteropTestSuite {
+	testSuite := createTestSuite(t, opts...)
 
 	sourceURL := testSuite.Supersim.Orchestrator.Endpoint(testSuite.Supersim.NetworkConfig.L2Configs[0].ChainID)
 	sourceEthClient, _ := ethclient.Dial(sourceURL)
@@ -187,8 +197,7 @@ func createInteropTestSuite(t *testing.T, cliConfig config.CLIConfig) *InteropTe
 
 func TestStartup(t *testing.T) {
 	t.Parallel()
-
-	testSuite := createTestSuite(t, &config.CLIConfig{})
+	testSuite := createTestSuite(t)
 
 	l2Chains := testSuite.Supersim.Orchestrator.L2Chains()
 	require.True(t, len(l2Chains) > 0)
@@ -216,10 +225,19 @@ func TestStartup(t *testing.T) {
 	l1Client.Close()
 }
 
+func TestL2Count(t *testing.T) {
+	t.Parallel()
+	testSuite := createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.L2Count = config.MaxL2Count
+		return cfg
+	})
+
+	require.Len(t, testSuite.Supersim.Orchestrator.L2Chains(), config.MaxL2Count)
+}
+
 func TestL1GenesisState(t *testing.T) {
 	t.Parallel()
-
-	testSuite := createTestSuite(t, &config.CLIConfig{})
+	testSuite := createTestSuite(t)
 
 	l1Client := testSuite.Supersim.Orchestrator.L1Chain().EthClient()
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
@@ -239,8 +257,8 @@ func TestL1GenesisState(t *testing.T) {
 
 func TestGenesisState(t *testing.T) {
 	t.Parallel()
+	testSuite := createTestSuite(t)
 
-	testSuite := createTestSuite(t, &config.CLIConfig{})
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
 		client, err := rpc.Dial(chain.Endpoint())
 		require.NoError(t, err)
@@ -260,8 +278,7 @@ func TestGenesisState(t *testing.T) {
 
 func TestAccountBalances(t *testing.T) {
 	t.Parallel()
-
-	testSuite := createTestSuite(t, &config.CLIConfig{})
+	testSuite := createTestSuite(t)
 
 	for _, l2Chain := range testSuite.Supersim.Orchestrator.L2Chains() {
 		client, err := rpc.Dial(l2Chain.Endpoint())
@@ -278,8 +295,7 @@ func TestAccountBalances(t *testing.T) {
 
 func TestOptimismPortalDeposit(t *testing.T) {
 	t.Parallel()
-
-	testSuite := createTestSuite(t, &config.CLIConfig{})
+	testSuite := createTestSuite(t)
 
 	l1Chain := testSuite.Supersim.Orchestrator.L1Chain()
 	l1EthClient, _ := ethclient.Dial(l1Chain.Endpoint())
@@ -334,25 +350,21 @@ func TestOptimismPortalDeposit(t *testing.T) {
 
 func TestDirectDepositTxFails(t *testing.T) {
 	t.Parallel()
+	testSuite := createTestSuite(t)
 
-	testSuite := createTestSuite(t, &config.CLIConfig{})
 	l2Chain := testSuite.Supersim.Orchestrator.L2Chains()[0]
-
 	l2EthClient, err := ethclient.Dial(l2Chain.Endpoint())
 	require.NoError(t, err)
 	defer l2EthClient.Close()
 
 	// Create a deposit transaction
 	depositTx := &types.DepositTx{Mint: big.NewInt(1e18), Value: big.NewInt(0)}
-
-	// Fails when sent to the L2
 	require.Error(t, l2EthClient.SendTransaction(context.Background(), types.NewTx(depositTx)))
 }
 
 func TestDependencySet(t *testing.T) {
 	t.Parallel()
-
-	testSuite := createTestSuite(t, &config.CLIConfig{})
+	testSuite := createTestSuite(t)
 
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
 		l2Client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.Endpoint(chain.Config().ChainID))
@@ -380,8 +392,7 @@ func TestDependencySet(t *testing.T) {
 
 func TestDeployContractsL1WithDevAccounts(t *testing.T) {
 	t.Parallel()
-
-	testSuite := createTestSuite(t, &config.CLIConfig{})
+	testSuite := createTestSuite(t)
 
 	l1Client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.L1Chain().Endpoint())
 	require.NoError(t, err)
@@ -420,8 +431,7 @@ func TestDeployContractsL1WithDevAccounts(t *testing.T) {
 
 func TestBatchJsonRpcRequests(t *testing.T) {
 	t.Parallel()
-
-	testSuite := createTestSuite(t, &config.CLIConfig{})
+	testSuite := createTestSuite(t)
 
 	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
 		client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.Endpoint(chain.Config().ChainID))
@@ -442,8 +452,8 @@ func TestBatchJsonRpcRequests(t *testing.T) {
 
 func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	t.Parallel()
+	testSuite := createInteropTestSuite(t)
 
-	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	gasLimit := uint64(30000000)
 	gasPrice := big.NewInt(10000000)
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
@@ -506,8 +516,8 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 
 func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	t.Parallel()
+	testSuite := createInteropTestSuite(t)
 
-	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 
@@ -561,8 +571,8 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 
 func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 	t.Parallel()
+	testSuite := createInteropTestSuite(t)
 
-	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
@@ -614,8 +624,8 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 
 func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	t.Parallel()
+	testSuite := createInteropTestSuite(t)
 
-	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
@@ -667,8 +677,8 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 
 func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 	t.Parallel()
+	testSuite := createInteropTestSuite(t)
 
-	testSuite := createInteropTestSuite(t, config.CLIConfig{})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
@@ -719,8 +729,10 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 
 func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 	t.Parallel()
-
-	testSuite := createForkedInteropTestSuite(t, ForkInteropTestSuiteOptions{interopAutoRelay: false})
+	testSuite := createForkedInteropTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.InteropAutoRelay = false
+		return cfg
+	})
 
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -775,8 +787,8 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 
 func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 	t.Parallel()
+	testSuite := createInteropTestSuite(t)
 
-	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 
@@ -817,7 +829,7 @@ func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
-	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+	require.NoError(t, wait.For(context.Background(), 500*time.Millisecond, func() (bool, error) {
 		newVal, err := simpleStorage.Get(&bind.CallOpts{}, key)
 		require.NoError(t, err)
 		if err != nil {
@@ -825,12 +837,16 @@ func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 		}
 
 		return newVal == common.Hash(newVal), nil
-	})
-	assert.NoError(t, waitErr)
+	}))
 }
 
 func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
-	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
+	t.Parallel()
+	testSuite := createInteropTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.InteropAutoRelay = true
+		return cfg
+	})
+
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 
@@ -868,17 +884,20 @@ func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
-	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+	require.NoError(t, wait.For(context.Background(), 500*time.Millisecond, func() (bool, error) {
 		destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
 		require.NoError(t, err)
 		diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
 		return diff.Cmp(valueToTransfer) == 0, nil
-	})
-	assert.NoError(t, waitErr)
+	}))
 }
 
 func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
-	testSuite := createForkedInteropTestSuite(t, ForkInteropTestSuiteOptions{interopAutoRelay: true})
+	t.Parallel()
+	testSuite := createForkedInteropTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.InteropAutoRelay = true
+		return cfg
+	})
 
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
@@ -917,19 +936,21 @@ func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
-	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+	require.NoError(t, wait.For(context.Background(), 500*time.Millisecond, func() (bool, error) {
 		destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
 		require.NoError(t, err)
 		diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
 		return diff.Cmp(valueToTransfer) == 0, nil
-	})
-	assert.NoError(t, waitErr)
+	}))
 }
 
 func TestInteropInvariantSucceedsWithDelay(t *testing.T) {
-	testSuite := createInteropTestSuite(t, config.CLIConfig{
-		InteropDelay: 2, // 2 second delay
+	t.Parallel()
+	testSuite := createInteropTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.InteropDelay = 2
+		return cfg
 	})
+
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 
@@ -985,9 +1006,12 @@ func TestInteropInvariantSucceedsWithDelay(t *testing.T) {
 }
 
 func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
-	testSuite := createInteropTestSuite(t, config.CLIConfig{
-		InteropDelay: 5,
+	t.Parallel()
+	testSuite := createInteropTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.InteropDelay = math.MaxUint64 / 2 // added to block time so provide leeway to not overflow
+		return cfg
 	})
+
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 
@@ -1025,15 +1049,19 @@ func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
 
-	_, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
-
 	// Should fail because the delay time hasn't passed
+	_, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "not enough time has passed since initiating message")
 }
 
 func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
-	testSuite := createInteropTestSuite(t, config.CLIConfig{InteropAutoRelay: true})
+	t.Parallel()
+	testSuite := createInteropTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.InteropAutoRelay = true
+		return cfg
+	})
+
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
 
@@ -1072,7 +1100,7 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
 
 	var client *rpc.Client
-	waitErr := testutils.WaitForWithTimeout(context.Background(), 500*time.Millisecond, 10*time.Second, func() (bool, error) {
+	require.NoError(t, wait.For(context.Background(), 500*time.Millisecond, func() (bool, error) {
 		destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
 		require.NoError(t, err)
 		diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
@@ -1084,8 +1112,7 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 		client = newClient
 
 		return diff.Cmp(valueToTransfer) == 0, nil
-	})
-	assert.NoError(t, waitErr)
+	}))
 
 	var message *admin.JSONL2ToL2Message
 	// msgHash for the above sendERC20 txn

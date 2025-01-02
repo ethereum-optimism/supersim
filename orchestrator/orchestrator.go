@@ -34,15 +34,24 @@ type Orchestrator struct {
 	AdminServer *admin.AdminServer
 }
 
-func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, networkConfig *config.NetworkConfig, adminPort uint64) (*Orchestrator, error) {
+func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig *config.CLIConfig, networkConfig *config.NetworkConfig, adminPort uint64) (*Orchestrator, error) {
 	// Spin up L1 anvil instance
-	l1Anvil := anvil.New(log, closeApp, &networkConfig.L1Config)
+	l1Cfg := networkConfig.L1Config
+	if cliConfig != nil {
+		l1Cfg.OdysseyEnabled = cliConfig.OdysseyEnabled
+	}
+	l1Anvil := anvil.New(log, closeApp, &l1Cfg)
 
 	// Spin up L2 anvil instances
 	nextL2Port := networkConfig.L2StartingPort
 	l2Anvils, l2OpSims := make(map[uint64]config.Chain), make(map[uint64]*opsimulator.OpSimulator)
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
+
+		if cliConfig != nil {
+			cfg.OdysseyEnabled = cliConfig.OdysseyEnabled
+		}
+
 		cfg.Port = 0 // explicitly set to zero as this anvil sits behind a proxy
 
 		l2Anvil := anvil.New(log, closeApp, &cfg)
@@ -118,15 +127,15 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		o.log.Info("configuring interop contracts")
 
 		var wg sync.WaitGroup
+		var errs []error
 		wg.Add(len(o.l2Chains))
-		errs := make([]error, len(o.l2Chains))
 
 		// Iterate over the underlying l2Chains for configuration as it relies
 		// on deposit txs from system addresses which opsimulator will reject
 		for i, chain := range o.l2Chains {
 			go func(i uint64) {
 				if err := interop.Configure(ctx, chain); err != nil {
-					errs[i] = fmt.Errorf("failed to configure interop for chain %s: %w", chain.Config().Name, err)
+					errs = append(errs, fmt.Errorf("failed to configure interop for chain %s: %w", chain.Config().Name, err))
 				}
 				wg.Done()
 			}(i)

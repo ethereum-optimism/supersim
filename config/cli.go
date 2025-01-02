@@ -28,12 +28,17 @@ const (
 	NetworkFlagName        = "network"
 	L2StartingPortFlagName = "l2.starting.port"
 	L2HostFlagName         = "l2.host"
+	L2CountFlagName        = "l2.count"
 
 	LogsDirectoryFlagName = "logs.directory"
 
 	InteropEnabledFlagName   = "interop.enabled"
 	InteropAutoRelayFlagName = "interop.autorelay"
 	InteropDelayFlagName     = "interop.delay"
+
+	OdysseyEnabledFlagName = "odyssey.enabled"
+
+	MaxL2Count = 5
 )
 
 var documentationLinks = []struct {
@@ -58,6 +63,12 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "Listening port for the L1 instance. `0` binds to any available port",
 			Value:   8545,
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "L1_PORT"),
+		},
+		&cli.Uint64Flag{
+			Name:    L2CountFlagName,
+			Usage:   fmt.Sprintf("Number of L2s. Max of %d", MaxL2Count),
+			Value:   2,
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "L2_COUNT"),
 		},
 		&cli.Uint64Flag{
 			Name:    L2StartingPortFlagName,
@@ -94,6 +105,12 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Value:   0, // enabled by default
 			Usage:   "Delay before relaying messages sent to the L2ToL2CrossDomainMessenger",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_DELAY"),
+		},
+		&cli.BoolFlag{
+			Name:    OdysseyEnabledFlagName,
+			Value:   false, // disabled by default
+			Usage:   "Enable odyssey experimental features",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "ODYSSEY_ENABLED"),
 		},
 	}
 }
@@ -135,16 +152,21 @@ type ForkCLIConfig struct {
 	Chains       []string
 
 	InteropEnabled bool
+	OdysseyEnabled bool
 }
 
 type CLIConfig struct {
 	AdminPort uint64
 
-	L1Port         uint64
+	L1Port uint64
+
 	L2StartingPort uint64
+	L2Count        uint64
 
 	InteropAutoRelay bool
 	InteropDelay     uint64
+
+	OdysseyEnabled bool
 
 	LogsDirectory string
 
@@ -158,16 +180,19 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 	cfg := &CLIConfig{
 		AdminPort: ctx.Uint64(AdminPortFlagName),
 
-		L1Port:         ctx.Uint64(L1PortFlagName),
+		L1Port: ctx.Uint64(L1PortFlagName),
+		L1Host: ctx.String(L1HostFlagName),
+
 		L2StartingPort: ctx.Uint64(L2StartingPortFlagName),
+		L2Count:        ctx.Uint64(L2CountFlagName),
+		L2Host:         ctx.String(L2HostFlagName),
 
 		InteropAutoRelay: ctx.Bool(InteropAutoRelayFlagName),
 		InteropDelay:     ctx.Uint64(InteropDelayFlagName),
 
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 
-		L1Host: ctx.String(L1HostFlagName),
-		L2Host: ctx.String(L2HostFlagName),
+		OdysseyEnabled: ctx.Bool(OdysseyEnabledFlagName),
 	}
 
 	if ctx.Command.Name == ForkCommandName {
@@ -177,6 +202,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 			Chains:       ctx.StringSlice(ChainsFlagName),
 
 			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
+			OdysseyEnabled: ctx.Bool(OdysseyEnabledFlagName),
 		}
 	}
 
@@ -190,6 +216,10 @@ func (c *CLIConfig) Check() error {
 	}
 	if err := validateHost(c.L2Host); err != nil {
 		return fmt.Errorf("invalid L2 host address: %w", err)
+	}
+
+	if c.L2Count == 0 || c.L2Count > MaxL2Count {
+		return fmt.Errorf("min 1, max %d L2 chains", MaxL2Count)
 	}
 
 	if c.ForkConfig != nil {

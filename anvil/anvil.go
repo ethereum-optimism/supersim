@@ -90,6 +90,10 @@ func (a *Anvil) Start(ctx context.Context) error {
 		"--max-persisted-states", "5",
 	}
 
+	if a.cfg.OdysseyEnabled {
+		args = append(args, "--odyssey")
+	}
+
 	if a.cfg.L2Config != nil {
 		args = append(args, "--optimism")
 	}
