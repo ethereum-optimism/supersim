@@ -102,6 +102,12 @@ func TestSubscribePublishTx(t *testing.T) {
 	mockDepositTxs := createMockDepositTxs()
 	chain := MockChainWithSubscriptions{testutils.NewMockChain(), mockDepositTxs}
 
+	depositPubTxCh := make(chan *types.Transaction, len(mockDepositTxs))
+
+	unsubscribe, err := indexer.SubscribeDepositMessage(chain.Config().ChainID, depositPubTxCh)
+
+	require.NoError(t, err, "Should subscribe via chainId")
+
 	ctx := context.Background()
 
 	depositTxCh := make(chan *types.DepositTx, len(mockDepositTxs))
@@ -117,27 +123,30 @@ func TestSubscribePublishTx(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	depositPubTxCh := make(chan *types.Transaction, len(mockDepositTxs))
+	for i := 0; i < len(mockDepositTxs); i++ {
+		dep := <-depositTxCh
+		log := <-logCh
 
-	unsubscribe, err := indexer.SubscribeDepositMessage(chain.Config().ChainID, depositPubTxCh)
+		err := indexer.ProcessEvent(dep, log, chain.Config().ChainID)
+		require.NoError(t, err, "Should send valid details")
 
-	require.NoError(t, err, "Should subscribe via chainId")
+		// Source hash is lost in the marshal process
+		// require.Equal(t, dep.From, mockDepositTxs[i].From)
+		// require.Equal(t, dep.To, mockDepositTxs[i].To)
+		// require.Equal(t, dep.Mint, mockDepositTxs[i].Mint)
+		// require.Equal(t, dep.Value, mockDepositTxs[i].Value)
+		// require.Equal(t, dep.Gas, mockDepositTxs[i].Gas)
+		// require.Equal(t, dep.IsSystemTransaction, mockDepositTxs[i].IsSystemTransaction)
+		// require.Equal(t, dep.Data, mockDepositTxs[i].Data)
 
-	// for i := 0; i < len(mockDepositTxs); i++ {
-	dep := <-depositPubTxCh
+	}
 
-	t.Logf("Transaction: %+v\n", dep)
-
-	// 	//Source hash is lost in the marshal process
-	// 	// require.Equal(t, dep.From, mockDepositTxs[i].From)
-	// 	// require.Equal(t, dep.To, mockDepositTxs[i].To)
-	// 	// require.Equal(t, dep.Mint, mockDepositTxs[i].Mint)
-	// 	// require.Equal(t, dep.Value, mockDepositTxs[i].Value)
-	// 	// require.Equal(t, dep.Gas, mockDepositTxs[i].Gas)
-	// 	// require.Equal(t, dep.IsSystemTransaction, mockDepositTxs[i].IsSystemTransaction)
-	// 	// require.Equal(t, dep.Data, mockDepositTxs[i].Data)
-
-	// }
+	for i := 0; i < len(mockDepositTxs); i++ {
+		dep := <-depositPubTxCh
+		depTx := types.NewTx(mockDepositTxs[i])
+		t.Log(dep.Hash().String())
+		t.Log(depTx.Hash().String())
+	}
 
 	unsubscribe()
 	sub.Unsubscribe()

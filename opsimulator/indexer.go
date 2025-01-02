@@ -117,7 +117,7 @@ func (i *L1ToL2MessageIndexer) startForChain(ctx context.Context, client *ethcli
 			select {
 			case dep := <-depositTxCh:
 				log := <-logCh
-				if err := i.processEvent(dep, log, chainID); err != nil {
+				if err := i.ProcessEvent(dep, log, chainID); err != nil {
 					fmt.Printf("failed to process log: %v\n", err)
 				}
 
@@ -157,7 +157,7 @@ func (i *L1ToL2MessageIndexer) createSubscription(key string, depositMessageChan
 	}, nil
 }
 
-func (i *L1ToL2MessageIndexer) processEvent(dep *types.DepositTx, log types.Log, chainID uint64) error {
+func (i *L1ToL2MessageIndexer) ProcessEvent(dep *types.DepositTx, log types.Log, chainID uint64) error {
 
 	depTx := types.NewTx(dep)
 	i.log.Info("observed deposit event on L1", "hash", depTx.Hash().String(), "SourceHash", dep.SourceHash.String())
