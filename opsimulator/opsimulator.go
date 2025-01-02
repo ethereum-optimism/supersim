@@ -63,7 +63,7 @@ type OpSimulator struct {
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
-func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64, storeManager *L1DepositStoreManager) *OpSimulator {
+func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, l2Chain.EthClient())
@@ -71,12 +71,10 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host str
 		closeApp(fmt.Errorf("failed to create cross L2 inbox: %w", err))
 	}
 
-	newLog := log.New("chain.id", l2Chain.Config().ChainID)
-
 	return &OpSimulator{
 		Chain: l2Chain,
 
-		log:          newLog,
+		log:          log.New("chain.id", l2Chain.Config().ChainID),
 		port:         port,
 		host:         host,
 		l1Chain:      l1Chain,
@@ -92,12 +90,11 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host str
 			},
 		},
 
-		peers:   peers,
-		indexer: NewL1ToL2MessageIndexer(newLog, storeManager),
+		peers: peers,
 	}
 }
 
-func (opSim *OpSimulator) Start(ctx context.Context) error {
+func (opSim *OpSimulator) Start(ctx context.Context, indexer *L1ToL2MessageIndexer) error {
 	mux := http.NewServeMux()
 	mux.Handle("/", corsHandler(opSim.handler(ctx)))
 
@@ -109,6 +106,8 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	cfg := opSim.Config()
 	opSim.log.Debug("started opsimulator", "name", cfg.Name, "chain.id", cfg.ChainID, "addr", hs.Addr())
 	opSim.httpServer = hs
+
+	opSim.indexer = indexer
 
 	if opSim.port == 0 {
 		_, portStr, err := net.SplitHostPort(hs.Addr().String())
@@ -128,10 +127,6 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to create eth client: %w", err)
 	}
 
-	if err := opSim.indexer.Start(ctx, opSim.l1Chain.EthClient(), opSim.Chain); err != nil {
-		return fmt.Errorf("L1ToL2Indexer failed to start: %w", err)
-	}
-
 	opSim.ethClient = ethClient
 	opSim.startBackgroundTasks()
 	return nil
@@ -143,10 +138,6 @@ func (opSim *OpSimulator) Stop(ctx context.Context) error {
 	}
 	if !opSim.stopped.CompareAndSwap(false, true) {
 		return nil // someone else stopped
-	}
-
-	if err := opSim.indexer.Stop(ctx); err != nil {
-		return errors.New("Failed to stop L1ToL2Indexer")
 	}
 
 	opSim.bgTasksCancel()

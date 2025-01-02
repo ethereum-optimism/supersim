@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	optestutils "github.com/ethereum-optimism/optimism/op-service/testutils"
 
 	"github.com/ethereum-optimism/supersim/config"
@@ -90,5 +91,55 @@ func TestSubscribeDepositTx(t *testing.T) {
 
 	sub.Unsubscribe()
 
+	close(depositTxCh)
+}
+
+func TestSubscribePublishTx(t *testing.T) {
+
+	depositStoreMngr := NewL1DepositStoreManager()
+	indexer := NewL1ToL2MessageIndexer(oplog.NewLogger(oplog.AppOut(nil), oplog.DefaultCLIConfig()), depositStoreMngr)
+
+	mockDepositTxs := createMockDepositTxs()
+	chain := MockChainWithSubscriptions{testutils.NewMockChain(), mockDepositTxs}
+
+	ctx := context.Background()
+
+	depositTxCh := make(chan *types.DepositTx, len(mockDepositTxs))
+	logCh := make(chan types.Log, len(mockDepositTxs))
+
+	channels := DepositChannels{
+		DepositTxCh: depositTxCh,
+		LogCh:       logCh,
+	}
+
+	sub, err := SubscribeDepositTx(ctx, &chain, common.HexToAddress(""), channels)
+	if err != nil {
+		require.NoError(t, err)
+	}
+
+	depositPubTxCh := make(chan *types.Transaction, len(mockDepositTxs))
+
+	unsubscribe, err := indexer.SubscribeDepositMessage(chain.Config().ChainID, depositPubTxCh)
+
+	require.NoError(t, err, "Should subscribe via chainId")
+
+	// for i := 0; i < len(mockDepositTxs); i++ {
+	dep := <-depositPubTxCh
+
+	t.Logf("Transaction: %+v\n", dep)
+
+	// 	//Source hash is lost in the marshal process
+	// 	// require.Equal(t, dep.From, mockDepositTxs[i].From)
+	// 	// require.Equal(t, dep.To, mockDepositTxs[i].To)
+	// 	// require.Equal(t, dep.Mint, mockDepositTxs[i].Mint)
+	// 	// require.Equal(t, dep.Value, mockDepositTxs[i].Value)
+	// 	// require.Equal(t, dep.Gas, mockDepositTxs[i].Gas)
+	// 	// require.Equal(t, dep.IsSystemTransaction, mockDepositTxs[i].IsSystemTransaction)
+	// 	// require.Equal(t, dep.Data, mockDepositTxs[i].Data)
+
+	// }
+
+	unsubscribe()
+	sub.Unsubscribe()
 	close(depositTxCh)
 }
