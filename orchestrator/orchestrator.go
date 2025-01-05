@@ -63,7 +63,7 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
 
-		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay, depositStoreMngr)
+		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay)
 
 		// only increment expected port if it has been specified
 		if nextL2Port > 0 {
@@ -74,7 +74,7 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig
 	o := Orchestrator{log: log, config: networkConfig, l1Chain: l1Anvil, l2Chains: l2Anvils, l2OpSims: l2OpSims}
 
 	depositStoreMngr := opsimulator.NewL1DepositStoreManager()
-	o.l1ToL2MsgIndexer := opsimulator.NewL1ToL2MessageIndexer(log, depositStoreMngr)
+	o.l1ToL2MsgIndexer = opsimulator.NewL1ToL2MessageIndexer(log, depositStoreMngr)
 
 	// Interop Setup
 	if networkConfig.InteropEnabled {
@@ -97,19 +97,6 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 	// TODO: hack until opsim proxy supports websocket connections.
 	// We need websocket connections to make subscriptions.
 	// We should try to use make RPC through opsim not directly to the underlying chain
-	l2ChainClientByChainId := make(map[uint64]*ethclient.Client)
-	l2OpSimClientByChainId := make(map[uint64]*ethclient.Client)
-	l2ChainByChainId := make(map[uint64]config.Chain)
-
-	for chainID, opSim := range o.l2OpSims {
-		l2ChainClientByChainId[chainID] = opSim.Chain.EthClient()
-		l2OpSimClientByChainId[chainID] = opSim.EthClient()
-		l2ChainByChainId[chainID] = opSim.Chain
-	}
-
-	if err := o.l1ToL2MsgIndexer.Start(ctx, o.l1Chain.EthClient(), l2ChainByChainId); err != nil {
-		return fmt.Errorf("l1 to l2 message indexer failed to start: %w", err)
-	}
 
 	// Start Chains
 	if err := o.l1Chain.Start(ctx); err != nil {
@@ -129,6 +116,21 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 	// Start Mining Blocks
 	if err := o.kickOffMining(ctx); err != nil {
 		return fmt.Errorf("unable to start mining: %w", err)
+	}
+
+	l2ChainClientByChainId := make(map[uint64]*ethclient.Client)
+	l2OpSimClientByChainId := make(map[uint64]*ethclient.Client)
+	l2ChainByChainId := make(map[uint64]config.Chain)
+
+	for chainID, opSim := range o.l2OpSims {
+		o.log.Info("HERERE IS THE ISSUE", "chain", opSim.Chain)
+		l2ChainClientByChainId[chainID] = opSim.Chain.EthClient()
+		l2OpSimClientByChainId[chainID] = opSim.EthClient()
+		l2ChainByChainId[chainID] = opSim.Chain
+	}
+
+	if err := o.l1ToL2MsgIndexer.Start(ctx, o.l1Chain.EthClient(), l2ChainByChainId); err != nil {
+		return fmt.Errorf("l1 to l2 message indexer failed to start: %w", err)
 	}
 
 	// Configure Interop (if applicable)
@@ -190,7 +192,7 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 		}
 	}
 
-	if err := o.indexer.Stop(ctx); err != nil {
+	if err := o.l1ToL2MsgIndexer.Stop(ctx); err != nil {
 		errs = append(errs, fmt.Errorf("l1 to l2 message indexer failed to stop: %w", err))
 	}
 
@@ -247,7 +249,7 @@ func (o *Orchestrator) L1Chain() config.Chain {
 
 func (o *Orchestrator) L2Chains() []config.Chain {
 	var chains []config.Chain
-	for _, chain := range o.l2OpSims {
+	for _, chain := range o.l2Chains {
 		chains = append(chains, chain)
 	}
 	return chains

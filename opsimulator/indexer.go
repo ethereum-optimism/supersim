@@ -111,12 +111,13 @@ func (i *L1ToL2MessageIndexer) startForChain(ctx context.Context, client *ethcli
 			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
 		}
 
-		chainID := i.l2Chain.Config().ChainID
+		chainID := chain.Config().ChainID
 
 		for {
 			select {
 			case dep := <-depositTxCh:
 				log := <-logCh
+				i.log.Info("observed deposit event on L1", "deposit:", dep)
 				if err := i.ProcessEvent(dep, log, chainID); err != nil {
 					fmt.Printf("failed to process log: %v\n", err)
 				}

@@ -1129,7 +1129,7 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 func TestAdminGetL1ToL2MessageByTxnHash(t *testing.T) {
 	t.Parallel()
 
-	testSuite := createTestSuite(t, &config.CLIConfig{})
+	testSuite := createTestSuite(t)
 
 	l1Chain := testSuite.Supersim.Orchestrator.L1Chain()
 	l1EthClient, _ := ethclient.Dial(l1Chain.Endpoint())
