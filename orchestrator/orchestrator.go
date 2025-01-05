@@ -59,7 +59,7 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig
 		l2Anvils[cfg.ChainID] = l2Anvil
 	}
 
-	// Sping up OpSim to fornt the L2 instances
+	// Sping up OpSim to front the L2 instances
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
 
