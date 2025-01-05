@@ -27,7 +27,7 @@ type AdminServer struct {
 
 	networkConfig    *config.NetworkConfig
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
-	l1DepositStore   *opsimulator.L1DepositStoreManager
+	l1ToL2MsgIndexer *opsimulator.L1ToL2MessageIndexer
 
 	port uint64
 }
@@ -36,7 +36,7 @@ type RPCMethods struct {
 	log              log.Logger
 	networkConfig    *config.NetworkConfig
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
-	l1DepositStore   *opsimulator.L1DepositStoreManager
+	l1ToL2MsgIndexer *opsimulator.L1ToL2MessageIndexer
 }
 
 type JSONRPCError struct {
@@ -89,12 +89,12 @@ func (err *JSONRPCError) ErrorCode() int {
 	return err.Code
 }
 
-func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, indexer *interop.L2ToL2MessageIndexer, l1DepositStore *opsimulator.L1DepositStoreManager) *AdminServer {
+func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer, l1ToL2MsgIndexer *opsimulator.L1ToL2MessageIndexer) *AdminServer {
 
-	adminServer := &AdminServer{log: log, port: port, networkConfig: networkConfig, l1DepositStore: l1DepositStore}
+	adminServer := &AdminServer{log: log, port: port, networkConfig: networkConfig, l1ToL2MsgIndexer: l1ToL2MsgIndexer}
 
-	if networkConfig.InteropEnabled && indexer != nil {
-		adminServer.l2ToL2MsgIndexer = indexer
+	if networkConfig.InteropEnabled && l2ToL2MsgIndexer != nil {
+		adminServer.l2ToL2MsgIndexer = l2ToL2MsgIndexer
 	}
 
 	return adminServer
@@ -171,7 +171,7 @@ func (s *AdminServer) setupRouter() *gin.Engine {
 		log:              s.log,
 		networkConfig:    s.networkConfig,
 		l2ToL2MsgIndexer: s.l2ToL2MsgIndexer,
-		l1DepositStore:   s.l1DepositStore,
+		l1ToL2MsgIndexer: s.l1ToL2MsgIndexer,
 	}
 
 	if err := rpcServer.RegisterName("admin", rpcMethods); err != nil {
@@ -257,10 +257,10 @@ func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) (*JSONL2ToL2Me
 }
 
 func (m *RPCMethods) GetL1ToL2MessageByTxnHash(args *common.Hash) (*JSONDepositMessage, error) {
-	if m.l1DepositStore == nil {
+	if m.l1ToL2MsgIndexer == nil {
 		return nil, &JSONRPCError{
 			Code:    -32601,
-			Message: "L1DepositStoreManager is not initialized.",
+			Message: "L1ToL2MsgIndexer is not initialized.",
 		}
 	}
 
@@ -271,7 +271,7 @@ func (m *RPCMethods) GetL1ToL2MessageByTxnHash(args *common.Hash) (*JSONDepositM
 		}
 	}
 
-	storeEntry, err := m.l1DepositStore.Get(*args)
+	storeEntry, err := m.l1ToL2MsgIndexer.Get(*args)
 
 	if err != nil {
 		return nil, &JSONRPCError{

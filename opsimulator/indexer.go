@@ -83,7 +83,7 @@ func (i *L1ToL2MessageIndexer) Start(ctx context.Context, client *ethclient.Clie
 	i.chains = l2Chains
 
 	for _, chain := range i.chains {
-		if err := i.startForChain(ctx, client, chain); err != nil {
+		if err := i.startForChain(client, chain); err != nil {
 			return fmt.Errorf("Failed to start L1 to L2 indexer")
 		}
 	}
@@ -91,7 +91,7 @@ func (i *L1ToL2MessageIndexer) Start(ctx context.Context, client *ethclient.Clie
 	return nil
 }
 
-func (i *L1ToL2MessageIndexer) startForChain(ctx context.Context, client *ethclient.Client, chain config.Chain) error {
+func (i *L1ToL2MessageIndexer) startForChain(client *ethclient.Client, chain config.Chain) error {
 	i.tasks.Go(func() error {
 		depositTxCh := make(chan *types.DepositTx)
 		logCh := make(chan types.Log)
@@ -156,6 +156,10 @@ func (i *L1ToL2MessageIndexer) createSubscription(key string, depositMessageChan
 	return func() {
 		_ = i.eb.Unsubscribe(key, handler)
 	}, nil
+}
+
+func (i *L1ToL2MessageIndexer) Get(msgHash common.Hash) (*L1DepositMessage, error) {
+	return i.storeManager.Get(msgHash)
 }
 
 func (i *L1ToL2MessageIndexer) ProcessEvent(dep *types.DepositTx, log types.Log, chainID uint64) error {

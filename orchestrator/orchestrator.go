@@ -84,7 +84,7 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig
 		}
 	}
 
-	a := admin.NewAdminServer(log, adminPort, networkConfig, o.l2ToL2MsgIndexer, depositStoreMngr)
+	a := admin.NewAdminServer(log, adminPort, networkConfig, o.l2ToL2MsgIndexer, o.l1ToL2MsgIndexer)
 
 	o.AdminServer = a
 
