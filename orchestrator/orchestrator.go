@@ -123,7 +123,6 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 	l2ChainByChainId := make(map[uint64]config.Chain)
 
 	for chainID, opSim := range o.l2OpSims {
-		o.log.Info("HERERE IS THE ISSUE", "chain", opSim.Chain)
 		l2ChainClientByChainId[chainID] = opSim.Chain.EthClient()
 		l2OpSimClientByChainId[chainID] = opSim.EthClient()
 		l2ChainByChainId[chainID] = opSim.Chain
