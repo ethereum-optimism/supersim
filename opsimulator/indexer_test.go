@@ -123,29 +123,29 @@ func TestSubscribePublishTx(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	initiatedDepTxn := make([]*types.Transaction, len(mockDepositTxs))
+
 	for i := 0; i < len(mockDepositTxs); i++ {
 		dep := <-depositTxCh
 		log := <-logCh
+		depTx := types.NewTx(dep)
+
+		initiatedDepTxn[i] = depTx
 
 		err := indexer.ProcessEvent(dep, log, chain.Config().ChainID)
 		require.NoError(t, err, "Should send valid details")
-
-		// Source hash is lost in the marshal process
-		// require.Equal(t, dep.From, mockDepositTxs[i].From)
-		// require.Equal(t, dep.To, mockDepositTxs[i].To)
-		// require.Equal(t, dep.Mint, mockDepositTxs[i].Mint)
-		// require.Equal(t, dep.Value, mockDepositTxs[i].Value)
-		// require.Equal(t, dep.Gas, mockDepositTxs[i].Gas)
-		// require.Equal(t, dep.IsSystemTransaction, mockDepositTxs[i].IsSystemTransaction)
-		// require.Equal(t, dep.Data, mockDepositTxs[i].Data)
-
 	}
 
-	for i := 0; i < len(mockDepositTxs); i++ {
+	for i := 0; i < len(initiatedDepTxn); i++ {
 		dep := <-depositPubTxCh
-		depTx := types.NewTx(mockDepositTxs[i])
-		t.Log(dep.Hash().String())
-		t.Log(depTx.Hash().String())
+		depTx := initiatedDepTxn[i]
+
+		require.Equal(t, dep.To(), depTx.To())
+		require.Equal(t, dep.IsDepositTx(), depTx.IsDepositTx())
+		require.Equal(t, dep.Mint(), depTx.Mint())
+		require.Equal(t, dep.SourceHash(), depTx.SourceHash())
+		require.Equal(t, dep.Cost(), depTx.Cost())
+		require.Equal(t, dep.Value(), depTx.Value())
 	}
 
 	unsubscribe()
