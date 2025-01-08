@@ -31,44 +31,7 @@ brew install ethereum-optimism/tap/supersim
 
 Download the executable for your platform from the [GitHub releases page](https://github.com/ethereum-optimism/supersim/releases).
 
-### 3. Configure `supersim` (Optional)
-
-#### Option 1: Use the .toml.template File   
-The configuration file for Supersim is provided as a `.toml.template` file. This ensures you can start with a pre-defined setup while allowing you to customize it to your needs.
-
-#### Copy the .toml.template file to .toml:
-Rename the template file to remove the `.template` extension. Use the following command:
-```sh
-cp config.toml.template config.toml
-```
-#### Edit the .toml File:
-Open `config.toml` in your preferred text editor (e.g., VS Code, Vim, or Nano) and customize the parameters to suit your setup. For example:
-```toml
-# Supersim Configuration File Example         
-
-# L1 instance settings
-# Host address for the L1 instance
-# Default: "127.0.0.1"
-l1.host = "0.0.0.0"     
-
-# Listening port for the L1 instance. `0` binds to any available port
-# Default: 8545
-l1.port = 3000 
-```
-
-Save the file.
-
-
-#### Option 2: Configure via CLI
-Supersim can also be configured directly via the CLI without editing a configuration file. For example, you can specify the required parameters when starting Supersim:
-```sh
-supersim --l1.host "0.0.0.0" --l1.port 3000 --l2.host "0.0.0.0" --l2.starting.port 3001
-
-```
-
-
-
-### 4. Start `supersim` in vanilla mode
+### 3. Start `supersim` in vanilla mode
 
 ```sh
 supersim
@@ -94,7 +57,6 @@ L2s: Predeploy Contracts Spec ( https://specs.optimism.io/protocol/predeploys.ht
      - L1CrossDomainMessenger: 0xCB9768921831677Ae15cE4B64A10B94F49cD88E2
      - L1StandardBridge:       0x2D8543c236a4d626f54B51Fa8bc229a257C5143E
 ```
-
 
 ### 4. Start testing multichain features 🚀 
 
@@ -236,6 +198,40 @@ L2s: Predeploy Contracts Spec ( https://specs.optimism.io/protocol/predeploys.ht
      - OptimismPortal:         0x1a0ad011913A150f69f6A19DF447A0CfD9551054
      - L1CrossDomainMessenger: 0xdC40a14d9abd6F410226f1E6de71aE03441ca506
      - L1StandardBridge:       0x3e2Ea9B92B7E48A52296fD261dc26fd995284631
+```
+## ⚙️ Configuration
+
+#### Option 1: Use the .toml.template File   
+The configuration file for Supersim is provided as a `.toml.template` file. This ensures you can start with a pre-defined setup while allowing you to customize it to your needs.
+
+#### Copy the .toml.template file to .toml:
+Rename the template file to remove the `.template` extension. Use the following command:
+```sh
+cp config.toml.template config.toml
+```
+#### Edit the .toml File:
+Open `config.toml` in your preferred text editor (e.g., VS Code, Vim, or Nano) and customize the parameters to suit your setup. For example:
+```toml
+# Supersim Configuration File Example         
+
+# L1 instance settings
+# Host address for the L1 instance
+# Default: "127.0.0.1"
+l1.host = "0.0.0.0"     
+
+# Listening port for the L1 instance. `0` binds to any available port
+# Default: 8545
+l1.port = 3000 
+```
+
+Save the file.
+
+
+#### Option 2: Configure via CLI
+Supersim can also be configured directly via the CLI without editing a configuration file. For example, you can specify the required parameters when starting Supersim:
+```sh
+supersim --l1.host "0.0.0.0" --l1.port 3000 --l2.host "0.0.0.0" --l2.starting.port 3001
+
 ```
 
 ### Development
