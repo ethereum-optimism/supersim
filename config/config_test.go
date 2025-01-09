@@ -25,6 +25,11 @@ func TestReadCLIConfig(t *testing.T) {
 		logs_directory = "/var/logs"
 		l1_host = "127.0.0.1"
 		l2_host = "127.0.0.1"
+		[fork]
+		l1_fork_height = 0          
+		chains = ["automata", "base"]  # Chains to fork in the superchain
+		network = "mainnet"         # Superchain network. Options: sepolia-dev-0, mainnet, sepolia
+		interop_enabled = true 
 	`
 
 	tmpFile, err := os.Create(cfgPath)
