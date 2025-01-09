@@ -1,0 +1,1 @@
+export const PREDICTION_MARKET_CHAIN_ID = 903

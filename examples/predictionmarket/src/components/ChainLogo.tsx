@@ -1,7 +1,10 @@
 import React from 'react';
 
-import opLogo from '../assets/op.png';
-import uniLogo from '../assets/uni.png';
+import uni from '../assets/uni.png';
+import op from '../assets/op.png';
+import superpredict from '../assets/superpredict.png';
+
+import { chainName } from '../utils/chain';
 
 interface ChainLogoProps {
     chainId: bigint;
@@ -12,9 +15,11 @@ const ChainLogo: React.FC<ChainLogoProps> = ({ chainId, size = '16px' }) => {
     const getLogoSrc = () => {
         switch (Number(chainId)) {
             case 901:
-                return { src: opLogo, alt: "OP Mainnet" };
+                return { src: op, alt: chainName(chainId) };
             case 902:
-                return { src: uniLogo, alt: "Unichain" };
+                return { src: uni, alt: chainName(chainId) };
+            case 903:
+                return { src: superpredict, alt: chainName(chainId) };
             default:
                 return null;
         }
