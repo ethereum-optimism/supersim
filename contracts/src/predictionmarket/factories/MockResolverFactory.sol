@@ -20,8 +20,8 @@ contract MockResolverFactory {
         predictionMarket = _predictionMarket;
     }
 
-    function newMarket(string memory _question, uint256 _resolutionTime) public payable {
-        IMarketResolver resolver = new MockResolver(predictionMarket, _question, _resolutionTime);
+    function newMarket() public payable {
+        IMarketResolver resolver = new MockResolver(predictionMarket);
         predictionMarket.newMarket{ value: msg.value }(resolver, msg.sender);
 
         fromFactory[resolver] = true;
