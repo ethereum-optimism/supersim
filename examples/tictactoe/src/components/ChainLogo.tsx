@@ -1,7 +1,7 @@
 import React from 'react';
 
 import opLogo from '../assets/op.png';
-import modeLogo from '../assets/mode.png';
+import uniLogo from '../assets/uni.png';
 
 interface ChainLogoProps {
     chainId: bigint;
@@ -14,7 +14,7 @@ const ChainLogo: React.FC<ChainLogoProps> = ({ chainId, size = '16px' }) => {
             case 901:
                 return { src: opLogo, alt: "OP Mainnet" };
             case 902:
-                return { src: modeLogo, alt: "Mode" };
+                return { src: uniLogo, alt: "Unichain" };
             default:
                 return null;
         }

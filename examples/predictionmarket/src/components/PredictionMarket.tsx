@@ -2,25 +2,28 @@ import React, { useState } from 'react';
 import { useAccount, useConnect } from 'wagmi';
 
 import { useMarkets } from '../hooks/useMarkets';
-import { PREDICTION_MARKET_CHAIN_ID } from '../constants/app';
+import { useDeployment } from '../hooks/useDeployment';
 
 import Connect from './Connect';
 import Header from './Header';
 import Markets from './Markets';
 import Positions from './Positions';
 
+import { PREDICTION_MARKET_CHAIN_ID } from '../constants/app';
+
 const PredictionMarket: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'markets' | 'positions'>('markets');
 
-    const { isConnected, chainId } = useAccount();
-
+    const { address, isConnected } = useAccount();
     const { connect, connectors } = useConnect();
-    const { markets } = useMarkets();
 
-    if (!isConnected || chainId !== PREDICTION_MARKET_CHAIN_ID) {
+    const { markets } = useMarkets();
+    const { deployment } = useDeployment();
+
+    if (!isConnected || !address || !deployment) {
         return (
             <div style={styles.app}>
-                <Connect onConnect={() => connect({ connector: connectors[0] })} />
+                <Connect onConnect={() => connect({ chainId: PREDICTION_MARKET_CHAIN_ID, connector: connectors[0] })} />
             </div>
         )
     }
@@ -36,12 +39,12 @@ const PredictionMarket: React.FC = () => {
 
     return (
         <div style={styles.app}>
-        <header style={styles.header}>
-            <Header activeTab={activeTab} setActiveTab={setActiveTab} />
-        </header>
-        <main style={styles.main}>
-            {renderMain()}
-        </main>
+            <header style={styles.header}>
+                <Header address={address} activeTab={activeTab} setActiveTab={setActiveTab} />
+            </header>
+            <main style={styles.main}>
+                {renderMain()}
+            </main>
         </div>
     )
 }
@@ -55,7 +58,6 @@ const styles = {
         backgroundColor: '#FBFCFE',
     },
     header: {
-        margin: 0, padding: 0,
         display: 'flex',
         height: '10%',
         width: '100%',

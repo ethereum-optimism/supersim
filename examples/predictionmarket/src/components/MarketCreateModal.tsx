@@ -43,22 +43,14 @@ const MarketCreateModal: React.FC = () => {
 };
 
 const BlockHashModal: React.FC<{}> = () => {
-    const [selectedChain, setSelectedChain] = useState<901 | 902>(901);
+    const [selectedChain, setSelectedChain] = useState<901 | 902 | 903>(901);
     const [liquidityAmount, setliquidityAmount] = useState('');
 
     const { newBlockHashMarket, isPending, isConfirming } = useMarketCreation()
     const { chains } = useConfig()
 
     const [blockNumber, setBlockNumber] = useState<number>(0);
-    const { data: latestBlockNumber } = useBlockNumber({ chainId: selectedChain })
-    if (!latestBlockNumber) {
-        console.log('Unable to fetch latest block')
-        return null
-    }
-
-    if (blockNumber < Number(latestBlockNumber)) {
-        setBlockNumber(Number(latestBlockNumber) + 5)
-    }
+    const { data: latestBlockNumber} = useBlockNumber({ chainId: selectedChain })
 
     const liquidity = liquidityAmount === '' ? 0 : Number(liquidityAmount) * 10 ** 18
     const disabled = blockNumber === 0 || liquidity <= 0 || isPending || isConfirming
@@ -66,7 +58,7 @@ const BlockHashModal: React.FC<{}> = () => {
         <>
             <div style={styles.field}>
                 <label style={styles.label}>Chain<span style={styles.required}>*</span></label>
-                <select style={styles.select} value={selectedChain} onChange={(e) => setSelectedChain(Number(e.target.value))}>
+                <select style={styles.select} value={selectedChain} onChange={(e) => setSelectedChain(e.target.value as any)}>
                     {chains.map(chain => (
                         <option key={chain.id} value={chain.id}>{chainName(chain.id)}</option>
                     ))}
@@ -79,9 +71,11 @@ const BlockHashModal: React.FC<{}> = () => {
                     onChange={(e) => setBlockNumber(Number(e.target.value))} 
                     style={styles.select}>
                     <option value=''>Select height</option>
-                    {Array.from({ length: 5 }, (_, i) => Number(latestBlockNumber) + (i+1) * 10).map(block => (
-                        <option key={block} value={block}>{block}</option>
-                    ))}
+                    {
+                        !latestBlockNumber ? <></> :
+                        Array.from({ length: 5 }, (_, i) => Number(latestBlockNumber) + (i+1) * 10).map(block => (
+                            <option key={block} value={block}>{block}</option>))
+                    }
                 </select>
             </div>
 

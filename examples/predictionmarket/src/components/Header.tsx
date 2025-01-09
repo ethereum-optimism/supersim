@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useAccount, useDisconnect } from 'wagmi';
+import { useDisconnect } from 'wagmi';
+import { Address } from 'viem';
 
 import MarketCreateModal from './MarketCreateModal';
 import Modal from './Modal';
@@ -9,13 +10,13 @@ import personIcon from '../assets/person.svg';
 import { PREDICTION_MARKET_CHAIN_ID } from '../constants/app';
 
 interface HeaderProps {
+    address: Address;
     activeTab: 'markets' | 'positions';
     setActiveTab: (tab: 'markets' | 'positions') => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
+const Header: React.FC<HeaderProps> = ({ address, activeTab, setActiveTab }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { address } = useAccount();
     const { disconnect } = useDisconnect();
 
     const addrStr = address ? address.slice(0, 5) + '...' + address.slice(-3) : '';
@@ -74,10 +75,8 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 const styles = {
     container: {
         display: 'flex',
-        alignItems: 'center',
-        height: '100%',
         width: '100%',
-        padding: '0 15px',
+        padding: '0 20px',
         justifyContent: 'space-between',
         borderBottom: '1px solid #E2E8F0',
     },

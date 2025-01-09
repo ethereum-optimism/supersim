@@ -4,7 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "copy-artifacts": "cp -r ../../contracts/broadcast/multi/Deploy.s.sol-latest/run.json ./public/run-latest.json",
+    "predev": "npm run copy-artifacts",
     "dev": "vite",
+    "prebuild": "npm run copy-artifacts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

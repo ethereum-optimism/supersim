@@ -1,9 +1,9 @@
 export const chainName = (chainId: bigint | number) => {
     switch (Number(chainId)) {
         case 901:
-            return 'OPM'
+            return 'OP Mainnet';
         case 902:
-            return 'Ink';
+            return 'Unichain';
         case 903:
             return 'SuperPredictor'
         default:

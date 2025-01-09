@@ -44,7 +44,7 @@ Supply the address as an environment variable when running the frontend.
 cd examples/tictactoe
 
 export VITE_TICTACTOE_ADDRESS=0x14eFE545C60FB3b65B9eeb23E22b8013908e48Bc
-pnpn i && pnpm run dev
+pnpm i && pnpm run dev
 ```
 
 The frontend will be available at `http://localhost:5173`.

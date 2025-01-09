@@ -1,7 +1,7 @@
 export enum Chain {
     UNKNOWN = 0,
     OP_MAINNET = 901,
-    MODE = 902,
+    UNICHAIN = 902,
 }
 
 export const chain = (id: bigint): Chain => {
@@ -9,7 +9,7 @@ export const chain = (id: bigint): Chain => {
         case 901:
             return Chain.OP_MAINNET;
         case 902:
-            return Chain.MODE;
+            return Chain.UNICHAIN;
         default:
             return Chain.UNKNOWN;
     }
@@ -20,7 +20,7 @@ export const chainName = (id: number): string => {
         case 901:
             return 'OP Mainnet';
         case 902:
-            return 'Mode';
+            return 'Unichain';
         default:
             return 'Unknown';
     }

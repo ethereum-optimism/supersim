@@ -118,7 +118,7 @@ const Markets: React.FC<{ markets: any[] }> = ({ markets }) => {
 
             {
                 liveMarkets.length === 0 && closedMarkets.length === 0 ?
-                    <p>No markets</p> :
+                    <span>...</span> :
                     <div style={styles.marketList}>
                         {liveMarkets.map((market) => ( <MarketCard key={market.resolver} market={market} /> ))}
                         {closedMarkets.map((market) => ( <div key={market.resolver} style={{fontStyle: 'italic', color: '#6B7280'}}><MarketCard market={market} /> </div> ))}

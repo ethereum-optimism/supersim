@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ink from '../assets/ink.png';
+import uni from '../assets/uni.png';
 import op from '../assets/op.png';
 import superpredict from '../assets/superpredict.png';
 
@@ -17,7 +17,7 @@ const ChainLogo: React.FC<ChainLogoProps> = ({ chainId, size = '16px' }) => {
             case 901:
                 return { src: op, alt: chainName(chainId) };
             case 902:
-                return { src: ink, alt: chainName(chainId) };
+                return { src: uni, alt: chainName(chainId) };
             case 903:
                 return { src: superpredict, alt: chainName(chainId) };
             default:

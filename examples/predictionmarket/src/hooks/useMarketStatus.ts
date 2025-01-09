@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Address, Hex, parseAbi, parseAbiItem } from 'viem';
-import { useBlockNumber, usePublicClient, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
-
+import { useBlockNumber, useChainId, useSwitchChain, usePublicClient, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { createInteropMessage, MessageIdentifier } from '@eth-optimism/viem';
 
-import { useTicTacToeGames } from './useTicTacToeGames';
 import { createGameKey } from '../types/tictactoe';
 import { Market, MarketType } from '../types/market';
-import { BLOCKHASH_EMITTER } from '../constants/address';
+import { useTicTacToeGames } from './useTicTacToeGames';
+import { useDeployment } from './useDeployment';
+
+import { PREDICTION_MARKET_CHAIN_ID } from '../constants/app';
 
 export type TicTacToeMarketStatus = { gameId: bigint, player: Address, opponent: Address }
 export type BlockHashMarketStatus = { targetBlockNumber: bigint }
@@ -39,6 +40,9 @@ const useTicTacToeMarketStatus = (market: Market) => {
     const { data: hash, writeContract, isPending } = useWriteContract()
     const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash })
 
+    const connectedChainId = useChainId();
+    const { switchChainAsync } = useSwitchChain();
+
     const { availableGames,resolvedGames } = useTicTacToeGames()
     const { data: game } = useReadContract({
         abi: parseAbi(['function game() view returns (uint256,uint256,address)']),
@@ -57,6 +61,10 @@ const useTicTacToeMarketStatus = (market: Market) => {
     const resolveMarket = async () => {
         try {
             if (!resolvingEvent) return
+
+            if (connectedChainId !== PREDICTION_MARKET_CHAIN_ID) {
+                await switchChainAsync({chainId: PREDICTION_MARKET_CHAIN_ID});
+            }
 
             const { id, payload } = resolvingEvent
             const idArgs = [id.origin, id.blockNumber, id.logIndex, id.timestamp, id.chainId] as const
@@ -79,6 +87,11 @@ const useBlockHashMarketStatus = (market: Market) => {
 
     const { data: hash, writeContract, isPending } = useWriteContract()
     const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash })
+
+    const connectedChainId = useChainId();
+    const { switchChainAsync } = useSwitchChain();
+
+    const { deployment } = useDeployment()
 
     const { data: chainId } = useReadContract({
         abi: parseAbi(['function chainId() external view returns (uint256)']), 
@@ -104,7 +117,7 @@ const useBlockHashMarketStatus = (market: Market) => {
             if (resolvingEvent) return
 
             const logs = await client.getLogs({
-                address: BLOCKHASH_EMITTER,
+                address: deployment!.BlockHashEmitter,
                 event: parseAbiItem("event BlockHash(uint256 indexed blockNumber, bytes32 blockHash)"),
                 args: { blockNumber: targetBlockNumber },
                 fromBlock: 'earliest', toBlock: 'latest', strict: true,
@@ -125,9 +138,14 @@ const useBlockHashMarketStatus = (market: Market) => {
         const { id, payload } = resolvingEvent
         const idArgs = [id.origin, id.blockNumber, id.logIndex, id.timestamp, id.chainId] as const
         try {
+            if (connectedChainId !== PREDICTION_MARKET_CHAIN_ID) {
+                await switchChainAsync({chainId: PREDICTION_MARKET_CHAIN_ID});
+            }
+
             await writeContract({
                 abi: parseAbi(['function resolve((address,uint256,uint256,uint256,uint256),bytes) external']),
-                address: market.resolver, functionName: 'resolve', args: [idArgs, payload] })
+                address: market.resolver, functionName: 'resolve', args: [idArgs, payload]
+             })
         } catch (error) {
             console.error('Error resolving block hash market: ', error)
         }

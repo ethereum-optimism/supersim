@@ -1,23 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Address, parseAbiItem } from 'viem';
-import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useAccount, useChainId, usePublicClient, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 
 import { Market } from '../types/market';
+import { useDeployment } from './useDeployment';
 
 import { ERC20 } from '../constants/abi';
 import { PREDICTION_MARKET_ABI } from '../constants/abi';
-import { PREDICTION_MARKET_ADDRESS } from '../constants/address';
+import { PREDICTION_MARKET_CHAIN_ID } from '../constants/app';
 
 export const useMarketPositions = (market: Market) => {
-    const { data: hash, writeContract, isPending, isError, error } = useWriteContract()
+    const { data: hash, writeContract, isPending } = useWriteContract()
     const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash })
 
-    if (isError) {
-        console.error('Error creating new mock market: ', error)
-    }
-
-    const { address } = useAccount();
+    const connectedChainId = useChainId();
     const publicClient = usePublicClient();
+    const { switchChainAsync } = useSwitchChain();
+    const { address } = useAccount();
+    const { deployment } = useDeployment()
 
     type Bet = {
         yesBalance: number, yesSupply: number, yesTotalEth: number,
@@ -29,6 +29,7 @@ export const useMarketPositions = (market: Market) => {
 
     useEffect(() => {
         if (!publicClient) return;
+        if (!deployment) return;
 
         const fetchBalances = async () => {
             const yesBalance = Number(await publicClient.readContract({ address: market.yesToken, abi: ERC20, functionName: 'balanceOf', args: [address] }));
@@ -42,7 +43,7 @@ export const useMarketPositions = (market: Market) => {
 
             // Retrieve all the bets that was placed by this user
             const betsPlaced = await publicClient.getLogs({
-                address: PREDICTION_MARKET_ADDRESS,
+                address: deployment!.PredictionMarket,
                 event: parseAbiItem(["event BetPlaced(address indexed resolver, address indexed bettor, uint8 outcome, uint256 ethAmountIn, uint256 amountOut)"]),
                 args: { resolver: market.resolver, bettor: address },
                 fromBlock: 'earliest', toBlock: 'latest'
@@ -68,14 +69,16 @@ export const useMarketPositions = (market: Market) => {
         })
 
         return () => { unwatch() }
-    }, [market, address])
+    }, [connectedChainId, market, address, deployment])
 
     const redeem = async (resolver: Address, isLP: boolean) => {
-        if (!publicClient) return;
-
         try {
+            if (connectedChainId !== PREDICTION_MARKET_CHAIN_ID) {
+                await switchChainAsync({chainId: PREDICTION_MARKET_CHAIN_ID});
+            }
+
             const functionName = isLP ? "redeemLP" : "redeem";
-            await writeContract({ address: PREDICTION_MARKET_ADDRESS, abi: PREDICTION_MARKET_ABI, functionName, args: [resolver] })
+            await writeContract({ address: deployment!.PredictionMarket, abi: PREDICTION_MARKET_ABI, functionName, args: [resolver] })
         } catch (error) {
             console.error('Error redeeming:', error)
         }
