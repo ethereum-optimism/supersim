@@ -188,4 +188,4 @@ Leveraging superchain interop, we can build a new type of horizontally scalable 
 
 2. The concept of a "chain" can be completely abstracted away from the user. When connecting their wallet, the frontend can simply pick the chain which the user has funds on with the lowest gas fees.
 
-3. Event reading enables a new level of composability for cross-chain interactions! Imagine a prediciton market contract that resolves based on the outcome of a TicTacToe game via the `GameWon` or `GameLost` event without the need for a trusted oracle, nor permission or native integration with the TicTacToe contract.
+3. Event reading enables a new level of composability for cross-chain interactions! Imagine a [prediction market](./cross-chain-event-composability-predictionmarket.md) contract that resolves based on the outcome of a TicTacToe game via the `GameWon` or `GameLost` event without the need for a trusted oracle, nor permission or native integration with the TicTacToe contract.

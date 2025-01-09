@@ -14,3 +14,8 @@ remappings = [
   "@solady/=lib/optimism/packages/contracts-bedrock/lib/solady/src/",
   "@openzeppelin/contracts=lib/optimism/packages/contracts-bedrock/lib/openzeppelin-contracts/contracts"
 ]
+
+[rpc_endpoints]
+opchain_a = "http://localhost:9545"
+opchain_b = "http://localhost:9546"
+opchain_c = "http://localhost:9547"
