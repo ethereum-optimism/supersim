@@ -163,7 +163,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		return nil, err
 	}
 
-	// populateFromCLIContext(cfg, ctx)
+	populateFromCLIContext(cfg, ctx)
 
 	return cfg, cfg.Check()
 }
@@ -248,40 +248,52 @@ func applyTOMLConfig(cfg *CLIConfig) error {
 	return nil
 }
 
-// If toml config is set then
+func populateFromCLIContext(cfg *CLIConfig, ctx *cli.Context) {
+	adminPort := ctx.Uint64(AdminPortFlagName)
+	if adminPort != 0 {
+		cfg.AdminPort = adminPort
+	}
 
-// func populateFromCLIContext(cfg *CLIConfig, ctx *cli.Context) {
-// 	if cfg.AdminPort == 0 {
-// 		cfg.AdminPort = ctx.Uint64(AdminPortFlagName)
-// 	}
-// 	if cfg.L1Port == 0 {
-// 		cfg.L1Port = ctx.Uint64(L1PortFlagName)
-// 	}
-// 	if cfg.L2StartingPort == 0 {
-// 		cfg.L2StartingPort = ctx.Uint64(L2StartingPortFlagName)
-// 	}
-// 	if !cfg.InteropAutoRelay {
-// 		cfg.InteropAutoRelay = ctx.Bool(InteropAutoRelayFlagName)
-// 	}
-// 	if cfg.InteropDelay == 0 {
-// 		cfg.InteropDelay = ctx.Uint64(InteropDelayFlagName)
-// 	}
-// 	if cfg.LogsDirectory == "" {
-// 		cfg.LogsDirectory = ctx.String(LogsDirectoryFlagName)
-// 	}
-// 	if cfg.L1Host == "" {
-// 		cfg.L1Host = ctx.String(L1HostFlagName)
-// 	}
-// 	if cfg.L2Host == "" {
-// 		cfg.L2Host = ctx.String(L2HostFlagName)
-// 	}
+	l1Port := ctx.Uint64(L1PortFlagName)
+	if l1Port != 0 {
+		cfg.L1Port = l1Port
+	}
 
-// 	if ctx.Command.Name == ForkCommandName {
-// 		cfg.ForkConfig = &ForkCLIConfig{
-// 			L1ForkHeight:   ctx.Uint64(L1ForkHeightFlagName),
-// 			Network:        ctx.String(NetworkFlagName),
-// 			Chains:         ctx.StringSlice(ChainsFlagName),
-// 			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
-// 		}
-// 	}
-// }
+	l2StartingPort := ctx.Uint64(L2StartingPortFlagName)
+	if l2StartingPort != 0 {
+		cfg.L2StartingPort = l2StartingPort
+	}
+
+	if ctx.Bool(InteropAutoRelayFlagName) {
+		cfg.InteropAutoRelay = true
+	}
+
+	interopDelay := ctx.Uint64(InteropDelayFlagName)
+	if interopDelay != 0 {
+		cfg.InteropDelay = interopDelay
+	}
+
+	logsDirectory := ctx.String(LogsDirectoryFlagName)
+	if len(logsDirectory) != 0 {
+		cfg.LogsDirectory = logsDirectory
+	}
+
+	l1Host := ctx.String(L1HostFlagName)
+	if len(l1Host) != 0 {
+		cfg.L1Host = l1Host
+	}
+
+	l2Host := ctx.String(L2HostFlagName)
+	if len(l2Host) != 0 {
+		cfg.L2Host = l2Host
+	}
+
+	if ctx.Command.Name == ForkCommandName {
+		cfg.ForkConfig = &ForkCLIConfig{
+			L1ForkHeight:   ctx.Uint64(L1ForkHeightFlagName),
+			Network:        ctx.String(NetworkFlagName),
+			Chains:         ctx.StringSlice(ChainsFlagName),
+			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
+		}
+	}
+}
