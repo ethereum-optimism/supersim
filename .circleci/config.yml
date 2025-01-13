@@ -8,10 +8,7 @@ parameters:
 executors:
   default:
     machine:
-      # We'll use ubuntu 24.04 so that we can install "just" by simple running apt install just
-      # 
-      # See https://github.com/casey/just?tab=readme-ov-file#linux
-      image: ubuntu-2404:current 
+      image: ubuntu-2004:current 
 
 orbs:
   go: circleci/go@2.2.3
@@ -29,7 +26,10 @@ commands:
     steps:
       - run:
           name: Install just
-          command: sudo apt install just -y
+          command: |
+            curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/bin --tag 1.38.0
+            export PATH="$PATH:$HOME/bin"
+            just --version
   install-golangci-lint:
     steps:
       - run:
@@ -82,6 +82,7 @@ jobs:
       tag: << pipeline.parameters.go-version >>
     steps:
       - checkout
+      - install-just
       - go/load-mod-cache # Load cached Go modules.
       - go/mod-download # Run 'go mod download'.
       - go/save-mod-cache # Save Go modules to cache.
