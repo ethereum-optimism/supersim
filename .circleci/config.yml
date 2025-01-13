@@ -92,11 +92,17 @@ jobs:
       - go/mod-download # Run 'go mod download'.
       - go/save-mod-cache # Save Go modules to cache.
       - run:
+          # We need to "rename" some of the variables coming from the CircleCI context
+          # to match what supersim expects
+          # 
+          # FIXME BASE_L2URL Is not defined in the CircleCI context
+          name: Setup environment variables
+          command: |
+            echo "export SUPERSIM_RPC_URL_OP=$MAINNET_L2URL" >> $BASH_ENV
+            echo "export SUPERSIM_RPC_URL_BASE=$BASE_L2URL" >> $BASH_ENV
+      - run:
           name: Run tests
           command: just test-go
-          environment:
-            SUPERSIM_RPC_URL_OP: $SUPERSIM_RPC_URL_OP
-            SUPERSIM_RPC_URL_BASE: $SUPERSIM_RPC_URL_BASE
 
 workflows:
   main:
