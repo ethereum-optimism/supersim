@@ -64,9 +64,9 @@ jobs:
     steps:
       - checkout
       - install-just
-      - go/load-cache # Load cached Go modules.
+      - go/load-mod-cache # Load cached Go modules.
       - go/mod-download # Run 'go mod download'.
-      - go/save-cache # Save Go modules to cache.
+      - go/save-mod-cache # Save Go modules to cache.
       - install-golangci-lint
       - run:
           name: Run linter
@@ -78,9 +78,9 @@ jobs:
       tag: 1.20.8
     steps:
       - checkout
-      - go/load-cache # Load cached Go modules.
+      - go/load-mod-cache # Load cached Go modules.
       - go/mod-download # Run 'go mod download'.
-      - go/save-cache # Save Go modules to cache.
+      - go/save-mod-cache # Save Go modules to cache.
       - run:
           name: Run tests
           command: just test-go
