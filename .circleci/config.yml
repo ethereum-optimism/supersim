@@ -19,7 +19,7 @@ commands:
     steps:
       - checkout
       - run: git submodule sync
-      - run: git submodule update --init
+      - run: git submodule update --init --recursive
   install-foundry:
     steps:
       - run:
@@ -104,4 +104,6 @@ workflows:
       - check-versions-monorepo
       - contracts-tests
       - go-lint
-      - go-tests
+      - go-tests:
+          context:
+            - oplabs-fpp-nodes
