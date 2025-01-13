@@ -29,7 +29,7 @@ echo "Checking go setup"
 
 if ! command -v golangci-lint > /dev/null 2>&1; then
     # binary will be $(go env GOPATH)/bin/golangci-lint
-    echo "Instaling golangci-lint"
+    echo "Installing golangci-lint"
     curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
     golangci-lint --version
 fi

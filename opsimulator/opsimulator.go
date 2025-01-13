@@ -60,7 +60,7 @@ type OpSimulator struct {
 	stopped atomic.Bool
 }
 
-// OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
+// OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same interface
 func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 
@@ -348,7 +348,7 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 					continue
 				} else {
 					if err := opSim.checkInteropInvariants(ctx, logs); err != nil {
-						opSim.log.Error("unable to statisfy interop invariants within transaction", "err", err, "hash", txHash)
+						opSim.log.Error("unable to satisfy interop invariants within transaction", "err", err, "hash", txHash)
 						batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: err.Error()})
 						continue
 					}
@@ -485,7 +485,7 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 	return nil
 }
 
-// Overridden such that the port field can appropiately be set
+// Overridden such that the port field can appropriately be set
 func (opSim *OpSimulator) Config() *config.ChainConfig {
 	// we dereference the config so that a copy is made. This is only okay since
 	// the field were modifying is a non-pointer fields

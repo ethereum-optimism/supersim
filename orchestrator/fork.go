@@ -67,7 +67,7 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, cliConfig 
 	for _, chain := range forkConfig.Chains {
 		chainCfg := config.OPChainByName(superchain, chain)
 		if chainCfg == nil {
-			return networkConfig, fmt.Errorf("unrecoginized chain %s. superchain %s", chain, superchain.Superchain)
+			return networkConfig, fmt.Errorf("unrecognized chain %s. superchain %s", chain, superchain.Superchain)
 		}
 
 		l2RpcUrl := chainCfg.PublicRPC
