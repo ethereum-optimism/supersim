@@ -21,7 +21,7 @@ commands:
           name: Install Foundry
           command: |
             curl -L https://foundry.paradigm.xyz | bash
-            foundryup
+            ~/.foundry/bin/foundryup
   install-just:
     steps:
       - run:
