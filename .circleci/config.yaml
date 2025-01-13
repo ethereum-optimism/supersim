@@ -1,0 +1,92 @@
+version: 2.1
+
+executors:
+  default:
+    machine:
+      # We'll use ubuntu 24.04 so that we can install "just" by simple running apt install just
+      # 
+      # See https://github.com/casey/just?tab=readme-ov-file#linux
+      image: ubuntu-2404:current
+      
+
+orbs:
+  go: circleci/go@1.8.0
+  utils: ethereum-optimism/circleci-utils@0.0.11
+
+commands:
+  install-foundry:
+    steps:
+      - run:
+          name: Install Foundry
+          command: |
+            curl -L https://foundry.paradigm.xyz | bash
+            foundryup
+  install-just:
+    steps:
+      - run:
+          name: Install just
+          command: apt install just -y
+  install-golangci-lint:
+    steps:
+      - run:
+          name: Setup golangci-lint
+          command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59
+
+jobs:
+  check-versions-monorepo:
+    executor: default
+    steps:
+      - checkout
+      - install-just
+      - run:
+          name: Check versions
+          command: just check-monorepo-versions
+
+  contracts-tests:
+    docker:
+      - image: ghcr.io/foundry-rs/foundry:nightly-be34f5b68d8b0b33ec136d8f8a5e8456469db052
+    steps:
+      - checkout
+      - install-just
+      - install-foundry
+      - run:
+          name: Run Forge build
+          command: just build-contracts
+      - run:
+          name: Run Forge tests
+          command: just test-contracts
+
+  go-lint:
+    executor: go/default # Use an executor from the go orb
+    steps:
+      - checkout
+      - install-just
+      - go/load-cache # Load cached Go modules.
+      - go/mod-download # Run 'go mod download'.
+      - go/save-cache # Save Go modules to cache.
+      - install-golangci-lint
+      - run:
+          name: Run linter
+          command: just lint-go
+
+  go-tests:
+    executor: go/default # Use an executor from the go orb
+    steps:
+      - checkout
+      - go/load-cache # Load cached Go modules.
+      - go/mod-download # Run 'go mod download'.
+      - go/save-cache # Save Go modules to cache.
+      - run:
+          name: Run tests
+          command: just test-go
+          environment:
+            SUPERSIM_RPC_URL_OP: $SUPERSIM_RPC_URL_OP
+            SUPERSIM_RPC_URL_BASE: $SUPERSIM_RPC_URL_BASE
+
+workflows:
+  main:
+    jobs:
+      - check-versions-monorepo
+      - contracts-tests
+      - go-lint
+      - go-tests
