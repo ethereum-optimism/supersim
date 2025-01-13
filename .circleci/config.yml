@@ -15,13 +15,19 @@ orbs:
   utils: ethereum-optimism/circleci-utils@0.0.11
 
 commands:
+  # By default, CircleCI does not checkout any submodules
+  # 
+  # In our case, we need to checkout the submodules recursively
+  # (since e.g. optimism has its own submodules)
   checkout-with-submodules:
     steps:
       - checkout
       - run: git submodule sync
       - run: git submodule update --init --recursive
+  
   install-foundry:
     steps:
+      # Since CircleCI only sources the $BASH_ENV before each step, we isolate our $PATH modification to a separate step
       - run:
           name: Setup $PATH for foundry
           command: echo 'export PATH=$HOME/.foundry/bin:$PATH' >> $BASH_ENV
@@ -30,18 +36,24 @@ commands:
           command: |
             curl -L https://foundry.paradigm.xyz | bash
             foundryup
+      - run:
+          name: Output versions
+          command: |
             anvil --version
             forge --version
+  
   install-just:
     steps:
+      # Since CircleCI only sources the $BASH_ENV before each step, we isolate our $PATH modification to a separate step
       - run:
           name: Setup $PATH for just
           command: echo 'export PATH=$HOME/.just/bin:$PATH' >> $BASH_ENV
       - run:
           name: Install just
-          command: |
-            curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.just/bin --tag 1.38.0
-            just --version
+          command: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.just/bin --tag 1.38.0
+      - run:
+          name: Output versions
+          command: just --version
   install-golangci-lint:
     steps:
       - run:
