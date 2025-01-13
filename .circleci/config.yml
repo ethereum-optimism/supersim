@@ -25,7 +25,7 @@ commands:
     steps:
       - run:
           name: Install just
-          command: apt install just -y
+          command: sudo apt install just -y
   install-golangci-lint:
     steps:
       - run:
