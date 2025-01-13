@@ -15,6 +15,11 @@ orbs:
   utils: ethereum-optimism/circleci-utils@0.0.11
 
 commands:
+  checkout-with-submodules:
+    steps:
+      - checkout
+      - run: git submodule sync
+      - run: git submodule update --init
   install-foundry:
     steps:
       - run:
@@ -40,7 +45,7 @@ jobs:
   check-versions-monorepo:
     executor: default
     steps:
-      - checkout
+      - checkout-with-submodules
       - install-just
       - run:
           name: Check versions
@@ -51,7 +56,7 @@ jobs:
     environment:
       FOUNDRY_PROFILE: ci
     steps:
-      - checkout
+      - checkout-with-submodules
       - install-just
       - install-foundry
       - run:
@@ -66,7 +71,7 @@ jobs:
       name: go/default # Use an executor from the go orb
       tag: << pipeline.parameters.go-version >>
     steps:
-      - checkout
+      - checkout-with-submodules
       - install-just
       - go/load-mod-cache # Load cached Go modules.
       - go/mod-download # Run 'go mod download'.
@@ -81,7 +86,7 @@ jobs:
       name: go/default # Use an executor from the go orb
       tag: << pipeline.parameters.go-version >>
     steps:
-      - checkout
+      - checkout-with-submodules
       - install-just
       - go/load-mod-cache # Load cached Go modules.
       - go/mod-download # Run 'go mod download'.
