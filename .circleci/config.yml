@@ -25,15 +25,18 @@ commands:
       - run:
           name: Install Foundry
           command: |
+            echo 'export PATH="$HOME"/.foundry/bin:"$PATH"' >> $BASH_ENV
             curl -L https://foundry.paradigm.xyz | bash
-            ~/.foundry/bin/foundryup
+            foundryup
+            anvil --version
+            forge --version
   install-just:
     steps:
       - run:
           name: Install just
           command: |
-            curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/bin --tag 1.38.0
-            export PATH="$PATH:$HOME/bin"
+            echo 'export PATH="$HOME"/.just/bin:"$PATH"' >> $BASH_ENV
+            curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.just/bin --tag 1.38.0
             just --version
   install-golangci-lint:
     steps:
