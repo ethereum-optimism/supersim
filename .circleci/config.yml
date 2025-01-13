@@ -43,8 +43,9 @@ jobs:
           command: just check-monorepo-versions
 
   contracts-tests:
-    docker:
-      - image: ghcr.io/foundry-rs/foundry:nightly-be34f5b68d8b0b33ec136d8f8a5e8456469db052
+    executor: default
+    environment:
+      FOUNDRY_PROFILE: ci
     steps:
       - checkout
       - install-just
@@ -57,7 +58,9 @@ jobs:
           command: just test-contracts
 
   go-lint:
-    executor: go/default # Use an executor from the go orb
+    executor: 
+      name: go/default # Use an executor from the go orb
+      tag: 2.2.3
     steps:
       - checkout
       - install-just
@@ -70,7 +73,9 @@ jobs:
           command: just lint-go
 
   go-tests:
-    executor: go/default # Use an executor from the go orb
+    executor: 
+      name: go/default # Use an executor from the go orb
+      tag: 2.2.3
     steps:
       - checkout
       - go/load-cache # Load cached Go modules.
