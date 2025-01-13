@@ -10,7 +10,7 @@ executors:
       
 
 orbs:
-  go: circleci/go@1.8.0
+  go: circleci/go@2.2.3
   utils: ethereum-optimism/circleci-utils@0.0.11
 
 commands:
@@ -60,7 +60,7 @@ jobs:
   go-lint:
     executor: 
       name: go/default # Use an executor from the go orb
-      tag: 2.2.3
+      tag: 1.20.8
     steps:
       - checkout
       - install-just
@@ -75,7 +75,7 @@ jobs:
   go-tests:
     executor: 
       name: go/default # Use an executor from the go orb
-      tag: 2.2.3
+      tag: 1.20.8
     steps:
       - checkout
       - go/load-cache # Load cached Go modules.
