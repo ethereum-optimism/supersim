@@ -1,13 +1,17 @@
 version: 2.1
 
+parameters:
+  go-version:
+    type: string
+    default: "1.22.3"
+
 executors:
   default:
     machine:
       # We'll use ubuntu 24.04 so that we can install "just" by simple running apt install just
       # 
       # See https://github.com/casey/just?tab=readme-ov-file#linux
-      image: ubuntu-2404:current
-      
+      image: ubuntu-2404:current 
 
 orbs:
   go: circleci/go@2.2.3
@@ -60,7 +64,7 @@ jobs:
   go-lint:
     executor: 
       name: go/default # Use an executor from the go orb
-      tag: 1.20.8
+      tag: << pipeline.parameters.go-version >>
     steps:
       - checkout
       - install-just
@@ -75,7 +79,7 @@ jobs:
   go-tests:
     executor: 
       name: go/default # Use an executor from the go orb
-      tag: 1.20.8
+      tag: << pipeline.parameters.go-version >>
     steps:
       - checkout
       - go/load-mod-cache # Load cached Go modules.
