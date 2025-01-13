@@ -22,8 +22,12 @@ commands:
   checkout-with-submodules:
     steps:
       - checkout
-      - run: git submodule sync
-      - run: git submodule update --init --recursive
+      - run: 
+          name: Sync submodules
+          command: git submodule sync
+      - run: 
+          name: Initialize submodules
+          command: git submodule update --init --recursive
   
   install-foundry:
     steps:
@@ -37,7 +41,7 @@ commands:
             curl -L https://foundry.paradigm.xyz | bash
             foundryup
       - run:
-          name: Output versions
+          name: Output foundry versions
           command: |
             anvil --version
             forge --version
@@ -52,7 +56,7 @@ commands:
           name: Install just
           command: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.just/bin --tag 1.38.0
       - run:
-          name: Output versions
+          name: Output just version
           command: just --version
   install-golangci-lint:
     steps:
