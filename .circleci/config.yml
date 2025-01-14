@@ -150,6 +150,8 @@ workflows:
   release:
     jobs:
       - go-release:
+          context:
+            - circleci-repo-supersim
           filters: 
             tags:
               only: 
