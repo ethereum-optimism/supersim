@@ -1,17 +1,11 @@
 version: 2.1
 
-parameters:
-  go-version:
-    type: string
-    default: "1.22.3"
-
 executors:
   default:
     docker:
       - image: us-docker.pkg.dev/oplabs-tools-artifacts/images/ci-builder:v0.35.0
 
 orbs:
-  go: circleci/go@2.2.3
   utils: ethereum-optimism/circleci-utils@0.0.11
 
 commands:
@@ -76,9 +70,7 @@ jobs:
           command: just test-contracts
 
   go-lint:
-    executor: 
-      name: go/default # Use an executor from the go orb
-      tag: << pipeline.parameters.go-version >>
+    executor: default
     steps:
       - checkout-with-submodules
       - go/load-mod-cache # Load cached Go modules.
@@ -90,9 +82,7 @@ jobs:
           command: just lint-go
 
   go-tests:
-    executor: 
-      name: go/default # Use an executor from the go orb
-      tag: << pipeline.parameters.go-version >>
+    executor: default
     steps:
       - checkout-with-submodules
       - go/load-mod-cache # Load cached Go modules.
