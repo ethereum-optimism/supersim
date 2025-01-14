@@ -41,6 +41,10 @@ commands:
             forge --version
   
   install-golangci-lint:
+    parameters:
+      version:
+        type: string
+        default: v1.63.4
     steps:
       - run:
           name: Setup golangci-lint
