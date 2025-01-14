@@ -44,7 +44,13 @@ commands:
     steps:
       - run:
           name: Setup golangci-lint
-          command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.63.4
+          command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin << parameters.version >>
+
+  install-go-modules:
+    steps:
+      - go/load-mod-cache # Load cached Go modules.
+      - go/mod-download # Run 'go mod download'.
+      - go/save-mod-cache # Save Go modules to cache.
 
 jobs:
   check-versions-monorepo:
@@ -73,9 +79,7 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
-      - go/load-mod-cache # Load cached Go modules.
-      - go/mod-download # Run 'go mod download'.
-      - go/save-mod-cache # Save Go modules to cache.
+      - install-go-modules
       - install-golangci-lint
       - run:
           name: Run linter
@@ -85,9 +89,7 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
-      - go/load-mod-cache # Load cached Go modules.
-      - go/mod-download # Run 'go mod download'.
-      - go/save-mod-cache # Save Go modules to cache.
+      - install-go-modules
       - run:
           # We need to "rename" some of the variables coming from the CircleCI context
           # to match what supersim expects
