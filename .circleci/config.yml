@@ -93,6 +93,7 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
+      - install-foundry
       - install-go-modules
       - run:
           # We need to "rename" some of the variables coming from the CircleCI context
