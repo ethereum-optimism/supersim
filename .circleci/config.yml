@@ -7,6 +7,7 @@ executors:
 
 orbs:
   go: circleci/go@2.2.3
+  utils: ethereum-optimism/circleci-utils@0.0.11
 
 commands:
   # By default, CircleCI does not checkout any submodules
@@ -49,6 +50,22 @@ commands:
       - run:
           name: Setup golangci-lint
           command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin << parameters.version >>
+
+  install-goreleaser:
+    parameters:
+      version:
+        type: string
+        default: "2.5.1"
+    steps:
+      - run:
+          name: Install GoReleaser
+          command: |
+            echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | sudo tee /etc/apt/sources.list.d/goreleaser.list
+            sudo apt -q update -y
+            sudo apt -q install -y --no-install-recommends goreleaser=<< parameters.version >>
+      - run:
+          name: Output GoReleaser version
+          command: goreleaser --version
 
   install-go-modules:
     steps:
@@ -106,6 +123,20 @@ jobs:
           name: Run tests
           command: just test-go
           no_output_timeout: 20m
+    
+  go-release:
+    executor: default
+    steps:
+      - checkout-with-submodules
+      - install-goreleaser
+      - install-go-modules
+      - utils/get-github-access-token:
+          # We match the name of the token environment variable with what GoReleaser expects in .goreleaser.yaml
+          output-token-name: TAP_REPO_GITHUB_TOKEN
+      - run:
+          name: Run GoReleaser
+          # FIXME Just for the time being we add the --snapshot flag
+          command: goreleaser release --snapshot --clean
 
 workflows:
   main:
@@ -116,3 +147,14 @@ workflows:
       - go-tests:
           context:
             - oplabs-rpc-urls
+  release:
+    jobs:
+      - go-release:
+          filters: 
+            tags:
+              only: 
+                - /^v.*/
+            # Without explicitly ignoring all branches, CircleCI will run the job on all branches
+            # even if no tags have been pushed
+            branches:
+              ignore: /.*/
