@@ -97,12 +97,10 @@ jobs:
       - run:
           # We need to "rename" some of the variables coming from the CircleCI context
           # to match what supersim expects
-          # 
-          # FIXME BASE_L2URL Is not defined in the CircleCI context
           name: Setup environment variables
           command: |
-            echo "export SUPERSIM_RPC_URL_OP=$MAINNET_L2URL" >> $BASH_ENV
-            echo "export SUPERSIM_RPC_URL_BASE=$BASE_L2URL" >> $BASH_ENV
+            echo "export SUPERSIM_RPC_URL_OP=$RPC_URL_OP_MAINNET" >> $BASH_ENV
+            echo "export SUPERSIM_RPC_URL_BASE=$RPC_URL_BASE_MAINNET" >> $BASH_ENV
       - run:
           name: Run tests
           command: just test-go
@@ -116,4 +114,4 @@ workflows:
       - go-lint
       - go-tests:
           context:
-            - oplabs-fpp-nodes
+            - oplabs-rpc-urls
