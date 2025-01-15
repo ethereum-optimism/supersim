@@ -3,7 +3,7 @@ version: 2.1
 executors:
   default:
     docker:
-      - image: us-docker.pkg.dev/oplabs-tools-artifacts/images/ci-builder:v0.35.0
+      - image: us-docker.pkg.dev/oplabs-tools-artifacts/images/ci-builder:v0.55.0
 
 orbs:
   go: circleci/go@2.2.3
@@ -24,23 +24,6 @@ commands:
           name: Initialize submodules
           command: git submodule update --init --recursive
   
-  install-foundry:
-    steps:
-      # Since CircleCI only sources the $BASH_ENV before each step, we isolate our $PATH modification to a separate step
-      - run:
-          name: Setup $PATH for foundry
-          command: echo 'export PATH=$HOME/.foundry/bin:$PATH' >> $BASH_ENV
-      - run:
-          name: Install Foundry
-          command: |
-            curl -L https://foundry.paradigm.xyz | bash
-            foundryup
-      - run:
-          name: Output foundry versions
-          command: |
-            anvil --version
-            forge --version
-  
   install-golangci-lint:
     parameters:
       version:
@@ -60,9 +43,9 @@ commands:
       - run:
           name: Install GoReleaser
           command: |
-            echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | sudo tee /etc/apt/sources.list.d/goreleaser.list
-            sudo apt -q update -y
-            sudo apt -q install -y --no-install-recommends goreleaser=<< parameters.version >>
+            echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
+            apt -q update -y
+            apt -q install -y --no-install-recommends goreleaser=<< parameters.version >>
       - run:
           name: Output GoReleaser version
           command: goreleaser --version
@@ -88,7 +71,6 @@ jobs:
       FOUNDRY_PROFILE: ci
     steps:
       - checkout-with-submodules
-      - install-foundry
       - run:
           name: Run Forge build
           command: just build-contracts
@@ -110,7 +92,6 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
-      - install-foundry
       - install-go-modules
       - run:
           # We need to "rename" some of the variables coming from the CircleCI context
@@ -135,8 +116,7 @@ jobs:
           output-token-name: GITHUB_TOKEN
       - run:
           name: Run GoReleaser
-          # FIXME Just for the time being we add the --snapshot flag
-          command: goreleaser release --snapshot --clean
+          command: goreleaser release --clean
 
 workflows:
   main:
@@ -155,7 +135,7 @@ workflows:
           filters: 
             tags:
               only: 
-                - /^v.*/
+                - /^v?\d+\.\d+\.\d+.*?/
             # Without explicitly ignoring all branches, CircleCI will run the job on all branches
             # even if no tags have been pushed
             branches:
