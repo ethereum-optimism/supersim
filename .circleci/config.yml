@@ -130,7 +130,9 @@ jobs:
       - checkout-with-submodules
       - install-goreleaser
       - install-go-modules
-      - utils/get-github-access-token
+      - utils/get-github-access-token:
+          # GoReleaser expects a GITHUB_TOKEN environment variable to be set
+          output-token-name: GITHUB_TOKEN
       - run:
           name: Run GoReleaser
           # FIXME Just for the time being we add the --snapshot flag
