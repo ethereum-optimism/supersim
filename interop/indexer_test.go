@@ -24,7 +24,8 @@ var header = types.Header{
 	Number: big.NewInt(int64(blockNumber)),
 	Time:   timestamp,
 }
-var block = types.NewBlock(&header, nil, nil, types.TrieHasher((*trie.StackTrie)(nil)))
+
+var block = types.NewBlock(&header, nil, nil, types.TrieHasher((*trie.StackTrie)(nil)), types.DefaultBlockConfig)
 
 var sentMessage = &L2ToL2Message{
 	Destination: destinationChainID,

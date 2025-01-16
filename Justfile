@@ -53,7 +53,7 @@ calculate-artifact-url:
     echo "https://storage.googleapis.com/oplabs-contract-artifacts/artifacts-v1-$checksum.tar.gz"
 
 generate-monorepo-bindings: install-abigen
-    ./scripts/generate-bindings.sh -u $(just calculate-artifact-url) -n CrossL2Inbox,L2ToL2CrossDomainMessenger,L1BlockInterop,OptimismSuperchainERC20,SuperchainWETH,SuperchainTokenBridge -o ./bindings
+    ./scripts/generate-bindings.sh -u $(just calculate-artifact-url) -n CrossL2Inbox,L2ToL2CrossDomainMessenger,L1BlockInterop,SuperchainERC20,SuperchainWETH,SuperchainTokenBridge -o ./bindings
 
 generate-genesis: build-contracts
     go run ./genesis/cmd/main.go --monorepo-artifacts $(just calculate-artifact-url) --periphery-artifacts ./contracts/out --outdir ./genesis/generated
