@@ -7,9 +7,11 @@ import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
 
 import {ERC20} from "@solady-v0.0.245/tokens/ERC20.sol";
 
-import {L2NativeSuperchainERC20, ZeroAddress} from "../src/L2NativeSuperchainERC20.sol";
-import {IERC7802} from "@contracts-bedrock/L2/interfaces/IERC7802.sol";
-import {ISuperchainERC20} from "@contracts-bedrock/L2/interfaces/ISuperchainERC20.sol";
+import {IERC7802} from "@contracts-bedrock-interfaces/L2/IERC7802.sol";
+import {ISuperchainERC20} from "@contracts-bedrock-interfaces/L2/ISuperchainERC20.sol";
+import {IOptimismSuperchainERC20} from "@contracts-bedrock-interfaces/L2/IOptimismSuperchainERC20.sol";
+
+import {L2NativeSuperchainERC20} from "../src/L2NativeSuperchainERC20.sol";
 
 contract L2NativeSuperchainERC20Test is Test {
     address internal constant ZERO_ADDRESS = address(0);
@@ -41,7 +43,7 @@ contract L2NativeSuperchainERC20Test is Test {
 
         // Look for the emit of the `Mint` event
         vm.expectEmit(true, true, true, true, address(superchainERC20));
-        emit L2NativeSuperchainERC20.Mint(_to, _amount);
+        emit IOptimismSuperchainERC20.Mint(_to, _amount);
 
         superchainERC20.mint(_to, _amount);
 
@@ -51,7 +53,7 @@ contract L2NativeSuperchainERC20Test is Test {
 
     function testFuzz_mint_toZeroAddress_reverts(uint256 _amount) public {
         // Expect the revert with `ZeroAddress` selector
-        vm.expectRevert(ZeroAddress.selector);
+        vm.expectRevert(IOptimismSuperchainERC20.ZeroAddress.selector);
 
         // Call the `mint` function with the zero address
         superchainERC20.mint(ZERO_ADDRESS, _amount);

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import { Test } from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
-import { IL2ToL2CrossDomainMessenger } from "@contracts-bedrock/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
-import { Predeploys } from "@contracts-bedrock/libraries/Predeploys.sol";
+import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock-interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
 
 import {
     CrossChainPingPong,
