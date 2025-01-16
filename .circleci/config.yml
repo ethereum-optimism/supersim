@@ -1,0 +1,118 @@
+version: 2.1
+
+executors:
+  default:
+    docker:
+      - image: us-docker.pkg.dev/oplabs-tools-artifacts/images/ci-builder:v0.35.0
+
+orbs:
+  go: circleci/go@2.2.3
+
+commands:
+  # By default, CircleCI does not checkout any submodules
+  # 
+  # In our case, we need to checkout the submodules recursively
+  # (since e.g. optimism has its own submodules)
+  checkout-with-submodules:
+    steps:
+      - checkout
+      - run: 
+          name: Sync submodules
+          command: git submodule sync
+      - run: 
+          name: Initialize submodules
+          command: git submodule update --init --recursive
+  
+  install-foundry:
+    steps:
+      # Since CircleCI only sources the $BASH_ENV before each step, we isolate our $PATH modification to a separate step
+      - run:
+          name: Setup $PATH for foundry
+          command: echo 'export PATH=$HOME/.foundry/bin:$PATH' >> $BASH_ENV
+      - run:
+          name: Install Foundry
+          command: |
+            curl -L https://foundry.paradigm.xyz | bash
+            foundryup
+      - run:
+          name: Output foundry versions
+          command: |
+            anvil --version
+            forge --version
+  
+  install-golangci-lint:
+    parameters:
+      version:
+        type: string
+        default: v1.63.4
+    steps:
+      - run:
+          name: Setup golangci-lint
+          command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin << parameters.version >>
+
+  install-go-modules:
+    steps:
+      - go/load-mod-cache # Load cached Go modules.
+      - go/mod-download # Run 'go mod download'.
+      - go/save-mod-cache # Save Go modules to cache.
+
+jobs:
+  check-versions-monorepo:
+    executor: default
+    steps:
+      - checkout-with-submodules
+      - run:
+          name: Check versions
+          command: just check-monorepo-versions
+
+  contracts-tests:
+    executor: default
+    environment:
+      FOUNDRY_PROFILE: ci
+    steps:
+      - checkout-with-submodules
+      - install-foundry
+      - run:
+          name: Run Forge build
+          command: just build-contracts
+      - run:
+          name: Run Forge tests
+          command: just test-contracts
+
+  go-lint:
+    executor: default
+    steps:
+      - checkout-with-submodules
+      - install-go-modules
+      - install-golangci-lint
+      - run:
+          name: Run linter
+          command: just lint-go
+
+  go-tests:
+    executor: default
+    steps:
+      - checkout-with-submodules
+      - install-foundry
+      - install-go-modules
+      - run:
+          # We need to "rename" some of the variables coming from the CircleCI context
+          # to match what supersim expects
+          name: Setup environment variables
+          command: |
+            echo "export SUPERSIM_RPC_URL_OP=$RPC_URL_OP_MAINNET" >> $BASH_ENV
+            echo "export SUPERSIM_RPC_URL_BASE=$RPC_URL_BASE_MAINNET" >> $BASH_ENV
+      - run:
+          name: Run tests
+          command: just test-go
+          no_output_timeout: 20m
+
+workflows:
+  main:
+    jobs:
+      - check-versions-monorepo
+      - contracts-tests
+      - go-lint
+      - go-tests:
+          context:
+            - oplabs-rpc-urls
