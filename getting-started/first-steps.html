@@ -1,0 +1,270 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>First steps - Supersim</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Supersim</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ethereum-optimism/supersim" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="first-steps"><a class="header" href="#first-steps">First steps</a></h1>
+<p><code>supersim</code> allows testing multichain features <strong>locally</strong>. Previously, testing multichain features required complex docker setups or using a testnet.</p>
+<p>To see it in practice, let's first try sending some ETH from the L1 to the L2.</p>
+<h2 id="deposit-eth-from-the-l1-into-the-l2-l1-to-l2-message-passing"><a class="header" href="#deposit-eth-from-the-l1-into-the-l2-l1-to-l2-message-passing">Deposit ETH from the L1 into the L2 (L1 to L2 message passing)</a></h2>
+<p><strong>1. Check initial balance on the L2 (chain 901)</strong></p>
+<p>Grab the balance of the sender account on L2:</p>
+<pre><code class="language-sh">cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545
+</code></pre>
+<br>
+<p><strong>2. Send the Ether</strong>
+<br />
+It exists two  different methods to do this action</p>
+<h3 id="first-method---optimismportal"><a class="header" href="#first-method---optimismportal">First method - <code>OptimismPortal</code></a></h3>
+<p>Send the Ether to <code>OptimismPortal</code> contract of the respective L2 (on chain 900)**</p>
+<p>Initiate a bridge transaction on the L1:<br>
+<em>In the case of the chain 901 the contract is <code>0x37a418800d0c812A9dE83Bc80e993A6b76511B57</code></em></p>
+<pre><code class="language-sh">cast send 0x37a418800d0c812A9dE83Bc80e993A6b76511B57 --value 0.1ether --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+</code></pre>
+<h3 id="second-method---l1standardbridge"><a class="header" href="#second-method---l1standardbridge">Second method - <code>L1StandardBridge</code></a></h3>
+<p><strong>Call <code>bridgeETH</code> function on the <code>L1StandardBridgeProxy</code> / <code>L1StandardBridge</code> contract of the respective L2 on L1 (chain 900)</strong>
+<em>In the case of the chain 901 the contract is <code>0x8d515eb0e5F293B16B6bBCA8275c060bAe0056B0</code></em></p>
+<p>Initiate a bridge transaction on the L1:</p>
+<pre><code class="language-sh">cast send 0x8d515eb0e5F293B16B6bBCA8275c060bAe0056B0 "bridgeETH(uint32 _minGasLimit, bytes calldata _extraData)" 50000 0x --value 0.1ether --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+</code></pre>
+<br>
+<p><strong>3. Check the balance on the L2 (chain 901)</strong></p>
+<p>Verify that the ETH balance of the sender has increased on the L2:</p>
+<pre><code class="language-sh">cast balance 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9545
+</code></pre>
+<h2 id="send-an-interoperable-superchainerc20-token-from-chain-901-to-902-l2-to-l2-message-passing"><a class="header" href="#send-an-interoperable-superchainerc20-token-from-chain-901-to-902-l2-to-l2-message-passing">Send an interoperable SuperchainERC20 token from chain 901 to 902 (L2 to L2 message passing)</a></h2>
+<p>In a typical L2 to L2 cross-chain transfer, two transactions are required:</p>
+<ol>
+<li>Send transaction on the source chain – This initiates the token transfer on Chain 901.</li>
+<li>Relay message transaction on the destination chain – This relays the transfer details to Chain 902.</li>
+</ol>
+<p>To simplify this process, you can use the <code>--interop.autorelay</code> flag. This flag automatically triggers the relay message transaction once the initial send transaction is completed on the source chain, improving the developer experience by removing the need to manually send the relay message.</p>
+<h3 id="1-start-supersim-with-the-autorelayer-enabled"><a class="header" href="#1-start-supersim-with-the-autorelayer-enabled">1. Start <code>supersim</code> with the autorelayer enabled</a></h3>
+<pre><code class="language-sh">supersim --interop.autorelay 
+</code></pre>
+<h3 id="2-mint-tokens-to-transfer-on-chain-901"><a class="header" href="#2-mint-tokens-to-transfer-on-chain-901">2. Mint tokens to transfer on chain 901</a></h3>
+<p>Run the following command to mint 1000 <code>L2NativeSuperchainERC20</code> tokens to the recipient address:</p>
+<pre><code class="language-sh">cast send 0x420beeF000000000000000000000000000000001 "mint(address _to, uint256 _amount)"  0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000  --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+</code></pre>
+<h3 id="3-initiate-the-send-transaction-on-chain-901"><a class="header" href="#3-initiate-the-send-transaction-on-chain-901">3. Initiate the send transaction on chain 901</a></h3>
+<p>Send the tokens from Chain 901 to Chain 902 using the following command:</p>
+<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000028 "sendERC20(address _token, address _to, uint256 _amount, uint256 _chainId)" 0x420beeF000000000000000000000000000000001 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+</code></pre>
+<h3 id="4-wait-for-the-relayed-message-to-appear-on-chain-902"><a class="header" href="#4-wait-for-the-relayed-message-to-appear-on-chain-902">4. Wait for the relayed message to appear on chain 902</a></h3>
+<p>In a few seconds, you should see the RelayedMessage on chain 902:</p>
+<pre><code class="language-sh"># example
+INFO [08-30|14:30:14.698] SuperchainTokenBridge#RelayERC20 token=0x420beeF000000000000000000000000000000001 from=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 to=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 amount=1000 source=901
+</code></pre>
+<h3 id="5-check-the-balance-on-chain-902"><a class="header" href="#5-check-the-balance-on-chain-902">5. Check the balance on chain 902</a></h3>
+<p>Verify that the balance of the L2NativeSuperchainERC20 on chain 902 has increased:</p>
+<pre><code class="language-sh">cast balance --erc20 0x420beeF000000000000000000000000000000001 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:9546
+</code></pre>
+<p>With the steps above, you've now successfully completed both an L1 to L2 ETH bridge and an L2 to L2 interoperable SuperchainERC20 token transfer, all done locally using <code>supersim</code>. This approach simplifies multichain testing, allowing you to focus on development without the need for complex setups or relying on external testnets.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../getting-started/installation.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../reference/supersim.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../getting-started/installation.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../reference/supersim.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../src/static/mermaid.min.js"></script>
+        <script src="../src/static/mermaid-init.js"></script>
+        <script src="../src/static/solidity.min.js"></script>
+
+
+    </div>
+    </body>
+</html>

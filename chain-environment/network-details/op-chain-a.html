@@ -1,0 +1,294 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>OPChainA - Supersim</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Supersim</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ethereum-optimism/supersim" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <!-- omit in toc -->
+<h1 id="opchaina"><a class="header" href="#opchaina">OPChainA</a></h1>
+<ul>
+<li><a href="#network-details">Network details</a></li>
+<li><a href="#contract-addresses">Contract addresses</a>
+<ul>
+<li><a href="#l1-contracts">L1 contracts</a></li>
+<li><a href="#l2-contracts">L2 contracts</a></li>
+</ul>
+</li>
+</ul>
+<h2 id="network-details"><a class="header" href="#network-details">Network details</a></h2>
+<div class="table-wrapper"><table><thead><tr><th><strong>Parameter</strong></th><th><strong>Value</strong></th></tr></thead><tbody>
+<tr><td><strong>Name</strong></td><td>OPChainA</td></tr>
+<tr><td><strong>Chain ID</strong></td><td>901</td></tr>
+<tr><td><strong>RPC URL</strong></td><td><a href="http://127.0.0.1:9545">http://127.0.0.1:9545</a></td></tr>
+</tbody></table>
+</div>
+<h2 id="contract-addresses"><a class="header" href="#contract-addresses">Contract addresses</a></h2>
+<h3 id="l1-contracts"><a class="header" href="#l1-contracts">L1 contracts</a></h3>
+<pre><code class="language-json">{
+  "AddressManager": "0x78d21C9820A9135215202A9a8D6521483D4b75cD",
+  "AnchorStateRegistry": "0x21799f09394c50220CCD95E7dAc1cdD774FC871a",
+  "AnchorStateRegistryProxy": "0xa6F40d5770b3509aB40B2effa5cb544D29743ec7",
+  "DelayedWETH": "0x49BBFf1629824A1e7993Ab5c17AFa45D24AB28c9",
+  "DelayedWETHProxy": "0x309DA6B9a8fE16afD7D067528d358E55314bEa6b",
+  "DisputeGameFactory": "0x20B168142354Cee65a32f6D8cf3033E592299765",
+  "DisputeGameFactoryProxy": "0x444689B81D485bc58AB81aC02A95a937fAa152D7",
+  "L1CrossDomainMessenger": "0x094e6508ba9d9bf1ce421fff3dE06aE56e67901b",
+  "L1CrossDomainMessengerProxy": "0xe5bda89cd85cE0DfB80E053281cA070D65B738e6",
+  "L1ERC721Bridge": "0x5C4F5e749A61a9503c4AAE8a9393e89609a0e804",
+  "L1ERC721BridgeProxy": "0x018dC24a6617c47cAa00C3fA25097214B2D4F447",
+  "L1StandardBridge": "0xb7900B27Be8f0E0fF65d1C3A4671e1220437dd2b",
+  "L1StandardBridgeProxy": "0xa01ae68902e205B420FD164435F299E07b0C778b",
+  "L2OutputOracle": "0x19652082F846171168Daf378C4fD3ee85a0D4A60",
+  "L2OutputOracleProxy": "0x6cE0530E823e23be85D8e151FB023605eB4F6d43",
+  "Mips": "0xB3A0348310a0ff78E5FbDB7f14BB7d3e02d40773",
+  "OptimismMintableERC20Factory": "0x39Aea2Dd53f2d01c15877aCc2791af6BDD7aD567",
+  "OptimismMintableERC20FactoryProxy": "0x15c855966C196Be3a8ca747E8A8Bf40928d4741f",
+  "OptimismPortal": "0xb7461Fb347f68f9717e6fD12C8407dEcee063bdc",
+  "OptimismPortal2": "0xfcbb237388CaF5b08175C9927a37aB6450acd535",
+  "OptimismPortalProxy": "0xF5fe61a258CeBb54CCe428F76cdeD04Cbc12F53d",
+  "PreimageOracle": "0x3bd7E801E51d48c5d94Ea68e8B801DFFC275De75",
+  "ProtocolVersions": "0xfbfD64a6C0257F613feFCe050Aa30ecC3E3d7C3F",
+  "ProtocolVersionsProxy": "0x6dA4f6489039d9f4F3144954DDF5bb2F4986e90b",
+  "ProxyAdmin": "0xe32a4D31ffD5596542DAc8239a1DE3Fff9d63475",
+  "SafeProxyFactory": "0x4a05c09875DE2DD5B81Bc01dd46eD4699b181bfA",
+  "SafeSingleton": "0x99A395CE6d6b37CaaCBad64fB42d556b6CA73a48",
+  "SuperchainConfig": "0x068E44eB31e111028c41598E4535be7468674D0A",
+  "SuperchainConfigProxy": "0x7E6c6ebCF109fa23277b86bdA39738035C21BB86",
+  "SystemConfig": "0x6167B477F8d9138aa509f54b2800443857e28c0f",
+  "SystemConfigProxy": "0xf32919Ed2490b56EaD65E72749894aE4C9523320",
+  "SystemOwnerSafe": "0xc052b7316C87390E555aF97D42bCd5FB6d5eEFDa"
+}
+</code></pre>
+<h3 id="l2-contracts"><a class="header" href="#l2-contracts">L2 contracts</a></h3>
+<pre><code class="language-json">{
+  // OP Stack predeploys
+  "L2ToL1MessagePasser": "0x4200000000000000000000000000000000000016",
+  "L2CrossDomainMessenger": "0x4200000000000000000000000000000000000007",
+  "L2StandardBridge": "0x4200000000000000000000000000000000000010",
+  "L2ERC721Bridge": "0x4200000000000000000000000000000000000014",
+  "SequencerFeeVault": "0x4200000000000000000000000000000000000011",
+  "OptimismMintableERC20Factory": "0x4200000000000000000000000000000000000012",
+  "OptimismMintableERC721Factory": "0x4200000000000000000000000000000000000017",
+  "L1BlockInterop": "0x4200000000000000000000000000000000000015",
+  "GasPriceOracle": "0x420000000000000000000000000000000000000F",
+  "ProxyAdmin": "0x4200000000000000000000000000000000000018",
+  "BaseFeeVault": "0x4200000000000000000000000000000000000019",
+  "L1FeeVault": "0x420000000000000000000000000000000000001A",
+  "GovernanceToken": "0x4200000000000000000000000000000000000042",
+  "SchemaRegistry": "0x4200000000000000000000000000000000000020",
+  "EAS": "0x4200000000000000000000000000000000000021",
+  "CrossL2Inbox": "0x4200000000000000000000000000000000000022",
+  "L2ToL2CrossDomainMessenger": "0x4200000000000000000000000000000000000023",
+  "SuperchainWETH": "0x4200000000000000000000000000000000000024",
+  "SuperchainTokenBridge": "0x4200000000000000000000000000000000000028",
+
+  // Periphery
+  "L2NativeSuperchainERC20": "0x420beeF000000000000000000000000000000001"
+}
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../chain-environment/network-details/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../../chain-environment/network-details/op-chain-b.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../chain-environment/network-details/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../../chain-environment/network-details/op-chain-b.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../../src/static/mermaid.min.js"></script>
+        <script src="../../src/static/mermaid-init.js"></script>
+        <script src="../../src/static/solidity.min.js"></script>
+
+
+    </div>
+    </body>
+</html>

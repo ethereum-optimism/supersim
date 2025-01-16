@@ -1,0 +1,279 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Deposit Transactions - Supersim</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Supersim</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/ethereum-optimism/supersim" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="deposit-transactions"><a class="header" href="#deposit-transactions">Deposit transactions</a></h1>
+<p>Supersim supports deposits transactions as described in the <a href="https://docs.optimism.io/stack/transactions/deposit-flow">explainer</a>. However in a very lightweight manner without the op-node derivation pipeline by listening directly to the <code>TransactionDeposited</code> events on the OptimsimPortal contract and simply forwarding the transaction to the applicable L2.</p>
+<p>This implies the execution engine used with Supersim must support the optimism <a href="https://specs.optimism.io/protocol/deposits.html#the-deposited-transaction-type">Deposit Transaction Type</a>.</p>
+<h2 id="optimismportal"><a class="header" href="#optimismportal">OptimismPortal</a></h2>
+<p>When starting Supersim, the L1 contracts for each L2 chain are emitted as output to the console. The <code>L1CrossDomainMessenger</code>, <code>L1StandardBridge</code>, and <code>OptimismPortal</code> can be used to initiate deposits in the same manner as one would on a production network like OP Mainnet or Base.</p>
+<pre><code class="language-bash">Chain Configuration
+-----------------------
+L1: Name: Local  ChainID: 900  RPC: http://127.0.0.1:8545  LogPath: ...
+
+L2: Predeploy Contracts Spec ( https://specs.optimism.io/protocol/predeploys.html )
+
+  * Name: OPChainA  ChainID: 901  RPC: http://127.0.0.1:9545  LogPath: ...
+    L1 Contracts:
+     - OptimismPortal:         0x37a418800d0c812A9dE83Bc80e993A6b76511B57
+     - L1CrossDomainMessenger: 0xcd712b03bc6424BF45cE6C29Fc90FFDece228F6E
+     - L1StandardBridge:       0x8d515eb0e5F293B16B6bBCA8275c060bAe0056B0
+
+  ...
+</code></pre>
+<p>If running Supersim in fork mode, the production contracts will be used for each of the forked networks.</p>
+<pre><code class="language-bash">Chain Configuration
+-----------------------
+L1: Name: mainnet  ChainID: 1  RPC: http://127.0.0.1:8545  LogPath: ...
+
+L2: Predeploy Contracts Spec ( https://specs.optimism.io/protocol/predeploys.html )
+
+  * Name: op  ChainID: 10  RPC: http://127.0.0.1:9545  LogPath: ...
+    L1 Contracts:
+     - OptimismPortal:         0xbEb5Fc579115071764c7423A4f12eDde41f106Ed
+     - L1CrossDomainMessenger: 0x25ace71c97B33Cc4729CF772ae268934F7ab5fA1
+     - L1StandardBridge:       0x99C9fc46f92E8a1c0deC1b1747d010903E884bE1
+
+  * Name: mode  ChainID: 34443  RPC: http://127.0.0.1:9546  LogPath: ...
+    L1 Contracts:
+     - OptimismPortal:         0x8B34b14c7c7123459Cf3076b8Cb929BE097d0C07
+     - L1CrossDomainMessenger: 0x95bDCA6c8EdEB69C98Bd5bd17660BaCef1298A6f
+     - L1StandardBridge:       0x735aDBbE72226BD52e818E7181953f42E3b0FF21
+
+   ...
+</code></pre>
+<h2 id="sample-deposit-flow"><a class="header" href="#sample-deposit-flow">Sample Deposit Flow</a></h2>
+<p>We'll run through a sample deposit directly with the optimism portal using cast</p>
+<ol>
+<li><strong>Run Supersim</strong></li>
+</ol>
+<pre><code class="language-bash">supersim
+</code></pre>
+<ol start="2">
+<li><strong>Observe OptimismPortal Contract Address</strong></li>
+</ol>
+<pre><code class="language-bash">...
+* Name: OPChainA  ChainID: 901 ...
+    L1 Contracts:
+     - OptimismPortal: 0x37a418800d0c812A9dE83Bc80e993A6b76511B57
+...
+</code></pre>
+<ol start="3">
+<li><strong>Send Deposit Transaction On L1</strong></li>
+</ol>
+<p>We'll be using the first pre-funded account to send this deposit with 1 ether</p>
+<pre><code class="language-bash">cast send 0x37a418800d0c812A9dE83Bc80e993A6b76511B57 --value 1ether --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+</code></pre>
+<ol start="4">
+<li><strong>Verify With Supersim Logs</strong></li>
+</ol>
+<pre><code class="language-bash">INFO [11-28|13:56:06.756] OptimismPortal#depositTransaction chain.id=901 l2TxHash=0x592d6e13016751332115df1fce59904176bfe447854196ed1b97ee00f14be469
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../chain-environment/network-details/op-chain-b.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../guides/interop/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../chain-environment/network-details/op-chain-b.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../guides/interop/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../src/static/mermaid.min.js"></script>
+        <script src="../src/static/mermaid-init.js"></script>
+        <script src="../src/static/solidity.min.js"></script>
+
+
+    </div>
+    </body>
+</html>
