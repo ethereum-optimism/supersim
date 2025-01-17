@@ -32,7 +32,7 @@ commands:
     steps:
       - run:
           name: Setup golangci-lint
-          command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin << parameters.version >>
+          command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s << parameters.version >>
 
   install-dependencies:
     steps:
