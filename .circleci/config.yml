@@ -27,6 +27,12 @@ commands:
   install-dependencies:
     steps:
       - run:
+          name: Install mise
+          command: curl https://mise.run | MISE_INSTALL_PATH=/home/circleci/bin/mise sh
+      - run:
+          name: Activate mise
+          command: echo 'eval "$(mise activate bash)"' >> $BASH_ENV
+      - run:
           name: Install mise dependencies
           command: mise install
 
@@ -65,7 +71,6 @@ jobs:
     steps:
       - checkout-with-submodules
       - install-dependencies
-      - install-golangci-lint
       - run:
           name: Run linter
           command: just lint-go
