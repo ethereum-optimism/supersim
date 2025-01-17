@@ -2,8 +2,8 @@ version: 2.1
 
 executors:
   default:
-    docker:
-      - image: us-docker.pkg.dev/oplabs-tools-artifacts/images/ci-builder:v0.55.0
+    machine:
+      image: ubuntu-2204:2024.08.1
 
 orbs:
   go: circleci/go@2.2.3
