@@ -7,6 +7,7 @@ just = "1.37.0"
 
 # Go dependencies
 "ubi:goreleaser/goreleaser" = "2.5.1"
+"ubi:golangci/golangci-lint" = "v1.63.4"
 
 # Foundry
 "ubi:foundry-rs/foundry[exe=forge]" = "nightly-59f354c179f4e7f6d7292acb3d068815c79286d1"
