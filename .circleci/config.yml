@@ -40,6 +40,9 @@ commands:
           name: Install mise
           command: curl https://mise.run | sh
       - run:
+          name: Debug PATH
+          command: echo $PATH
+      - run:
           name: Install mise dependencies
           command: mise install
 
