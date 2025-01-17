@@ -38,4 +38,3 @@ brews:
     repository:
       owner: ethereum-optimism
       name: homebrew-tap
-      token: "{{ .Env.TAP_REPO_GITHUB_TOKEN }}"
