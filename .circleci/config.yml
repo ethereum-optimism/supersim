@@ -38,7 +38,7 @@ commands:
     steps:
       - run:
           name: Install mise
-          command: curl https://mise.run | /home/circleci/bin/mise sh
+          command: curl https://mise.run | MISE_INSTALL_PATH=/home/circleci/bin/mise sh
       - run:
           name: Debug PATH
           command: echo $PATH
