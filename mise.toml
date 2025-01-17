@@ -1,0 +1,18 @@
+[tools]
+
+# Core dependencies
+go = "1.22.3"
+rust = "1.83.0"
+just = "1.37.0"
+
+# Go dependencies
+"ubi:goreleaser/goreleaser" = "2.5.1"
+
+# Foundry
+"ubi:foundry-rs/foundry[exe=forge]" = "nightly-59f354c179f4e7f6d7292acb3d068815c79286d1"
+
+# Foundry provides multiple binaries so we alias them here
+[alias]
+forge = "ubi:foundry-rs/foundry[exe=forge]"
+cast = "ubi:foundry-rs/foundry[exe=cast]"
+anvil = "ubi:foundry-rs/foundry[exe=anvil]"

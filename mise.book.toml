@@ -1,0 +1,12 @@
+# These dependencies are only required if you want to build the book
+
+[tools]
+
+# Cargo dependencies
+"cargo:mdbook" = "0.4.43"
+"cargo:mdbook-mermaid" = "0.14.1"
+
+[env]
+# On CI, when using the ci-builder image, we need to set the toolchain explicitly
+# so that we avoid the "rustup could not choose a version of cargo to run, because one wasn't specified explicitly" error
+RUSTUP_TOOLCHAIN = "1.83.0"

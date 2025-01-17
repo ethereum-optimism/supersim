@@ -34,21 +34,11 @@ commands:
           name: Setup golangci-lint
           command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin << parameters.version >>
 
-  install-goreleaser:
-    parameters:
-      version:
-        type: string
-        default: "2.5.1"
+  install-dependencies:
     steps:
       - run:
-          name: Install GoReleaser
-          command: |
-            echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
-            apt -q update -y
-            apt -q install -y --no-install-recommends goreleaser=<< parameters.version >>
-      - run:
-          name: Output GoReleaser version
-          command: goreleaser --version
+          name: Install mise dependencies
+          command: mise install
 
   install-go-modules:
     steps:
@@ -61,6 +51,7 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
+      - install-dependencies
       - run:
           name: Check versions
           command: just check-monorepo-versions
@@ -71,6 +62,7 @@ jobs:
       FOUNDRY_PROFILE: ci
     steps:
       - checkout-with-submodules
+      - install-dependencies
       - run:
           name: Run Forge build
           command: just build-contracts
@@ -82,7 +74,7 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
-      - install-go-modules
+      - install-dependencies
       - install-golangci-lint
       - run:
           name: Run linter
@@ -92,6 +84,7 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
+      - install-dependencies
       - install-go-modules
       - run:
           # We need to "rename" some of the variables coming from the CircleCI context
@@ -109,10 +102,12 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
-      - install-goreleaser
+      - install-dependencies
       - install-go-modules
       - utils/get-github-access-token:
-          # GoReleaser expects a GITHUB_TOKEN environment variable to be set
+          # GoReleaser uses the GITHUB_TOKEN environment variable to authenticate with GitHub
+          # 
+          # It's important that the token has write permissions both to this repository and to the homebrew-tap repository
           output-token-name: GITHUB_TOKEN
       - run:
           name: Run GoReleaser
