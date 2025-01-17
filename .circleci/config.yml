@@ -40,8 +40,8 @@ commands:
           name: Install mise
           command: curl https://mise.run | MISE_INSTALL_PATH=/home/circleci/bin/mise sh
       - run:
-          name: Debug PATH
-          command: echo $PATH
+          name: Activate mise
+          command: echo 'eval "$(mise activate bash)"' >> $BASH_ENV
       - run:
           name: Install mise dependencies
           command: mise install
