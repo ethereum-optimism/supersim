@@ -38,7 +38,7 @@ commands:
     steps:
       - run:
           name: Install mise
-          command: curl https://mise.run | sh
+          command: curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
       - run:
           name: Debug PATH
           command: echo $PATH
