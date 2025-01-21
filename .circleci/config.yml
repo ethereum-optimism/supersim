@@ -86,6 +86,7 @@ jobs:
           # to match what supersim expects
           name: Setup environment variables
           command: |
+            echo "export SUPERSIM_RPC_URL_MAINNET=$RPC_URL_ETHEREUM_MAINNET" >> $BASH_ENV
             echo "export SUPERSIM_RPC_URL_OP=$RPC_URL_OP_MAINNET" >> $BASH_ENV
             echo "export SUPERSIM_RPC_URL_BASE=$RPC_URL_BASE_MAINNET" >> $BASH_ENV
       - run:
