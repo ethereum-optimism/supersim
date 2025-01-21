@@ -1,0 +1,13 @@
+# These dependencies are only required if you want to build the book
+# 
+# To install them, run mise with --env book (or set the MISE_ENV variable to "book"):
+# 
+# mise --env book install
+# 
+# MISE_ENV=book mise install
+
+[tools]
+
+# Cargo dependencies
+"cargo:mdbook" = "0.4.43"
+"cargo:mdbook-mermaid" = "0.14.1"

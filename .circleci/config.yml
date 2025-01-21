@@ -2,8 +2,8 @@ version: 2.1
 
 executors:
   default:
-    docker:
-      - image: us-docker.pkg.dev/oplabs-tools-artifacts/images/ci-builder:v0.55.0
+    machine:
+      image: ubuntu-2204:2024.08.1
 
 orbs:
   go: circleci/go@2.2.3
@@ -24,31 +24,17 @@ commands:
           name: Initialize submodules
           command: git submodule update --init --recursive
   
-  install-golangci-lint:
-    parameters:
-      version:
-        type: string
-        default: v1.63.4
+  install-dependencies:
     steps:
       - run:
-          name: Setup golangci-lint
-          command: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin << parameters.version >>
-
-  install-goreleaser:
-    parameters:
-      version:
-        type: string
-        default: "2.5.1"
-    steps:
+          name: Install mise
+          command: curl https://mise.run | MISE_INSTALL_PATH=/home/circleci/bin/mise sh
       - run:
-          name: Install GoReleaser
-          command: |
-            echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
-            apt -q update -y
-            apt -q install -y --no-install-recommends goreleaser=<< parameters.version >>
+          name: Activate mise
+          command: echo 'eval "$(mise activate bash)"' >> $BASH_ENV
       - run:
-          name: Output GoReleaser version
-          command: goreleaser --version
+          name: Install mise dependencies
+          command: mise install
 
   install-go-modules:
     steps:
@@ -61,6 +47,7 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
+      - install-dependencies
       - run:
           name: Check versions
           command: just check-monorepo-versions
@@ -71,6 +58,7 @@ jobs:
       FOUNDRY_PROFILE: ci
     steps:
       - checkout-with-submodules
+      - install-dependencies
       - run:
           name: Run Forge build
           command: just build-contracts
@@ -82,8 +70,7 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
-      - install-go-modules
-      - install-golangci-lint
+      - install-dependencies
       - run:
           name: Run linter
           command: just lint-go
@@ -92,12 +79,14 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
+      - install-dependencies
       - install-go-modules
       - run:
           # We need to "rename" some of the variables coming from the CircleCI context
           # to match what supersim expects
           name: Setup environment variables
           command: |
+            echo "export SUPERSIM_RPC_URL_MAINNET=$RPC_URL_ETHEREUM_MAINNET" >> $BASH_ENV
             echo "export SUPERSIM_RPC_URL_OP=$RPC_URL_OP_MAINNET" >> $BASH_ENV
             echo "export SUPERSIM_RPC_URL_BASE=$RPC_URL_BASE_MAINNET" >> $BASH_ENV
       - run:
@@ -109,10 +98,12 @@ jobs:
     executor: default
     steps:
       - checkout-with-submodules
-      - install-goreleaser
+      - install-dependencies
       - install-go-modules
       - utils/get-github-access-token:
-          # GoReleaser expects a GITHUB_TOKEN environment variable to be set
+          # GoReleaser uses the GITHUB_TOKEN environment variable to authenticate with GitHub
+          # 
+          # It's important that the token has write permissions both to this repository and to the homebrew-tap repository
           output-token-name: GITHUB_TOKEN
       - run:
           name: Run GoReleaser
