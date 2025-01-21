@@ -7,7 +7,7 @@ executors:
 
 orbs:
   go: circleci/go@2.2.3
-  utils: ethereum-optimism/circleci-utils@0.0.12
+  utils: ethereum-optimism/circleci-utils@0.0.13
 
 commands:
   # By default, CircleCI does not checkout any submodules
@@ -109,6 +109,31 @@ jobs:
           name: Run GoReleaser
           command: goreleaser release --clean
 
+  book-build:
+    executor: default
+    environment:
+      MISE_ENV: book
+    steps:
+      - checkout
+      - install-dependencies
+      - run:
+          name: Build book
+          command: just build-book
+      - persist_to_workspace:
+          root: ./docs
+          paths:
+            - book
+
+  book-publish:
+    executor: default
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/docs
+      - utils/get-github-access-token
+      - utils/github-pages-deploy:
+          src-pages-dir: /tmp/docs/book
+
 workflows:
   main:
     jobs:
@@ -118,6 +143,23 @@ workflows:
       - go-tests:
           context:
             - oplabs-rpc-urls
+      
+      # To tighten the security, we split the workflow that publishes GitHub Pages
+      # into two jobs and only expose the security context to the job that does the publishing
+      # 
+      # The build job will run on every PR to avoid unpleasant surprises if the book build fails on main
+      - book-build
+      # The publish job will only run on the main branch
+      - book-publish:
+          filters:
+            branches:
+              only:
+                - main
+          requires:
+            - book-build
+          context:
+            - circleci-repo-supersim
+
   release:
     jobs:
       - go-release:
