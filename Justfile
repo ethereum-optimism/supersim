@@ -1,5 +1,8 @@
 set positional-arguments
 
+build-book:
+    mdbook build ./docs
+
 build-contracts:
     forge --version
     forge build --sizes --root ./contracts
