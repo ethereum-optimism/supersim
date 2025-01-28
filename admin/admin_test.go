@@ -23,7 +23,7 @@ func TestAdminServerBasicFunctionality(t *testing.T) {
 	testlog := testlog.Logger(t, log.LevelInfo)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	adminServer := NewAdminServer(testlog, 0, &networkConfig, nil)
+	adminServer := NewAdminServer(testlog, 0, &networkConfig, nil, nil)
 	t.Cleanup(func() { cancel() })
 
 	require.NoError(t, adminServer.Start(ctx))
@@ -46,7 +46,7 @@ func TestGetL1AddressesRPC(t *testing.T) {
 	testlog := testlog.Logger(t, log.LevelInfo)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	adminServer := NewAdminServer(testlog, 0, &networkConfig, nil)
+	adminServer := NewAdminServer(testlog, 0, &networkConfig, nil, nil)
 	t.Cleanup(func() { cancel() })
 
 	require.NoError(t, adminServer.Start(ctx))

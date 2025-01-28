@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
+	"github.com/ethereum-optimism/supersim/opsimulator"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/log"
@@ -26,6 +27,7 @@ type AdminServer struct {
 
 	networkConfig    *config.NetworkConfig
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
+	l1ToL2MsgIndexer *opsimulator.L1ToL2MessageIndexer
 
 	port uint64
 }
@@ -34,6 +36,7 @@ type RPCMethods struct {
 	log              log.Logger
 	networkConfig    *config.NetworkConfig
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
+	l1ToL2MsgIndexer *opsimulator.L1ToL2MessageIndexer
 }
 
 type JSONRPCError struct {
@@ -50,6 +53,34 @@ type JSONL2ToL2Message struct {
 	Message     hexutil.Bytes  `json:"Message"`
 }
 
+type JSONDepositTx struct {
+	SourceHash          common.Hash     `json:"SourceHash"`
+	From                common.Address  `json:"From"`
+	To                  *common.Address `json:"To"`
+	Mint                *big.Int        `json:"Mint"`
+	Value               *big.Int        `json:"Value"`
+	Gas                 uint64          `json:"Gas"`
+	IsSystemTransaction bool            `json:"IsSystemTransaction"`
+	Data                hexutil.Bytes   `json:"Data"`
+}
+
+type JSONDepositLog struct {
+	Address     common.Address `json:"Address"`
+	Topics      []common.Hash  `json:"Topics"`
+	Data        hexutil.Bytes  `json:"Data"`
+	BlockNumber uint64         `json:"BlockNumber"`
+	TxHash      common.Hash    `json:"TxHash"`
+	TxIndex     uint           `json:"TxIndex"`
+	BlockHash   common.Hash    `json:"BlockHash"`
+	Index       uint           `json:"Index"`
+	Removed     bool           `json:"Removed"`
+}
+
+type JSONDepositMessage struct {
+	DepositTxn JSONDepositTx
+	DepositLog JSONDepositLog
+}
+
 func (e *JSONRPCError) Error() string {
 	return e.Message
 }
@@ -58,12 +89,12 @@ func (err *JSONRPCError) ErrorCode() int {
 	return err.Code
 }
 
-func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, indexer *interop.L2ToL2MessageIndexer) *AdminServer {
+func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer, l1ToL2MsgIndexer *opsimulator.L1ToL2MessageIndexer) *AdminServer {
 
-	adminServer := &AdminServer{log: log, port: port, networkConfig: networkConfig}
+	adminServer := &AdminServer{log: log, port: port, networkConfig: networkConfig, l1ToL2MsgIndexer: l1ToL2MsgIndexer}
 
-	if networkConfig.InteropEnabled && indexer != nil {
-		adminServer.l2ToL2MsgIndexer = indexer
+	if networkConfig.InteropEnabled && l2ToL2MsgIndexer != nil {
+		adminServer.l2ToL2MsgIndexer = l2ToL2MsgIndexer
 	}
 
 	return adminServer
@@ -140,6 +171,7 @@ func (s *AdminServer) setupRouter() *gin.Engine {
 		log:              s.log,
 		networkConfig:    s.networkConfig,
 		l2ToL2MsgIndexer: s.l2ToL2MsgIndexer,
+		l1ToL2MsgIndexer: s.l1ToL2MsgIndexer,
 	}
 
 	if err := rpcServer.RegisterName("admin", rpcMethods); err != nil {
@@ -221,5 +253,58 @@ func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) (*JSONL2ToL2Me
 		Sender:      msg.Sender,
 		Target:      msg.Target,
 		Message:     msg.Message,
+	}, nil
+}
+
+func (m *RPCMethods) GetL1ToL2MessageByTxnHash(args *common.Hash) (*JSONDepositMessage, error) {
+	if m.l1ToL2MsgIndexer == nil {
+		return nil, &JSONRPCError{
+			Code:    -32601,
+			Message: "L1ToL2MsgIndexer is not initialized.",
+		}
+	}
+
+	if (args == nil || args == &common.Hash{}) {
+		return nil, &JSONRPCError{
+			Code:    -32602,
+			Message: "Valid msg hash not provided",
+		}
+	}
+
+	storeEntry, err := m.l1ToL2MsgIndexer.Get(*args)
+
+	if err != nil {
+		return nil, &JSONRPCError{
+			Code:    -32603,
+			Message: fmt.Sprintf("Failed to get message: %v", err),
+		}
+	}
+
+	depositTxn := JSONDepositTx{
+		SourceHash:          storeEntry.DepositTxn.SourceHash,
+		From:                storeEntry.DepositTxn.From,
+		To:                  storeEntry.DepositTxn.To,
+		Mint:                storeEntry.DepositTxn.Mint,
+		Value:               storeEntry.DepositTxn.Value,
+		Gas:                 storeEntry.DepositTxn.Gas,
+		IsSystemTransaction: storeEntry.DepositTxn.IsSystemTransaction,
+		Data:                storeEntry.DepositTxn.Data,
+	}
+
+	depositLog := JSONDepositLog{
+		Address:     storeEntry.DepositLog.Address,
+		Topics:      storeEntry.DepositLog.Topics,
+		Data:        storeEntry.DepositLog.Data,
+		BlockNumber: storeEntry.DepositLog.BlockNumber,
+		TxHash:      storeEntry.DepositLog.TxHash,
+		TxIndex:     storeEntry.DepositLog.TxIndex,
+		BlockHash:   storeEntry.DepositLog.BlockHash,
+		Index:       storeEntry.DepositLog.Index,
+		Removed:     storeEntry.DepositLog.Removed,
+	}
+
+	return &JSONDepositMessage{
+		DepositTxn: depositTxn,
+		DepositLog: depositLog,
 	}, nil
 }

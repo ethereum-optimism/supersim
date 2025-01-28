@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
+	oplog "github.com/ethereum-optimism/optimism/op-service/log"
 	optestutils "github.com/ethereum-optimism/optimism/op-service/testutils"
 
 	"github.com/ethereum-optimism/supersim/config"
@@ -62,8 +63,14 @@ func TestSubscribeDepositTx(t *testing.T) {
 	ctx := context.Background()
 
 	depositTxCh := make(chan *types.DepositTx, len(mockDepositTxs))
+	logCh := make(chan types.Log, len(mockDepositTxs))
 
-	sub, err := SubscribeDepositTx(ctx, &chain, common.HexToAddress(""), depositTxCh)
+	channels := DepositChannels{
+		DepositTxCh: depositTxCh,
+		LogCh:       logCh,
+	}
+
+	sub, err := SubscribeDepositTx(ctx, &chain, common.HexToAddress(""), channels)
 	if err != nil {
 		require.NoError(t, err)
 	}
@@ -84,5 +91,64 @@ func TestSubscribeDepositTx(t *testing.T) {
 
 	sub.Unsubscribe()
 
+	close(depositTxCh)
+}
+
+func TestSubscribePublishTx(t *testing.T) {
+
+	depositStoreMngr := NewL1DepositStoreManager()
+	indexer := NewL1ToL2MessageIndexer(oplog.NewLogger(oplog.AppOut(nil), oplog.DefaultCLIConfig()), depositStoreMngr)
+
+	mockDepositTxs := createMockDepositTxs()
+	chain := MockChainWithSubscriptions{testutils.NewMockChain(), mockDepositTxs}
+
+	depositPubTxCh := make(chan *types.Transaction, len(mockDepositTxs))
+
+	unsubscribe, err := indexer.SubscribeDepositMessage(chain.Config().ChainID, depositPubTxCh)
+
+	require.NoError(t, err, "Should subscribe via chainId")
+
+	ctx := context.Background()
+
+	depositTxCh := make(chan *types.DepositTx, len(mockDepositTxs))
+	logCh := make(chan types.Log, len(mockDepositTxs))
+
+	channels := DepositChannels{
+		DepositTxCh: depositTxCh,
+		LogCh:       logCh,
+	}
+
+	sub, err := SubscribeDepositTx(ctx, &chain, common.HexToAddress(""), channels)
+	if err != nil {
+		require.NoError(t, err)
+	}
+
+	initiatedDepTxn := make([]*types.Transaction, len(mockDepositTxs))
+
+	for i := 0; i < len(mockDepositTxs); i++ {
+		dep := <-depositTxCh
+		log := <-logCh
+		depTx := types.NewTx(dep)
+
+		initiatedDepTxn[i] = depTx
+
+		err := indexer.ProcessEvent(dep, log, chain.Config().ChainID)
+		require.NoError(t, err, "Should send valid details")
+	}
+
+	for i := 0; i < len(initiatedDepTxn); i++ {
+		dep := <-depositPubTxCh
+		depTx := initiatedDepTxn[i]
+
+		require.Equal(t, dep.To(), depTx.To())
+		require.Equal(t, dep.IsDepositTx(), depTx.IsDepositTx())
+		require.Equal(t, dep.Mint(), depTx.Mint())
+		require.Equal(t, dep.SourceHash(), depTx.SourceHash())
+		require.Equal(t, dep.Cost(), depTx.Cost())
+		require.Equal(t, dep.Value(), depTx.Value())
+	}
+
+	unsubscribe()
+	sub.Unsubscribe()
 	close(depositTxCh)
 }

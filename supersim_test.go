@@ -10,10 +10,13 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	opbindings "github.com/ethereum-optimism/optimism/op-e2e/bindings"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/receipts"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	registry "github.com/ethereum-optimism/superchain-registry/superchain"
+	"github.com/ethereum-optimism/supersim/admin"
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
@@ -62,15 +65,6 @@ type TestSuite struct {
 
 	Cfg      *config.CLIConfig
 	Supersim *Supersim
-}
-
-type JSONL2ToL2Message struct {
-	Destination uint64         `json:"Destination"`
-	Source      uint64         `json:"Source"`
-	Nonce       *big.Int       `json:"Nonce"`
-	Sender      common.Address `json:"Sender"`
-	Target      common.Address `json:"Target"`
-	Message     hexutil.Bytes  `json:"Message"`
 }
 
 type InteropTestSuite struct {
@@ -1120,8 +1114,7 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 		return diff.Cmp(valueToTransfer) == 0, nil
 	}))
 
-	var message *JSONL2ToL2Message
-
+	var message *admin.JSONL2ToL2Message
 	// msgHash for the above sendERC20 txn
 	msgHash := "0x3656fd893944321663b2877d10db2895fb68e2346fd7e3f648ce5b986c200166"
 	rpcErr := client.CallContext(context.Background(), &message, "admin_getL2ToL2MessageByMsgHash", msgHash)
@@ -1131,4 +1124,74 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 	assert.Equal(t, testSuite.SourceChainID.Uint64(), message.Source)
 	assert.Equal(t, tx.To().String(), message.Target.String())
 	assert.Equal(t, tx.To().String(), message.Sender.String())
+}
+
+func TestAdminGetL1ToL2MessageByTxnHash(t *testing.T) {
+	t.Parallel()
+
+	testSuite := createTestSuite(t)
+
+	l1Chain := testSuite.Supersim.Orchestrator.L1Chain()
+	l1EthClient, _ := ethclient.Dial(l1Chain.Endpoint())
+
+	var wg sync.WaitGroup
+	var l1TxMutex sync.Mutex
+
+	l2Chains := testSuite.Supersim.Orchestrator.L2Chains()
+	wg.Add(len(l2Chains))
+	for i, chain := range l2Chains {
+		go func() {
+			defer wg.Done()
+
+			l2EthClient, _ := ethclient.Dial(chain.Endpoint())
+			privateKey, _ := testSuite.DevKeys.Secret(devkeys.UserKey(i))
+			senderAddress, _ := testSuite.DevKeys.Address(devkeys.UserKey(i))
+			adminRPCClient, _ := rpc.Dial(testSuite.Supersim.Orchestrator.AdminServer.Endpoint())
+
+			oneEth := big.NewInt(1e18)
+			prevBalance, _ := l2EthClient.BalanceAt(context.Background(), senderAddress, nil)
+
+			transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(l1Chain.Config().ChainID)))
+			transactor.Value = oneEth
+			optimismPortal, _ := opbindings.NewOptimismPortal(common.Address(chain.Config().L2Config.L1Addresses.OptimismPortalProxy), l1EthClient)
+
+			// needs a lock because the gas estimation can be outdated between transactions
+			l1TxMutex.Lock()
+			tx, err := optimismPortal.DepositTransaction(transactor, senderAddress, oneEth, 100000, false, make([]byte, 0))
+			l1TxMutex.Unlock()
+			require.NoError(t, err)
+
+			txReceipt, _ := bind.WaitMined(context.Background(), l1EthClient, tx)
+			require.NoError(t, err)
+
+			require.True(t, txReceipt.Status == 1, "Deposit transaction failed")
+			require.NotEmpty(t, txReceipt.Logs, "Deposit transaction failed")
+
+			postBalance, postBalanceCheckErr := wait.ForBalanceChange(
+				context.Background(),
+				l2EthClient,
+				senderAddress,
+				prevBalance,
+			)
+			require.NoError(t, postBalanceCheckErr)
+
+			// check that balance was increased
+			require.Equal(t, oneEth, postBalance.Sub(postBalance, prevBalance), "Recipient balance is incorrect")
+
+			depositEvent, err := receipts.FindLog(txReceipt.Logs, optimismPortal.ParseTransactionDeposited)
+			require.NoError(t, err, "Should emit deposit event")
+			depositTx, err := derive.UnmarshalDepositLogEvent(&depositEvent.Raw)
+			require.NoError(t, err)
+
+			var message *admin.JSONDepositMessage
+			rpcErr := adminRPCClient.CallContext(context.Background(), &message, "admin_getL1ToL2MessageByTxnHash", depositTx.SourceHash)
+			require.NoError(t, rpcErr)
+
+			assert.Equal(t, oneEth.String(), message.DepositTxn.Value.String())
+			assert.Equal(t, oneEth.String(), message.DepositTxn.Mint.String())
+			assert.Equal(t, false, message.DepositTxn.IsSystemTransaction)
+		}()
+	}
+
+	wg.Wait()
 }

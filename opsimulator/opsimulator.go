@@ -58,6 +58,8 @@ type OpSimulator struct {
 	ethClient *ethclient.Client
 
 	stopped atomic.Bool
+
+	indexer *L1ToL2MessageIndexer
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
@@ -92,7 +94,7 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host str
 	}
 }
 
-func (opSim *OpSimulator) Start(ctx context.Context) error {
+func (opSim *OpSimulator) Start(ctx context.Context, indexer *L1ToL2MessageIndexer) error {
 	mux := http.NewServeMux()
 	mux.Handle("/", corsHandler(opSim.handler(ctx)))
 
@@ -104,6 +106,8 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	cfg := opSim.Config()
 	opSim.log.Debug("started opsimulator", "name", cfg.Name, "chain.id", cfg.ChainID, "addr", hs.Addr())
 	opSim.httpServer = hs
+
+	opSim.indexer = indexer
 
 	if opSim.port == 0 {
 		_, portStr, err := net.SplitHostPort(hs.Addr().String())
@@ -151,19 +155,18 @@ func (opSim *OpSimulator) EthClient() *ethclient.Client {
 func (opSim *OpSimulator) startBackgroundTasks() {
 	// Relay deposit tx from L1 to L2
 	opSim.bgTasks.Go(func() error {
-		depositTxCh := make(chan *types.DepositTx)
-		portalAddress := common.Address(opSim.Config().L2Config.L1Addresses.OptimismPortalProxy)
-		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain.EthClient(), portalAddress, depositTxCh)
+		depositTxCh := make(chan *types.Transaction)
+		unsubscribe, err := opSim.indexer.SubscribeDepositMessage(opSim.Config().ChainID, depositTxCh)
+
 		if err != nil {
-			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
+			opSim.log.Error("Failed to subscribe to indexer")
 		}
 
 		chainId := opSim.Config().ChainID
 
 		for {
 			select {
-			case dep := <-depositTxCh:
-				depTx := types.NewTx(dep)
+			case depTx := <-depositTxCh:
 				opSim.log.Debug("observed deposit event on L1", "hash", depTx.Hash().String())
 
 				clnt := opSim.Chain.EthClient()
@@ -174,7 +177,7 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 				opSim.log.Info("OptimismPortal#depositTransaction", "l2TxHash", depTx.Hash().String())
 
 			case <-opSim.bgTasksCtx.Done():
-				sub.Unsubscribe()
+				unsubscribe()
 				close(depositTxCh)
 				return nil
 			}

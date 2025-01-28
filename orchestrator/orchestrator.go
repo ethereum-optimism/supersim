@@ -30,6 +30,7 @@ type Orchestrator struct {
 
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 	l2ToL2MsgRelayer *interop.L2ToL2MessageRelayer
+	l1ToL2MsgIndexer *opsimulator.L1ToL2MessageIndexer
 
 	AdminServer *admin.AdminServer
 }
@@ -58,9 +59,10 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig
 		l2Anvils[cfg.ChainID] = l2Anvil
 	}
 
-	// Spin up OpSim to front the L2 instances
+	// Sping up OpSim to front the L2 instances
 	for i := range networkConfig.L2Configs {
 		cfg := networkConfig.L2Configs[i]
+
 		l2OpSims[cfg.ChainID] = opsimulator.New(log, closeApp, nextL2Port, cfg.Host, l1Anvil, l2Anvils[cfg.ChainID], l2Anvils, networkConfig.InteropDelay)
 
 		// only increment expected port if it has been specified
@@ -71,6 +73,9 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig
 
 	o := Orchestrator{log: log, config: networkConfig, l1Chain: l1Anvil, l2Chains: l2Anvils, l2OpSims: l2OpSims}
 
+	depositStoreMngr := opsimulator.NewL1DepositStoreManager()
+	o.l1ToL2MsgIndexer = opsimulator.NewL1ToL2MessageIndexer(log, depositStoreMngr)
+
 	// Interop Setup
 	if networkConfig.InteropEnabled {
 		o.l2ToL2MsgIndexer = interop.NewL2ToL2MessageIndexer(log)
@@ -79,12 +84,19 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig
 		}
 	}
 
-	o.AdminServer = admin.NewAdminServer(log, adminPort, networkConfig, o.l2ToL2MsgIndexer)
+	a := admin.NewAdminServer(log, adminPort, networkConfig, o.l2ToL2MsgIndexer, o.l1ToL2MsgIndexer)
+
+	o.AdminServer = a
+
 	return &o, nil
 }
 
 func (o *Orchestrator) Start(ctx context.Context) error {
 	o.log.Debug("starting orchestrator")
+
+	// TODO: hack until opsim proxy supports websocket connections.
+	// We need websocket connections to make subscriptions.
+	// We should try to use make RPC through opsim not directly to the underlying chain
 
 	// Start Chains
 	if err := o.l1Chain.Start(ctx); err != nil {
@@ -96,7 +108,7 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		}
 	}
 	for _, opSim := range o.l2OpSims {
-		if err := opSim.Start(ctx); err != nil {
+		if err := opSim.Start(ctx, o.l1ToL2MsgIndexer); err != nil {
 			return fmt.Errorf("op simulator instance %s failed to start: %w", opSim.Config().Name, err)
 		}
 	}
@@ -106,14 +118,18 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		return fmt.Errorf("unable to start mining: %w", err)
 	}
 
-	// TODO: hack until opsim proxy supports websocket connections.
-	// We need websocket connections to make subscriptions.
-	// We should try to use make RPC through opsim not directly to the underlying chain
 	l2ChainClientByChainId := make(map[uint64]*ethclient.Client)
 	l2OpSimClientByChainId := make(map[uint64]*ethclient.Client)
+	l2ChainByChainId := make(map[uint64]config.Chain)
+
 	for chainID, opSim := range o.l2OpSims {
 		l2ChainClientByChainId[chainID] = opSim.Chain.EthClient()
 		l2OpSimClientByChainId[chainID] = opSim.EthClient()
+		l2ChainByChainId[chainID] = opSim.Chain
+	}
+
+	if err := o.l1ToL2MsgIndexer.Start(ctx, o.l1Chain.EthClient(), l2ChainByChainId); err != nil {
+		return fmt.Errorf("l1 to l2 message indexer failed to start: %w", err)
 	}
 
 	// Configure Interop (if applicable)
@@ -175,6 +191,10 @@ func (o *Orchestrator) Stop(ctx context.Context) error {
 		}
 	}
 
+	if err := o.l1ToL2MsgIndexer.Stop(ctx); err != nil {
+		errs = append(errs, fmt.Errorf("l1 to l2 message indexer failed to stop: %w", err))
+	}
+
 	for _, opSim := range o.l2OpSims {
 		o.log.Debug("stopping op simulator", "chain.id", opSim.Config().ChainID)
 		if err := opSim.Stop(ctx); err != nil {
@@ -228,7 +248,7 @@ func (o *Orchestrator) L1Chain() config.Chain {
 
 func (o *Orchestrator) L2Chains() []config.Chain {
 	var chains []config.Chain
-	for _, chain := range o.l2OpSims {
+	for _, chain := range o.l2Chains {
 		chains = append(chains, chain)
 	}
 	return chains
