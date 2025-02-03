@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
-import {Identifier, ICrossL2Inbox} from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
+import {Identifier, ICrossL2Inbox} from "@contracts-bedrock-interfaces/L2/ICrossL2Inbox.sol";
 
 import {TicTacToe} from "../../src/tictactoe/TicTacToe.sol";
 import {

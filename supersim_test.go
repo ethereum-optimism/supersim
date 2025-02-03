@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
+	gethmath "github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -213,7 +214,7 @@ func TestStartup(t *testing.T) {
 		l2Client, err := rpc.Dial(chain.Endpoint())
 		require.NoError(t, err)
 
-		var chainId math.HexOrDecimal64
+		var chainId gethmath.HexOrDecimal64
 		require.NoError(t, l2Client.CallContext(context.Background(), &chainId, "eth_chainId"))
 		require.Equal(t, chain.Config().ChainID, uint64(chainId))
 
@@ -224,7 +225,7 @@ func TestStartup(t *testing.T) {
 	l1Client, err := rpc.Dial(testSuite.Supersim.Orchestrator.L1Chain().Endpoint())
 	require.NoError(t, err)
 
-	var chainId math.HexOrDecimal64
+	var chainId gethmath.HexOrDecimal64
 	require.NoError(t, l1Client.CallContext(context.Background(), &chainId, "eth_chainId"))
 	require.Equal(t, testSuite.Supersim.Orchestrator.L1Chain().Config().ChainID, uint64(chainId))
 
@@ -489,7 +490,7 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a bad executing message that will throw an error using CrossL2Inbox
-	executeMessageNonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
+	nonce, err := testSuite.DestEthClient.PendingNonceAt(context.Background(), fromAddress)
 	require.NoError(t, err)
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
@@ -501,17 +502,17 @@ func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 		Timestamp:   new(big.Int).Sub(new(big.Int).SetUint64(initiatingMessageBlockHeader.Time), big.NewInt(1)),
 		ChainId:     testSuite.SourceChainID,
 	}
-	executeMessageCallData, err := bindings.CrossL2InboxParsedABI.Pack("executeMessage", identifier, fromAddress, initiatingMessageLog.Data)
+	validateMessageCallData, err := bindings.CrossL2InboxParsedABI.Pack("validateMessage", identifier, crypto.Keccak256Hash(initiatingMessageLog.Data))
 	require.NoError(t, err)
-	executeMessageTx := types.NewTransaction(executeMessageNonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, executeMessageCallData)
+	validateMessageTx := types.NewTransaction(nonce, predeploys.CrossL2InboxAddr, big.NewInt(0), gasLimit, gasPrice, validateMessageCallData)
 	require.NoError(t, err)
-	executeMessageSignedTx, err := types.SignTx(executeMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
+	validateMessageSignedTx, err := types.SignTx(validateMessageTx, types.NewEIP155Signer(testSuite.DestChainID), privateKey)
 	require.NoError(t, err)
-	executeMessageTxData, err := executeMessageSignedTx.MarshalBinary()
+	validateMessageTxData, err := validateMessageSignedTx.MarshalBinary()
 	require.NoError(t, err)
 	var chainIdError error
 	var sendRawTxError error
-	elems := []rpc.BatchElem{{Method: "eth_chainId", Result: new(hexutil.Uint64), Error: chainIdError}, {Method: "eth_sendRawTransaction", Args: []interface{}{hexutil.Encode(executeMessageTxData)}, Result: new(string), Error: sendRawTxError}}
+	elems := []rpc.BatchElem{{Method: "eth_chainId", Result: new(hexutil.Uint64), Error: chainIdError}, {Method: "eth_sendRawTransaction", Args: []interface{}{hexutil.Encode(validateMessageTxData)}, Result: new(string), Error: sendRawTxError}}
 
 	require.NoError(t, testSuite.DestEthClient.Client().BatchCallContext(context.Background(), elems))
 	require.Nil(t, elems[0].Error)
@@ -581,7 +582,6 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
 	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
@@ -623,8 +623,8 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
 	require.NoError(t, err)
 
-	// Should fail because the block number is incorrect
-	_, err = crossL2Inbox.ExecuteMessage(transactor, identifier, fromAddress, initiatingMessageLog.Data)
+	// Should fail because the log index is incorrect
+	_, err = crossL2Inbox.ValidateMessage(transactor, identifier, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
 	require.Error(t, err)
 }
 
@@ -634,7 +634,6 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
 	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
@@ -677,7 +676,7 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	require.NoError(t, err)
 
 	// Should fail because the block number is incorrect
-	_, err = crossL2Inbox.ExecuteMessage(transactor, identifier, fromAddress, initiatingMessageLog.Data)
+	_, err = crossL2Inbox.ValidateMessage(transactor, identifier, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
 	require.Error(t, err)
 }
 
@@ -687,7 +686,6 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 
 	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
 	require.NoError(t, err)
-	fromAddress := crypto.PubkeyToAddress(privateKey.PublicKey)
 
 	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
@@ -729,7 +727,7 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 	require.NoError(t, err)
 
 	// Should fail because the block timestamp is incorrect
-	_, err = crossL2Inbox.ExecuteMessage(transactor, identifier, fromAddress, initiatingMessageLog.Data)
+	_, err = crossL2Inbox.ValidateMessage(transactor, identifier, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
 	require.Error(t, err)
 }
 
@@ -1014,7 +1012,7 @@ func TestInteropInvariantSucceedsWithDelay(t *testing.T) {
 func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	t.Parallel()
 	testSuite := createInteropTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
-		cfg.InteropDelay = math.MaxUint64 / 2 // added to block time so provide leeway to not overflow
+		cfg.InteropDelay = math.MaxBig256.Uint64() / 2 // added to block time so provide leeway to not overflow
 		return cfg
 	})
 

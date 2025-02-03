@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock/L2/interfaces/IL2ToL2CrossDomainMessenger.sol";
+import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock-interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
 
 /// @notice Thrown when a function is called by an address other than the L2ToL2CrossDomainMessenger.
