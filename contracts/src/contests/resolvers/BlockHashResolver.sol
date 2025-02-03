@@ -6,29 +6,29 @@ import { CrossL2Inbox, Identifier } from "@contracts-bedrock/L2/CrossL2Inbox.sol
 
 import { BlockHashEmitter } from "../utils/BlockHashEmitter.sol";
 
-import { IMarketResolver, MarketOutcome } from "../MarketResolver.sol";
-import { PredictionMarket } from "../PredictionMarket.sol";
+import { IContestResolver, ContestOutcome } from "../ContestResolver.sol";
+import { Contests } from "../Contests.sol";
 
-contract BlockHashResolver is IMarketResolver {
-    // @notice prediction market
-    PredictionMarket public market;
+contract BlockHashResolver is IContestResolver {
+    // @notice contests
+    Contests public contests;
 
     // @notice BlockHashEmitter contract
     BlockHashEmitter public emitter;
 
-    // @notice Chain ID that will resolve this market
+    // @notice Chain ID that will resolve this contest
     uint256 public chainId;
 
     // @notice block height of this bet
     uint256 public blockNumber;
     
     // @notice current outcome of this bet
-    MarketOutcome public outcome;
+    ContestOutcome public outcome;
 
-    constructor(PredictionMarket _market, BlockHashEmitter _emitter, uint256 _chainId, uint256 _blockNumber) {
-        outcome = MarketOutcome.UNDECIDED;
+    constructor(Contests _contests, BlockHashEmitter _emitter, uint256 _chainId, uint256 _blockNumber) {
+        outcome = ContestOutcome.UNDECIDED;
 
-        market = _market;
+        contests = _contests;
         emitter = _emitter;
 
         chainId = _chainId;
@@ -36,7 +36,7 @@ contract BlockHashResolver is IMarketResolver {
     }
 
     function resolve(Identifier calldata _id, bytes calldata _data) external {
-        require(outcome == MarketOutcome.UNDECIDED, "already resolved");
+        require(outcome == ContestOutcome.UNDECIDED, "already resolved");
 
         // Validate Log
         require(_id.origin == address(emitter), "event not from the emitter");
@@ -46,20 +46,20 @@ contract BlockHashResolver is IMarketResolver {
         bytes32 selector = abi.decode(_data[:32], (bytes32));
         require(selector == BlockHashEmitter.BlockHash.selector, "event not a block hash");
 
-        // Event should correspond to the right market
+        // Event should correspond to the right contest
         uint256 dataBlockNumber = abi.decode(_data[32:64], (uint256));
         require(dataBlockNumber == blockNumber, "event not for the right height");
 
         bytes32 blockHash = abi.decode(_data[64:], (bytes32));
         bool isOdd = uint256(blockHash) % 2 != 0;
 
-        // Resolve the market (yes if odd, no if even)
+        // Resolve the contest (yes if odd, no if even)
         if (isOdd) {
-            outcome = MarketOutcome.YES;
+            outcome = ContestOutcome.YES;
         } else {
-            outcome = MarketOutcome.NO;
+            outcome = ContestOutcome.NO;
         }
 
-        market.resolveMarket(this);
+        contests.resolveContest(this);
     }
 }

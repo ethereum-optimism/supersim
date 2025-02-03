@@ -6,18 +6,18 @@ import {console, Script} from "forge-std/Script.sol";
 import {TicTacToe} from "../../src/tictactoe/TicTacToe.sol";
 import {DeployScript as TicTacToeDeployScript} from "../tictactoe/Deploy.s.sol";
 
-import {PredictionMarket} from "../../src/predictionmarket/PredictionMarket.sol";
-import {TicTacToeMarketFactory} from "../../src/predictionmarket/factories/TicTacToeMarketFactory.sol";
-import {BlockHashEmitter} from "../../src/predictionmarket/utils/BlockHashEmitter.sol";
-import {BlockHashMarketFactory} from "../../src/predictionmarket/factories/BlockHashMarketFactory.sol";
-import {MockResolverFactory} from "../../src/predictionmarket/factories/MockResolverFactory.sol";
+import {Contests} from "../../src/contests/Contests.sol";
+import {TicTacToeContestFactory} from "../../src/contests/factories/TicTacToeContestFactory.sol";
+import {BlockHashEmitter} from "../../src/contests/utils/BlockHashEmitter.sol";
+import {BlockHashContestFactory} from "../../src/contests/factories/BlockHashContestFactory.sol";
+import {MockContestFactory} from "../../src/contests/factories/MockContestFactory.sol";
 
 contract DeployScript is Script {
     bytes32 constant _BLOCKHASH_EMITTER_SALT = "blockhashemitter";
-    bytes32 constant _PREDICTION_MARKET_SALT = "predictionmarket";
+    bytes32 constant _CONTESTS_SALT = "contests";
     bytes32 constant _BLOCKHASH_FACTORY_SALT = "blackhashfactory";
     bytes32 constant _TICTACTOE_FACTORY_SALT = "tictactoefactory";
-    bytes32 constant _MOCK_RESOLVER_FACTORY_SALT = "mockresolverfactory";
+    bytes32 constant _MOCK_FACTORY_SALT = "mockfactory";
 
     function run() public {
         TicTacToeDeployScript ticTacToeDeploy = new TicTacToeDeployScript();
@@ -37,7 +37,7 @@ contract DeployScript is Script {
         ticTacToeDeploy.deploy();
         deployBlockHashEmitter();
 
-        /** Chain C (PredictionMarket Chain) **/
+        /** Chain C (Contests Chain) **/
 
         console.log("\n\nSelecting OPChainC");
         vm.createSelectFork(vm.rpcUrl("opchain_c"));
@@ -47,15 +47,15 @@ contract DeployScript is Script {
     }
 
     function deploy() public {
-        address marketAddress = predictionMarketContractAddress();
+        address marketAddress = contestsContractAddress();
         if (marketAddress.code.length > 0) {
-            console.log("PredictionMarket Already Deployed at:", marketAddress);
+            console.log("Contests Already Deployed at:", marketAddress);
             return;
         }
 
         vm.startBroadcast();
 
-        PredictionMarket market = new PredictionMarket{salt: _PREDICTION_MARKET_SALT}();
+        Contests market = new Contests{salt: _CONTESTS_SALT}();
         require(address(market) == marketAddress);
 
         /** Also Deploy Market Factories **/
@@ -64,15 +64,15 @@ contract DeployScript is Script {
         address emitter = emitterContractAddress();
         address tictactoe = ticTacToeDeploy.contractAddress();
 
-        BlockHashMarketFactory blockHashFactory = new BlockHashMarketFactory{salt: _BLOCKHASH_FACTORY_SALT}(market, BlockHashEmitter(emitter));
-        TicTacToeMarketFactory ticTacToeFactory = new TicTacToeMarketFactory{salt: _TICTACTOE_FACTORY_SALT}(market, TicTacToe(tictactoe));
-        MockResolverFactory mockResolverFactory = new MockResolverFactory{salt: _MOCK_RESOLVER_FACTORY_SALT}(market);
+        BlockHashContestFactory blockHashFactory = new BlockHashContestFactory{salt: _BLOCKHASH_FACTORY_SALT}(market, BlockHashEmitter(emitter));
+        TicTacToeContestFactory ticTacToeFactory = new TicTacToeContestFactory{salt: _TICTACTOE_FACTORY_SALT}(market, TicTacToe(tictactoe));
+        MockContestFactory mockFactory = new MockContestFactory{salt: _MOCK_FACTORY_SALT}(market);
         vm.stopBroadcast();
 
-        console.log("PredictionMarket Deployed at:", address(market));
-        console.log("BlockHashMarketFactory Deployed at:", address(blockHashFactory));
-        console.log("TicTacToeMarketFactory Deployed at:", address(ticTacToeFactory));
-        console.log("MockResolverFactory Deployed at:", address(mockResolverFactory));
+        console.log("Contests Deployed at:", address(market));
+        console.log("BlockHashContestFactory Deployed at:", address(blockHashFactory));
+        console.log("TicTacToeContestFactory Deployed at:", address(ticTacToeFactory));
+        console.log("MockContestFactory Deployed at:", address(mockFactory));
     }
 
     function deployBlockHashEmitter() public {
@@ -97,8 +97,8 @@ contract DeployScript is Script {
         return vm.computeCreate2Address(_BLOCKHASH_EMITTER_SALT, emitterBytecodehash);
     }
 
-    function predictionMarketContractAddress() public pure returns (address) {
-        bytes32 marketBytecodehash = keccak256(abi.encodePacked(type(PredictionMarket).creationCode));
-        return vm.computeCreate2Address(_PREDICTION_MARKET_SALT, marketBytecodehash);
+    function contestsContractAddress() public pure returns (address) {
+        bytes32 marketBytecodehash = keccak256(abi.encodePacked(type(Contests).creationCode));
+        return vm.computeCreate2Address(_CONTESTS_SALT, marketBytecodehash);
     }
 }
