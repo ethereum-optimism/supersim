@@ -16,7 +16,7 @@ struct Game {
 }
 
 contract TicTacToeGameResolver is IContestResolver {
-    // @notice prediction contests
+    // @notice contests
     Contests public contests;
 
     // @notice TicTacToe contract
@@ -60,7 +60,7 @@ contract TicTacToeGameResolver is IContestResolver {
             outcome = ContestOutcome.NO;
         }
 
-        // Resolve the prediction contests
+        // Resolve the contest
         contests.resolveContest(this);
     }
 

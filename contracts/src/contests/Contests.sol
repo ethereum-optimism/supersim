@@ -36,7 +36,7 @@ error NoValue();
 // @notice thrown when there is insufficient liquidity in the contest
 error InsufficientLiquidity();
 
-// @notice A very basic implementation of a prediction contest.
+// @notice A very basic implementation of  contests.
 //         1. We only support contests with a yes or no outcome.
 //         2. Once a bet is placed, we do not allow swapping out of a position with the contest directly.
 //         3. No incentive to provide liquidity since swap fees are not collected. LP tokens can only be redeemed
@@ -65,7 +65,7 @@ contract Contests {
     // @notice emitted when an outcome token has been redeemed
     event OutcomeRedeemed(IContestResolver indexed resolver, address indexed redeemer, ContestOutcome outcome, uint256 amount, uint256 ethPayout);
 
-    // @notice create and seed a new prediction contest with liquidity
+    // @notice create and seed a new contest with liquidity
     // @param _resolver contract identifying the outcome for an open contest
     // @param _to address to mint LP tokens to
     function newContest(IContestResolver _resolver, address _to) public payable {

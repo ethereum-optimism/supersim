@@ -5,7 +5,7 @@ import { IContestResolver, ContestOutcome } from "../ContestResolver.sol";
 import { Contests } from "../Contests.sol";
 
 contract MockResolver is IContestResolver {
-    // @notice prediction contests
+    // @notice contests
     Contests public contests;
 
     // @notice outcome of the resolver
