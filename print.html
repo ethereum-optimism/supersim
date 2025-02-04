@@ -1115,76 +1115,76 @@ if (_isGameWon(game)) {
 <p>The concept of a "chain" can be completely abstracted away from the user. When connecting their wallet, the frontend can simply pick the chain which the user has funds on with the lowest gas fees.</p>
 </li>
 <li>
-<p>Event reading enables a new level of composability for cross-chain interactions! Imagine a <a href="guides/interop/./cross-chain-event-composability-predictionmarket.html">prediction market</a> contract that resolves based on the outcome of a TicTacToe game via the <code>GameWon</code> or <code>GameLost</code> event without the need for a trusted oracle, nor permission or native integration with the TicTacToe contract.</p>
+<p>Event reading enables a new level of composability for cross-chain interactions! Imagine <a href="guides/interop/./cross-chain-event-composability-contests.html">contests</a> contract that resolves based on the outcome of a TicTacToe game via the <code>GameWon</code> or <code>GameLost</code> event without the need for a trusted oracle, nor permission or native integration with the TicTacToe contract.</p>
 </li>
 </ol>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="cross-chain-event-composability-prediction-market"><a class="header" href="#cross-chain-event-composability-prediction-market">Cross Chain Event Composability (Prediction Market)</a></h1>
-<p>We showcase cross chain composability through the implementation of a Prediction Market. Leveraging the same underlying mechanism powering TicTacToe, this prediction market can permissionlessly integrate with the events emitted by any contract in the Superchain.</p>
-<p>See the documentation for the <a href="https://github.com/ethereum-optimism/supersim/tree/main/examples/prediction-market">frontend</a> for how the prediction market UI is presented to the user.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="cross-chain-event-composability-contests"><a class="header" href="#cross-chain-event-composability-contests">Cross Chain Event Composability (Contests)</a></h1>
+<p>We showcase cross chain composability through the implementation of contests. Leveraging the same underlying mechanism powering TicTacToe, this contests can permissionlessly integrate with the events emitted by any contract in the Superchain.</p>
+<p>See the documentation for the <a href="https://github.com/ethereum-optimism/supersim/tree/main/examples/contests">frontend</a> for how the contests UI is presented to the user.</p>
 <ul>
-<li><a href="guides/interop/cross-chain-event-composability-predictionmarket.html#how-it-works">How it works</a>
+<li><a href="guides/interop/cross-chain-event-composability-contests.html#how-it-works">How it works</a>
 <ul>
-<li><a href="guides/interop/cross-chain-event-composability-predictionmarket.html#blockhash-market">BlockHash Market</a></li>
-<li><a href="guides/interop/cross-chain-event-composability-predictionmarket.html#tictactoe-market">TicTacToe Market</a></li>
+<li><a href="guides/interop/cross-chain-event-composability-contests.html#blockhash-contest">BlockHash Contest</a></li>
+<li><a href="guides/interop/cross-chain-event-composability-contests.html#tictactoe-contest">TicTacToe Contest</a></li>
 </ul>
 </li>
-<li><a href="guides/interop/cross-chain-event-composability-predictionmarket.html#takeaways">Takeaways</a></li>
+<li><a href="guides/interop/cross-chain-event-composability-contests.html#takeaways">Takeaways</a></li>
 </ul>
 <h2 id="how-it-works-1"><a class="header" href="#how-it-works-1">How it works</a></h2>
-<p>Unlike TicTacToe which is deployed on every participating chain, the PredictionMarket is deployed on a single L2, behaving like an application-specific op-stack chain rather than a horizontally scaled app.</p>
-<p><a href="https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/prediction-market/PredictionMarket.sol">PredictionMarket.sol</a> contains the implementation of the prediction market. We won't go into the details of the implementation here, but instead focus on how the prediction market can leverage cross chain event reading to compose with other contracts in the Superchain.</p>
+<p>Unlike TicTacToe which is deployed on every participating chain, the Contests is deployed on a single L2, behaving like an application-specific op-stack chain rather than a horizontally scaled app.</p>
+<p><a href="https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/contests/Contests.sol">Contests.sol</a> contains the implementation of the contests. We won't go into the details of the implementation here, but instead focus on how the contests can leverage cross chain event reading to compose with other contracts in the Superchain.</p>
 <p>The system predeploy that enables pulling in validated cross-chain events is the <a href="https://specs.optimism.io/interop/predeploys.html#crossl2inbox">CrossL2Inbox</a>.</p>
 <pre><code class="language-solidity">contract ICrossL2Inbox {
     function validateMessage(Identifier calldata _id, bytes32 _msgHash) external view;
 }
 </code></pre>
-<p>A market is identified by and has its outcome determined by the <code>IMarketResolver</code> instance. The resolver starts in the <code>UNDECIDED</code> state, updated into <code>YES</code> or <code>NO</code> when resolving itself
-with the market.</p>
-<pre><code class="language-solidity">enum MarketOutcome {
+<p>A contest is identified by and has its outcome determined by the <code>IContestResolver</code> instance. The resolver starts in the <code>UNDECIDED</code> state, updated into <code>YES</code> or <code>NO</code> when resolving itself
+with the contest.</p>
+<pre><code class="language-solidity">enum ContestOutcome {
     UNDECIDED,
     YES,
     NO
 }
 
-interface IMarketResolver {
-    function outcome() external returns (MarketOutcome);
+interface IContestResolver {
+    function outcome() external returns (ContestOutcome);
 }
 </code></pre>
-<h3 id="blockhash-market"><a class="header" href="#blockhash-market">Blockhash Market</a></h3>
-<p>With the existence of an event that emits the blockhash and height of a block, we can create a market on the parity of the blockhash being even or odd.</p>
-<pre><code class="language-solidity">contract BlockhashEmitter {
-    event Blockhash(uint256 blockHeight, bytes32 blockhash);
+<h3 id="blockhash-contest"><a class="header" href="#blockhash-contest">BlockHash Contest</a></h3>
+<p>With the existence of an event that emits the blockhash and height of a block, we can create a contest on the parity of the blockhash being even or odd.</p>
+<pre><code class="language-solidity">contract BlockHashEmitter {
+    event BlockHash(uint256 blockHeight, bytes32 blockHash);
 
-    function emitBlockhash(uint256 _blockHeight) external {
-        bytes32 hash = blockhash(_blockNumber);
+    function emitBlockHash(uint256 _blockHeight) external {
+        bytes32 hash = blockhash(_blockHeight);
         require(hash != bytes32(0));
 
         emit BlockHash(_blockNumber, hash);
     }
 }
 </code></pre>
-<p>Integrating this emitter into a market is extremely simple.  The <code>BlockHashMarketFactory</code> is a simple factory that creates a new market for a given chain &amp; block height. When live, <strong>anyone</strong> can resolve the market by simply providing the right <code>BlockHash</code> event to the deployed resolver.</p>
-<pre><code class="language-solidity">contract BlockHashMarketFactory {
+<p>Integrating this emitter into a contest is extremely simple.  The <code>BlockHashContestFactory</code> is a simple factory that creates a new contest for a given chain &amp; block height. When live, <strong>anyone</strong> can resolve the contest by simply providing the right <code>BlockHash</code> event to the deployed resolver.</p>
+<pre><code class="language-solidity">contract BlockHashContestFactory {
+    Contests         public contests;
     BlockHashEmitter public emitter; // Same emitter deployed on every chain
-    PredictionMarket public predictionMarket;
 
-    function newMarket(uint256 _chainId, uint256 _blockNumber) public payable {
-        IMarketResolver resolver = new BlockHashResolver(predictionMarket, emitter, _chainId, _blockNumber);
-        predictionMarket.newMarket{ value: msg.value }(resolver, msg.sender);
+    function newContest(uint256 _chainId, uint256 _blockNumber) public payable {
+        IContestResolver resolver = new BlockHashResolver(contests, emitter, _chainId, _blockNumber);
+        contests.newContest{ value: msg.value }(resolver, msg.sender);
     }
 }
 
-contract BlockHashResolver is IMarketResolver {
-    PredictionMarket public market;
+contract BlockHashResolver is IContestResolver {
+    Contests         public contests;
+    ContestOutcome   public outcome;
     BlockHashEmitter public emitter;
-    MarketOutcome    public outcome;
 
     // The target chain &amp; block height
     uint256 public chainId;
     uint256 public blockNumber;
 
     function resolve(Identifier calldata _id, bytes calldata _data) external {
-        require(outcome == MarketOutcome.UNDECIDED);
+        require(outcome == ContestOutcome.UNDECIDED);
 
         // Validate Log
         require(_id.origin == address(emitter), "not an event from the emitter");
@@ -1194,25 +1194,25 @@ contract BlockHashResolver is IMarketResolver {
         bytes32 selector = abi.decode(_data[:32], (bytes32));
         require(selector == BlockHashEmitter.BlockHash.selector, "incorrect event");
 
-        // Event should correspond to the right market
+        // Event should correspond to the right contest
         uint256 dataBlockNumber = abi.decode(_data[32:64], (uint256));
         require(dataBlockNumber == blockNumber, "must match target block height");
 
-        // Resolve the market (yes if odd, no if even)
+        // Resolve the contest (yes if odd, no if even)
         bytes32 blockHash = abi.decode(_data[64:], (bytes32));
-        outcome = uint256(blockHash) % 2 != 0 ? MarketOutcome.YES : MarketOutcome.NO;
-        market.resolveMarket(this);
+        outcome = uint256(blockHash) % 2 != 0 ? ContestOutcome.YES : ContestOutcome.NO;
+        contests.resolveContest(this);
     }
 
 }
 </code></pre>
-<h3 id="tictactoe-market"><a class="header" href="#tictactoe-market">TicTacToe Market</a></h3>
-<p>A market for TicTacToe is created on an accepted game between two players, captured by the emitted <code>AcceptedGame</code> event. When decoding the event, the game is uniquely identified by the chain it was created on, <code>chainId</code>, and the associated <code>gameId</code>. These identifying properties of the game are used to create the resolver for the game.</p>
-<pre><code class="language-solidity">contract TicTacToeMarketFactory {
+<h3 id="tictactoe-contest"><a class="header" href="#tictactoe-contest">TicTacToe Contest</a></h3>
+<p>A contest for TicTacToe is created on an accepted game between two players, captured by the emitted <code>AcceptedGame</code> event. When decoding the event, the game is uniquely identified by the chain it was created on, <code>chainId</code>, and the associated <code>gameId</code>. These identifying properties of the game are used to create the resolver for the game.</p>
+<pre><code class="language-solidity">contract TicTacToeContestFactory {
+    Contests  public contests;
     TicTacToe public tictactoe;
-    PredictionMarket public market;
 
-    function newMarket(Identifier calldata _id, bytes calldata _data) public payable {
+    function newContest(Identifier calldata _id, bytes calldata _data) public payable {
         // Validate Log
         require(_id.origin == address(tictactoe), "not an event from the TicTacToe contract");
         CrossL2Inbox(Predeploys.CROSS_L2_INBOX).validateMessage(_id, keccak256(_data));
@@ -1223,26 +1223,26 @@ contract BlockHashResolver is IMarketResolver {
         // Decode the event data
         (uint256 chainId, uint256 gameId, address creator,) = abi.decode(_data[32:], (uint256, uint256, address, address));
 
-        IMarketResolver resolver = new TicTacToeGameResolver(market, tictactoe, chainId, gameId, creator);
-        market.newMarket{ value: msg.value }(resolver, msg.sender);
+        IContestResolver resolver = new TicTacToeGameResolver(contest, tictactoe, chainId, gameId, creator);
+        contests.newContest{ value: msg.value }(resolver, msg.sender);
     }
 }
 </code></pre>
-<p>When live, <strong>anyone</strong> can resolve the market by providing the <code>GameWon</code> or <code>GameDraw</code> event of the associated game from the TicTacToe contract.</p>
-<pre><code class="language-solidity">contract TicTacToeGameResolver is IMarketResolver {
-    TicTacToe public tictactoe;
-    PredictionMarket public market;
-    MarketOutcome public outcome;
+<p>When live, <strong>anyone</strong> can resolve the contest by providing the <code>GameWon</code> or <code>GameDraw</code> event of the associated game from the TicTacToe contract.</p>
+<pre><code class="language-solidity">contract TicTacToeGameResolver is IContestResolver {
+    Contests       public contests;
+    ContestOutcome public outcome;
+    TicTacToe      public tictactoe;
 
     // @notice Game for this resolver
     Game public game;
 
-    constructor(PredictionMarket _market, TicTacToe _tictactoe, uint256 _chainId, uint256 _gameId, address _creator) {
-        market = _market;
+    constructor(Contests _contest, TicTacToe _tictactoe, uint256 _chainId, uint256 _gameId, address _creator) {
+        contest = _contest;
         tictactoe = _tictactoe;
 
         game = Game({chainId: _chainId, gameId: _gameId, creator: _creator});
-        outcome = MarketOutcome.UNDECIDED;
+        outcome = ContestOutcome.UNDECIDED;
     }
 
     // @notice resolve this game by providing the game ending event
@@ -1260,14 +1260,14 @@ contract BlockHashResolver is IMarketResolver {
         require(_chainId == game.chainId &amp;&amp; gameId == game.gameId);
 
         // Resolve based on if the creator has won (non-draw)
-        outcome = winner == game.creator &amp;&amp; selector != TicTacToe.GameDraw.selector ? MarketOutcome.YES : MarketOutcome.NO;
-        market.resolveMarket(this);
+        outcome = winner == game.creator &amp;&amp; selector != TicTacToe.GameDraw.selector ? ContestOutcome.YES : ContestOutcome.NO;
+        contests.resolveContest(this);
     }
 }
 </code></pre>
 <h2 id="takeaways-2"><a class="header" href="#takeaways-2">Takeaways</a></h2>
 <p>Leveraging superchain interop, contracts in the superchain can compose with each other in a similar fashion to how they would on a single chain. No restrictions are placed on the kinds of events a contract can consume via the <code>CrossL2Inbox</code>.</p>
-<p>In this example, the <code>BlockHashMarketFactory</code> and <code>TicTacToeMarketFactory</code> can be seen as just starting points for the <code>PredictionMarket</code> app chain. As more contracts and apps are created in the superchain, this developer can compose with them in a similar fashion without needing to change the <code>PredictionMarket</code> contract at all!</p>
+<p>In this example, the <code>BlockHashContestFactory</code> and <code>TicTacToeContestFactory</code> can be seen as just starting points for the <code>Contests</code> app chain. As more contracts and apps are created in the superchain, this developer can compose with them in a similar fashion without needing to change the <code>Contests</code> contract at all!</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="bridging-eth"><a class="header" href="#bridging-eth">Bridging ETH</a></h1>
 <p>Crosschain ETH transfers in the Superchain are facilitated through the <a href="https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/SuperchainWETH.sol">SuperchainWETH</a> contract. For more information on this checkout the spec for SuperchainWETH: https://specs.optimism.io/interop/superchain-weth.html.</p>
 <h2 id="cross-chain-eth-transfer-from-chain-901-to-902"><a class="header" href="#cross-chain-eth-transfer-from-chain-901-to-902">Cross-chain ETH transfer from chain 901 to 902</a></h2>
