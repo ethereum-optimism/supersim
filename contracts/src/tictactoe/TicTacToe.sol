@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
-import {Identifier, ICrossL2Inbox} from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
+import {Identifier, ICrossL2Inbox} from "@contracts-bedrock-interfaces/L2/ICrossL2Inbox.sol";
 
 /// @notice Thrown when cross l2 origin is not the TicTacToe contract
 error IdOriginNotTicTacToe();

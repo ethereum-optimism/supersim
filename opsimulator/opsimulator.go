@@ -50,10 +50,11 @@ type OpSimulator struct {
 	bgTasksCancel context.CancelFunc
 	peers         map[uint64]config.Chain
 
-	host         string
-	port         uint64
-	httpServer   *ophttp.HTTPServer
-	crossL2Inbox *bindings.CrossL2Inbox
+	host           string
+	port           uint64
+	httpServer     *ophttp.HTTPServer
+	crossL2Inbox   *bindings.CrossL2Inbox
+	l1BlockInterop *bindings.L1BlockInterop
 
 	ethClient *ethclient.Client
 
@@ -64,11 +65,6 @@ type OpSimulator struct {
 func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
 
-	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, l2Chain.EthClient())
-	if err != nil {
-		closeApp(fmt.Errorf("failed to create cross L2 inbox: %w", err))
-	}
-
 	return &OpSimulator{
 		Chain: l2Chain,
 
@@ -76,7 +72,6 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host str
 		port:         port,
 		host:         host,
 		l1Chain:      l1Chain,
-		crossL2Inbox: crossL2Inbox,
 		interopDelay: interopDelay,
 
 		bgTasksCtx:    bgTasksCtx,
@@ -122,8 +117,20 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create eth client: %w", err)
 	}
-
 	opSim.ethClient = ethClient
+
+	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, ethClient)
+	if err != nil {
+		return fmt.Errorf("failed to create cross L2 inbox: %w", err)
+	}
+	opSim.crossL2Inbox = crossL2Inbox
+
+	l1BlockInterop, err := bindings.NewL1BlockInterop(predeploys.L1BlockAddr, ethClient)
+	if err != nil {
+		return fmt.Errorf("failed to create L1 block interop: %w", err)
+	}
+	opSim.l1BlockInterop = l1BlockInterop
+
 	opSim.startBackgroundTasks()
 	return nil
 }
@@ -466,6 +473,22 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 			initiatingMsgPayloadHash := crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(&initiatingMessageLogs[0]))
 			if common.BytesToHash(executingMessage.MsgHash[:]).Cmp(initiatingMsgPayloadHash) != 0 {
 				return fmt.Errorf("executing and initiating message fields are not equal")
+			}
+
+			interopStart, err := opSim.crossL2Inbox.InteropStart(&bind.CallOpts{})
+			if err != nil {
+				return fmt.Errorf("failed to fetch interop start: %w", err)
+			}
+			if interopStart.Cmp(identifier.Timestamp) > 0 {
+				return fmt.Errorf("interop start is greater than initiating message timestamp")
+			}
+
+			isInDependencySet, err := opSim.l1BlockInterop.IsInDependencySet(&bind.CallOpts{}, big.NewInt(identifier.ChainId.Int64()))
+			if err != nil {
+				return fmt.Errorf("failed to check if chain id is in dependency set: %w", err)
+			}
+			if !isInDependencySet {
+				return fmt.Errorf("chain id is not in dependency set")
 			}
 
 			if opSim.interopDelay != 0 {

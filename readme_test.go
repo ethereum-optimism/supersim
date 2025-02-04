@@ -2,6 +2,8 @@ package supersim
 
 import (
 	"context"
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -13,6 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type L2Addresses struct {
+	L1StandardBridgeProxy string `json:"L1StandardBridgeProxy"`
+}
+
+//go:embed genesis/generated/901-l2-addresses.json
+var l2AddressesJSON []byte
 
 func runCmd(command string) (string, error) {
 	cmd := exec.Command("bash", "-c", command)
@@ -37,8 +46,13 @@ func TestL1ToL2Deposit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "10000000000000000000000", initialBalance, "Initial balance check failed")
 
+	// Read the L1StandardBridgeProxy address from the JSON file
+	var addresses L2Addresses
+	err = json.Unmarshal(l2AddressesJSON, &addresses)
+	require.NoError(t, err, "Failed to parse addresses file")
+
 	// Initiate the bridge transaction on L1
-	bridgeCmd := `cast send 0x8d515eb0e5f293b16b6bbca8275c060bae0056b0 "bridgeETH(uint32 _minGasLimit, bytes calldata _extraData)" 50000 0x --value 0.1ether --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`
+	bridgeCmd := fmt.Sprintf(`cast send %s "bridgeETH(uint32 _minGasLimit, bytes calldata _extraData)" 50000 0x --value 0.1ether --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`, addresses.L1StandardBridgeProxy)
 	_, err = runCmd(bridgeCmd)
 	assert.NoError(t, err, "Failed to bridge ETH")
 

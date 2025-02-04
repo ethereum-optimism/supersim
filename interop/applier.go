@@ -137,7 +137,7 @@ func addChainDependency(ctx context.Context, chain config.Chain, chainId uint64)
 		return fmt.Errorf("failed to read l1 block abi: %w", err)
 	}
 
-	cfgTypeAddDep := uint8(1)
+	cfgTypeAddDep := uint8(0)
 	data, err := l1BlockABI.Pack("setConfig", cfgTypeAddDep, big.NewInt(int64(chainId)).FillBytes(make([]byte, 32)))
 	if err != nil {
 		return fmt.Errorf("failed to construct l1Block dep update calldata: %w", err)
