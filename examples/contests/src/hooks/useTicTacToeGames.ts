@@ -22,7 +22,7 @@ export const useTicTacToeGames = () => {
 
     // Query all tic-tac-toe markets
     const ticTacToeContestData = useReadContracts({
-        contracts: Object.entries(allContests).filter(([_, contest]) => contest.type === ContestType.TICTACTOE).map(([_, contest]) => ({
+        contracts: Object.entries(allContests).filter(([_, contest]) => contest.type === ContestType.TICTACTOE).map(([, contest]) => ({
             abi: parseAbi(['function game() view returns (uint256,uint256,address)']),
             address: contest.resolver, functionName: "game",
         })),
@@ -32,7 +32,7 @@ export const useTicTacToeGames = () => {
     for (const data of ticTacToeContestData.data ?? []) {
         if (!data.result) continue
 
-        const [chainId, gameId, _] = data.result as [bigint, bigint, Address]
+        const [chainId, gameId,] = data.result as [bigint, bigint, Address]
         ticTacToeContests.add(createGameKey(chainId, gameId))
     }
 

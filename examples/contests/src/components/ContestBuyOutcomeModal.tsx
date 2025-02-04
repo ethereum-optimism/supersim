@@ -57,7 +57,7 @@ const ContestBuyOutcomeModal: React.FC<ContestBuyOutcomeModalProps> = ({ chainId
             </div>
 
             <div style={styles.field}>
-                <label style={styles.label}>Bet Outcome <span style={styles.required}>*</span></label>
+                <label style={styles.label}>Decide Outcome <span style={styles.required}>*</span></label>
                 <div style={{fontSize: '14px', lineHeight: '20px', color: '#71717A'}}>
                     {
                         contest.type === ContestType.BLOCKHASH ?

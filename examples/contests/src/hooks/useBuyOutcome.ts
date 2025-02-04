@@ -22,7 +22,7 @@ export const useBuyOutcome = () => {
             }
 
             await writeContract({
-                address: deployment!.PredictionMarket,
+                address: deployment!.Contests,
                 abi: CONTESTS_ABI, functionName: "buyOutcome", args: [resolver, outcome], value: BigInt(amount)
             })
         } catch (error) {

@@ -41,8 +41,8 @@ const Connect: React.FC<{onConnect: () => void}> = ({ onConnect }) => {
       <div style={styles.container}>
         <div style={styles.header}>
           <img src={supercontests} style={{width: '45px', height: '45px'}} />
-          <div style={styles.title}>SuperContests</div>
-          <div style={styles.subtitle}>Superchain Contests</div>
+          <div style={styles.title}>Superchain Outcomes</div>
+          <div style={styles.subtitle}>SuperContest</div>
         </div>
         {render()}
       </div>
@@ -80,13 +80,13 @@ const styles = {
   title: {
     fontSize: '24px',
     fontFamily: 'Sora',
+    fontWeight: '600',
     lineHeight: '32px',
     color: 'black',
   },
   subtitle: {
     fontSize: '20px',
     lineHeight: '28px',
-    fontWeight: '600',
     color: '#0F111A',
   },
   button: {

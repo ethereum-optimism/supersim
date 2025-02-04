@@ -50,7 +50,7 @@ const BlockHashModal: React.FC = () => {
     const { chains } = useConfig()
 
     const [blockNumber, setBlockNumber] = useState<number>(0);
-    const { data: latestBlockNumber} = useBlockNumber({ chainId: selectedChain })
+    const { data: latestBlockNumber } = useBlockNumber({ chainId: selectedChain })
 
     const liquidity = liquidityAmount === '' ? 0 : Number(liquidityAmount) * 10 ** 18
     const disabled = blockNumber === 0 || liquidity <= 0 || isPending || isConfirming

@@ -38,23 +38,25 @@ export const useContests = () => {
         registerPastContests()
     }, [publicClient, deployment])
 
-    // Listen for new contests
+    // Listen for new contests (TODO: fix addresses)
     useWatchContractEvent({
         address: deployment?.BlockHashContestFactory,
         abi: parseAbi(['event NewContest(address resolver)']),
         eventName: 'NewContest', strict: true,
+        enabled: !!deployment,
         onLogs: (logs) => { logs.forEach(log => { setResolvers(prev => ({ ...prev, [log.args.resolver]: ContestType.BLOCKHASH })) }) }
     })
     useWatchContractEvent({
         address: deployment?.TicTacToeContestFactory,
         abi: parseAbi(['event NewContest(address resolver)']),
         eventName: 'NewContest', strict: true,
+        enabled: !!deployment,
         onLogs: (logs) => { logs.forEach(log => { setResolvers(prev => ({ ...prev, [log.args.resolver]: ContestType.TICTACTOE })) }) }
     })
 
     const { data: contestsData } = useReadContracts({
         contracts: Object.entries(resolvers).map(([resolver, _]) => ({
-            address: deployment?.BlockHashContestFactory,
+            address: deployment?.Contests,
             abi: CONTESTS_ABI as Abi,
             functionName: "contests", args: [resolver],
         })),
@@ -70,13 +72,13 @@ export const useContests = () => {
             const result = contestsData[i].result as any;
             return {
                 resolver, type,
-                outcome: result[1], 
-                yesToken: result[2],
-                noToken: result[3],
-                lpToken: result[4],
-                ethBalance: result[5],
-                yesBalance: result[6],
-                noBalance: result[7]
+                outcome: result[0], 
+                yesToken: result[1],
+                noToken: result[2],
+                lpToken: result[3],
+                ethBalance: result[4],
+                yesBalance: result[5],
+                noBalance: result[6]
             } as Contest;
         })
 

@@ -11,23 +11,11 @@ import Positions from './Positions';
 
 import { CONTESTS_CHAIN_ID } from '../constants/app';
 
-const App: React.FC = () => {
+const Main: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'contests' | 'positions'>('contests');
-
-    const { address, isConnected } = useAccount();
-    const { connect, connectors } = useConnect();
-
     const { contests } = useContests();
-    const { deployment } = useDeployment();
-
-    if (!isConnected || !address || !deployment) {
-        return (
-            <div style={styles.app}>
-                <Connect onConnect={() => connect({ chainId: CONTESTS_CHAIN_ID, connector: connectors[0] })} />
-            </div>
-        )
-    }
-
+    const { address } = useAccount();
+    
     const renderMain = () => {
         switch (activeTab) {
             case 'contests':
@@ -40,13 +28,30 @@ const App: React.FC = () => {
     return (
         <div style={styles.app}>
             <header style={styles.header}>
-                <Header address={address} activeTab={activeTab} setActiveTab={setActiveTab} />
+                <Header address={address!} activeTab={activeTab} setActiveTab={setActiveTab} />
             </header>
             <main style={styles.main}>
                 {renderMain()}
             </main>
         </div>
-    )
+    );
+}
+
+const App: React.FC = () => {
+    const { address, isConnected } = useAccount();
+    const { connect, connectors } = useConnect();
+    const { deployment } = useDeployment();
+
+    // If not connected or deployment not found, show the connect screen
+    if (!isConnected || !address || !deployment) {
+        return (
+            <div style={styles.app}>
+                <Connect onConnect={() => connect({ chainId: CONTESTS_CHAIN_ID, connector: connectors[0] })} />
+            </div>
+        )
+    }
+
+    return <Main />
 }
 
 const styles = {

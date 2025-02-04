@@ -43,7 +43,7 @@ export const useContestPositions = (contest: Contest) => {
 
             // Retrieve all the bets that was placed by this user
             const betsPlaced = await publicClient.getLogs({
-                address: deployment!.PredictionMarket,
+                address: deployment!.Contests,
                 event: parseAbiItem(["event BetPlaced(address indexed resolver, address indexed bettor, uint8 outcome, uint256 ethAmountIn, uint256 amountOut)"]),
                 args: { resolver: contest.resolver, bettor: address },
                 fromBlock: 'earliest', toBlock: 'latest'
@@ -78,7 +78,7 @@ export const useContestPositions = (contest: Contest) => {
             }
 
             const functionName = isLP ? "redeemLP" : "redeem";
-            await writeContract({ address: deployment!.PredictionMarket, abi: CONTESTS_ABI, functionName, args: [resolver] })
+            await writeContract({ address: deployment!.Contests, abi: CONTESTS_ABI, functionName, args: [resolver] })
         } catch (error) {
             console.error('Error redeeming:', error)
         }

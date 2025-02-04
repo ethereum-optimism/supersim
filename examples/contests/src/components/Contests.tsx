@@ -86,7 +86,7 @@ const ContestCard: React.FC<{ contest: Contest }> = ({ contest }) => {
                 </div>
             </div>
 
-            <Modal isOpen={isBetModalOpen.open} onClose={() => setIsBetModalOpen({open: false, isYes: false})} title='Place Bet'>
+            <Modal isOpen={isBetModalOpen.open} onClose={() => setIsBetModalOpen({open: false, isYes: false})} title='Decide an Outcome'>
                 <ContestBuyOutcomeModal chainId={chainId} data={data} isYes={isBetModalOpen.isYes} yesOdds={yesOdds} yesText={yesText} noText={noText} contest={contest} />
             </Modal>
 
@@ -113,7 +113,7 @@ const Contests: React.FC<{ contests: Contest[] }> = ({ contests }) => {
                 <div style={styles.headerCell}>Odds</div>
                 <div style={styles.headerCell}>Liquidity</div>
                 <div style={{...styles.headerCell}}>Status</div>
-                <div style={{...styles.headerCell, textAlign: 'center'}}>Place Bet</div>
+                <div style={{...styles.headerCell, textAlign: 'center'}}>Decide Outcome</div>
             </div>
 
             {

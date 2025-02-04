@@ -109,11 +109,11 @@ const Positions: React.FC<{ contests: Contest[] }> = ({ contests }) => {
             <div style={styles.tableHeader}>
                 <div style={{...styles.headerCell, flex: 0.8}}>Status</div>
                 <div style={styles.headerCell}>Chain</div>
-                <div style={styles.headerCell}>Market</div>
+                <div style={styles.headerCell}>Contest</div>
                 <div style={styles.headerCell}>Outcome</div>
-                <div style={styles.headerCell}>Bet</div>
+                <div style={styles.headerCell}>Decision</div>
                 <div style={styles.headerCell}>Payout</div>
-                <div style={{...styles.headerCell, display: 'flex', justifyContent: 'center'}}>Outcome</div>
+                <div style={{...styles.headerCell, display: 'flex', justifyContent: 'center'}}>Result</div>
             </div>
 
             {/* Position List */}

@@ -6,11 +6,11 @@ import { getPublicClient } from 'wagmi/actions';
 import { CONTESTS_CHAIN_ID } from '../constants/app';
 
 const contractNames = [
-    // Referenced by the Prediction Market Contracts
+    // Referenced by the Contests Contracts
     'TicTacToe',
     'BlockHashEmitter',
 
-    // Prediction Market Contracts
+    // Contests Contracts
     'Contests',
     'BlockHashContestFactory',
     'TicTacToeContestFactory'
@@ -33,11 +33,11 @@ export function useDeployment() {
                     throw new Error('Failed to load deployment file');
                 }
 
-                // Look for the deployment on the prediction market chain.
+                // Look for the deployment on the contests chain.
                 const run = await data.json();
                 const deployment = run.deployments.find((deployment: any) => deployment.chain === CONTESTS_CHAIN_ID)
                 if (!deployment) {
-                    throw new Error('No deployment found for prediction market chain');
+                    throw new Error('No deployment found for contests chain');
                 }
                 
                 const contracts = deployment.transactions
@@ -63,7 +63,7 @@ export function useDeployment() {
 
                 const client = getPublicClient(config, { chainId: CONTESTS_CHAIN_ID })
                 if (!client) {
-                    throw new Error('failed to get client for prediction market chain')
+                    throw new Error('failed to get client for contests chain')
                 }
 
                 await Promise.all(contractNames.map(async (name) => {
