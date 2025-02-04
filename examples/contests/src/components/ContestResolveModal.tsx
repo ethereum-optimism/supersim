@@ -6,14 +6,14 @@ import ChainLogo from './ChainLogo';
 import { chainName } from '../utils/chain';
 import { truncateAddress } from '../utils/address';
 
-interface MarketResolveModalProps {
+interface ContestResolveModalProps {
     resolvingEvent: { id: MessageIdentifier, payload: Hex}
-    resolveMarket: () => void
+    resolveContest: () => void
     isPending: boolean
     isConfirming: boolean
 }
 
-const MarketResolveModal: React.FC<MarketResolveModalProps> = ({resolvingEvent, resolveMarket, isPending, isConfirming}) => {
+const ContestResolveModal: React.FC<ContestResolveModalProps> = ({resolvingEvent, resolveContest, isPending, isConfirming}) => {
     const { id, payload } = resolvingEvent
     return (
         <>
@@ -43,7 +43,7 @@ const MarketResolveModal: React.FC<MarketResolveModalProps> = ({resolvingEvent, 
 
             <button 
                 style={{ ...styles.resolveButton, opacity: isPending || isConfirming ? 0.5 : 1, cursor: isPending || isConfirming ? 'not-allowed' : 'pointer' }}
-                onClick={() => resolveMarket()}
+                onClick={() => resolveContest()}
                 disabled={isPending || isConfirming}>
                 {isPending || isConfirming ? 'Resolving...': 'Resolve'}
             </button>
@@ -72,4 +72,4 @@ const styles = {
     },
 }
 
-export default MarketResolveModal
+export default ContestResolveModal

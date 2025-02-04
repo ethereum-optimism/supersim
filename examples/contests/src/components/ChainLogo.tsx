@@ -2,7 +2,7 @@ import React from 'react';
 
 import uni from '../assets/uni.png';
 import op from '../assets/op.png';
-import superpredict from '../assets/superpredict.png';
+import supercontests from '../assets/supercontests.png';
 
 import { chainName } from '../utils/chain';
 
@@ -19,7 +19,7 @@ const ChainLogo: React.FC<ChainLogoProps> = ({ chainId, size = '16px' }) => {
             case 902:
                 return { src: uni, alt: chainName(chainId) };
             case 903:
-                return { src: superpredict, alt: chainName(chainId) };
+                return { src: supercontests, alt: chainName(chainId) };
             default:
                 return null;
         }

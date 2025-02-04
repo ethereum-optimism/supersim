@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Address } from 'viem';
 import { useConfig } from 'wagmi';
-
-import { PREDICTION_MARKET_CHAIN_ID } from '../constants/app';
 import { getPublicClient } from 'wagmi/actions';
+
+import { CONTESTS_CHAIN_ID } from '../constants/app';
 
 const contractNames = [
     // Referenced by the Prediction Market Contracts
@@ -11,9 +11,9 @@ const contractNames = [
     'BlockHashEmitter',
 
     // Prediction Market Contracts
-    'PredictionMarket',
-    'BlockHashMarketFactory',
-    'TicTacToeMarketFactory'
+    'Contests',
+    'BlockHashContestFactory',
+    'TicTacToeContestFactory'
 ]
 
 export function useDeployment() {
@@ -21,7 +21,6 @@ export function useDeployment() {
     const [error, setError] = useState<string | null>(null);
 
     const config = useConfig()
-
     useEffect(() => {
         async function loadDeployments() {
             // Already Resolved
@@ -36,7 +35,7 @@ export function useDeployment() {
 
                 // Look for the deployment on the prediction market chain.
                 const run = await data.json();
-                const deployment = run.deployments.find((deployment: any) => deployment.chain === PREDICTION_MARKET_CHAIN_ID)
+                const deployment = run.deployments.find((deployment: any) => deployment.chain === CONTESTS_CHAIN_ID)
                 if (!deployment) {
                     throw new Error('No deployment found for prediction market chain');
                 }
@@ -62,7 +61,7 @@ export function useDeployment() {
                     Rerun the deployment script & restart the vite server or set the VITE_<name>_ADDRESS environment variable`);
                 }
 
-                const client = getPublicClient(config, { chainId: PREDICTION_MARKET_CHAIN_ID })
+                const client = getPublicClient(config, { chainId: CONTESTS_CHAIN_ID })
                 if (!client) {
                     throw new Error('failed to get client for prediction market chain')
                 }
@@ -80,7 +79,7 @@ export function useDeployment() {
         }
 
         loadDeployments();
-    }, [config]);
+    }, [config, addresses, error]);
 
     return { deployment: addresses, error };
 }

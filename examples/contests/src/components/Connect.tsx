@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAccount } from 'wagmi';
 
-import superpredict from '../assets/superpredict.png';
+import supercontests from '../assets/supercontests.png';
 import { useDeployment } from '../hooks/useDeployment';
 
 const Connect: React.FC<{onConnect: () => void}> = ({ onConnect }) => {
@@ -40,9 +40,9 @@ const Connect: React.FC<{onConnect: () => void}> = ({ onConnect }) => {
     <div style={styles.content}>
       <div style={styles.container}>
         <div style={styles.header}>
-          <img src={superpredict} style={{width: '45px', height: '45px'}} />
-          <div style={styles.title}>SuperPredictor</div>
-          <div style={styles.subtitle}>Superchain Prediction Market</div>
+          <img src={supercontests} style={{width: '45px', height: '45px'}} />
+          <div style={styles.title}>SuperContests</div>
+          <div style={styles.subtitle}>Superchain Contests</div>
         </div>
         {render()}
       </div>

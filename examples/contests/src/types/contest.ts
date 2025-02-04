@@ -1,28 +1,27 @@
 import { Address } from 'viem';
 
-export enum MarketType {
+export enum ContestType {
     MOCK = 0,
     BLOCKHASH = 1,
     TICTACTOE = 2,
 }
 
-export enum MarketOutcome {
+export enum ContestOutcome {
     UNDECIDED = 0,
     YES = 1,
     NO = 2,
 }
 
-export enum MarketStatus {
+export enum ContestStatus {
     OPEN = 0,
     CLOSED = 1
 }
 
-export interface Market {
+export interface Contest {
     resolver: Address
-    type: MarketType
+    type: ContestType
 
-    status: MarketStatus
-    outcome: MarketOutcome
+    outcome: ContestOutcome
 
     // tokens
     yesToken: Address,
@@ -30,7 +29,7 @@ export interface Market {
     lpToken: Address,
 
     // balances
-    ethBalance: BigInt
-    yesBalance: BigInt
-    noBalance: BigInt
+    ethBalance: bigint
+    yesBalance: bigint
+    noBalance: bigint
 }

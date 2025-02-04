@@ -5,7 +5,7 @@ export const chainName = (chainId: bigint | number) => {
         case 902:
             return 'Unichain';
         case 903:
-            return 'SuperPredictor'
+            return 'SuperContests'
         default:
             return 'Unknown';
     }

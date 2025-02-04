@@ -5,35 +5,35 @@ import { getPublicClient } from "wagmi/actions"
 
 import { createInteropMessage } from '@eth-optimism/viem';
 
-import { useMarkets } from "./useMarkets";
+import { useContests } from "./useContests";
 import { useDeployment } from "./useDeployment";
 
 import { AcceptedGame, ResolvedGame, GameKey, createGameKey } from "../types/tictactoe"
-import { MarketType } from "../types/market";
+import { ContestType } from "../types/contest";
 
 export const useTicTacToeGames = () => {
     const [availableGames, setAvailableGames] = useState<Record<GameKey, AcceptedGame>>({})
     const [resolvedGames, setResolvedGames] = useState<Record<GameKey, ResolvedGame>>({})
 
     const config = useConfig()
-    const { markets: allMarkets } = useMarkets()
+    const { contests: allContests } = useContests()
 
     const { deployment } = useDeployment()
 
     // Query all tic-tac-toe markets
-    const ticTacToeMarketData = useReadContracts({
-        contracts: Object.entries(allMarkets).filter(([_, market]) => market.type === MarketType.TICTACTOE).map(([_, market]) => ({
+    const ticTacToeContestData = useReadContracts({
+        contracts: Object.entries(allContests).filter(([_, contest]) => contest.type === ContestType.TICTACTOE).map(([_, contest]) => ({
             abi: parseAbi(['function game() view returns (uint256,uint256,address)']),
-            address: market.resolver, functionName: "game",
+            address: contest.resolver, functionName: "game",
         })),
     })
 
-    const ticTacToeMarkets: Set<GameKey> = new Set()
-    for (const data of ticTacToeMarketData.data ?? []) {
+    const ticTacToeContests: Set<GameKey> = new Set()
+    for (const data of ticTacToeContestData.data ?? []) {
         if (!data.result) continue
 
         const [chainId, gameId, _] = data.result as [bigint, bigint, Address]
-        ticTacToeMarkets.add(createGameKey(chainId, gameId))
+        ticTacToeContests.add(createGameKey(chainId, gameId))
     }
 
     // Sync with all accepted and resolving events
@@ -73,8 +73,8 @@ export const useTicTacToeGames = () => {
                     const { id, payload } = await createInteropMessage(publicClient, { log })
                     const key = createGameKey(log.args.chainId, log.args.gameId)
 
-                    // Filter games that have already have a market or have already been finished
-                    if (ticTacToeMarkets.has(key) || resolvedGames[key]) {
+                    // Filter games that have already have a contest or have already been finished
+                    if (ticTacToeContests.has(key) || resolvedGames[key]) {
                         setAvailableGames(prev => {
                             const newState = { ...prev }
                             delete newState[key]
@@ -94,7 +94,7 @@ export const useTicTacToeGames = () => {
         }
 
         syncState()
-    }, [config.chains, deployment])
+    }, [config, deployment, ticTacToeContests, resolvedGames])
 
     return { availableGames, resolvedGames }
 }

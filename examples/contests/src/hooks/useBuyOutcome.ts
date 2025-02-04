@@ -3,10 +3,10 @@ import { useSwitchChain, useChainId, useWaitForTransactionReceipt, useWriteContr
 
 import { useDeployment } from "./useDeployment";
 
-import { PREDICTION_MARKET_ABI } from "../constants/abi";
-import { PREDICTION_MARKET_CHAIN_ID } from "../constants/app";
+import { CONTESTS_ABI } from "../constants/abi";
+import { CONTESTS_CHAIN_ID } from "../constants/app";
 
-export const usePlaceBet = () => {
+export const useBuyOutcome = () => {
     const { data: hash, writeContract, isPending } = useWriteContract()
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash })
 
@@ -15,21 +15,21 @@ export const usePlaceBet = () => {
 
     const { deployment } = useDeployment()
 
-    const placeBet = async (resolver: Address, outcome: number, amount: number) => {
+    const buyOutcome = async (resolver: Address, outcome: number, amount: number) => {
         try {
-            if (connectedChainId !== PREDICTION_MARKET_CHAIN_ID) {
-                await switchChainAsync({chainId: PREDICTION_MARKET_CHAIN_ID});
+            if (connectedChainId !== CONTESTS_CHAIN_ID) {
+                await switchChainAsync({chainId: CONTESTS_CHAIN_ID});
             }
 
             await writeContract({
                 address: deployment!.PredictionMarket,
-                abi: PREDICTION_MARKET_ABI, functionName: "buyOutcome", args: [resolver, outcome], value: BigInt(amount)
+                abi: CONTESTS_ABI, functionName: "buyOutcome", args: [resolver, outcome], value: BigInt(amount)
             })
         } catch (error) {
-            console.error('Error placing bet:', error)
+            console.error('Error buying outcome:', error)
             return { error }
         }
     }
 
-    return { placeBet, isPending, isConfirming, isSuccess, hash }
+    return { buyOutcome, isPending, isConfirming, isSuccess, hash }
 }

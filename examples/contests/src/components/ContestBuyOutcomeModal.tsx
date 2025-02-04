@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 
-import { usePlaceBet } from '../hooks/usePlaceBet';
-import { BlockHashMarketStatus, TicTacToeMarketStatus } from '../hooks/useMarketStatus';
+import { useBuyOutcome } from '../hooks/useBuyOutcome';
+import { BlockHashContestStatus, TicTacToeContestStatus } from '../hooks/useContestStatus';
 
-import { Market, MarketType } from '../types/market';
+import { Contest, ContestType } from '../types/contest';
 import { chainName } from '../utils/chain';
 import { truncateAddress } from '../utils/address';
 
 import ProgressBar from './ProgressBar';
 import ChainLogo from './ChainLogo';
 
-interface MarketBetModalProps {
+interface ContestBuyOutcomeModalProps {
     chainId: bigint,
-    data: BlockHashMarketStatus | TicTacToeMarketStatus
+    data: BlockHashContestStatus | TicTacToeContestStatus
 
     isYes: boolean,
     yesOdds: number,
@@ -20,14 +20,14 @@ interface MarketBetModalProps {
     yesText: string,
     noText: string,
 
-    market: Market;
+    contest: Contest;
 }
 
-const MarketBetModal: React.FC<MarketBetModalProps> = ({ chainId, data, isYes, yesOdds, yesText, noText, market }) => {
+const ContestBuyOutcomeModal: React.FC<ContestBuyOutcomeModalProps> = ({ chainId, data, isYes, yesOdds, yesText, noText, contest }) => {
     const [betAmount, setBetAmount] = useState('');
     const [selectedOutcome, setSelectedOutcome] = useState(isYes ? 1 : 2);
 
-    const { placeBet, isPending, isConfirming } = usePlaceBet();
+    const { buyOutcome, isPending, isConfirming } = useBuyOutcome();
 
     const odds = selectedOutcome === 1 ? yesOdds : 1 - yesOdds
 
@@ -44,10 +44,10 @@ const MarketBetModal: React.FC<MarketBetModalProps> = ({ chainId, data, isYes, y
                             <span>{chainName(chainId)}</span>
                         </div>
                         <div style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
-                            <span style={{color: '#71717A'}}>{market.type === MarketType.BLOCKHASH ? 'Block Height' : 'TicTacToe'}</span>
-                            { market.type === MarketType.BLOCKHASH ?
-                                (<span>{(data as BlockHashMarketStatus).targetBlockNumber.toString()}</span>) :
-                                (<span>{chainId.toString()}-{(data as TicTacToeMarketStatus).gameId.toString()}, <span><span style={{color: '#71717A'}}>Player </span>{truncateAddress((data as TicTacToeMarketStatus).player)}</span></span>)
+                            <span style={{color: '#71717A'}}>{contest.type === ContestType.BLOCKHASH ? 'Block Height' : 'TicTacToe'}</span>
+                            { contest.type === ContestType.BLOCKHASH ?
+                                (<span>{(data as BlockHashContestStatus).targetBlockNumber.toString()}</span>) :
+                                (<span>{chainId.toString()}-{(data as TicTacToeContestStatus).gameId.toString()}, <span><span style={{color: '#71717A'}}>Player </span>{truncateAddress((data as TicTacToeContestStatus).player)}</span></span>)
                             }
                         </div>
                     </div>
@@ -60,7 +60,7 @@ const MarketBetModal: React.FC<MarketBetModalProps> = ({ chainId, data, isYes, y
                 <label style={styles.label}>Bet Outcome <span style={styles.required}>*</span></label>
                 <div style={{fontSize: '14px', lineHeight: '20px', color: '#71717A'}}>
                     {
-                        market.type === MarketType.BLOCKHASH ?
+                        contest.type === ContestType.BLOCKHASH ?
                         'Pick if the block hash is even or odd when mined' :
                         'Pick the player\'s outcome for the game'
                     }
@@ -91,9 +91,9 @@ const MarketBetModal: React.FC<MarketBetModalProps> = ({ chainId, data, isYes, y
 
             <button 
                 style={{ ...styles.createButton, opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
-                onClick={() => placeBet(market.resolver, selectedOutcome, bet)}
+                onClick={() => buyOutcome(contest.resolver, selectedOutcome, bet)}
                 disabled={disabled}>
-                {isPending || isConfirming ? 'Placing bet': 'Place Bet'}
+                {isPending || isConfirming ? 'Buying outcome': 'Buy Outcome'}
             </button>
         </>
     )
@@ -165,4 +165,4 @@ const styles = {
     },
 }
 
-export default MarketBetModal;
+export default ContestBuyOutcomeModal;

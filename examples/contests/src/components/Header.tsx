@@ -2,17 +2,17 @@ import React, { useState } from 'react';
 import { useDisconnect } from 'wagmi';
 import { Address } from 'viem';
 
-import MarketCreateModal from './MarketCreateModal';
+import ContestCreateModal from './ContestCreateModal';
 import Modal from './Modal';
 import ChainLogo from './ChainLogo';
 
 import personIcon from '../assets/person.svg';
-import { PREDICTION_MARKET_CHAIN_ID } from '../constants/app';
+import { CONTESTS_CHAIN_ID } from '../constants/app';
 
 interface HeaderProps {
     address: Address;
-    activeTab: 'markets' | 'positions';
-    setActiveTab: (tab: 'markets' | 'positions') => void;
+    activeTab: 'contests' | 'positions';
+    setActiveTab: (tab: 'contests' | 'positions') => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ address, activeTab, setActiveTab }) => {
@@ -23,20 +23,20 @@ const Header: React.FC<HeaderProps> = ({ address, activeTab, setActiveTab }) => 
     return (
         <div style={styles.container}>
             <div style={styles.leftSection}>
-                <ChainLogo chainId={BigInt(PREDICTION_MARKET_CHAIN_ID)} size='24px' />
+                <ChainLogo chainId={BigInt(CONTESTS_CHAIN_ID)} size='24px' />
                 <div style={styles.title}>
-                    <span style={{fontFamily: 'Sora', fontWeight: '600', fontSize: '24px'}}>SuperPredictor</span>
+                    <span style={{fontFamily: 'Sora', fontWeight: '600', fontSize: '24px'}}>SuperContests</span>
                 </div>
                 <div style={styles.navigation}>
                     <span
                         style={{
                             ...styles.navItem,
-                            borderBottom: activeTab === 'markets' ? '4px solid #0F111A' : 'none',
-                            fontWeight: activeTab === 'markets' ? '600' : '400',
-                            color: activeTab === 'markets' ? '#0F111A' : '#64748B'
+                            borderBottom: activeTab === 'contests' ? '4px solid #0F111A' : 'none',
+                            fontWeight: activeTab === 'contests' ? '600' : '400',
+                            color: activeTab === 'contests' ? '#0F111A' : '#64748B'
                         }}
-                        onClick={() => setActiveTab('markets')}>
-                        Markets
+                        onClick={() => setActiveTab('contests')}>
+                        Contests
                     </span>
                     <span
                         style={{
@@ -53,7 +53,7 @@ const Header: React.FC<HeaderProps> = ({ address, activeTab, setActiveTab }) => 
             
             <div style={styles.rightSection}>
                 <div style={{borderRight: '1px solid #E2E8F0', paddingRight: '10px'}}>
-                    <button style={styles.createButton} onClick={() => setIsModalOpen(true)}>Create Market</button>
+                    <button style={styles.createButton} onClick={() => setIsModalOpen(true)}>Create Contest</button>
                 </div>
 
                 <div style={{paddingLeft: '10px'}}>
@@ -65,8 +65,8 @@ const Header: React.FC<HeaderProps> = ({ address, activeTab, setActiveTab }) => 
                 </div>
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title='Create Market'>
-                <MarketCreateModal />
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title='Create Contest'>
+                <ContestCreateModal />
             </Modal>
         </div>
     );

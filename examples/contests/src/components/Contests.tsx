@@ -1,30 +1,30 @@
 import React, { useState } from 'react';
 
-import { BlockHashMarketStatus, TicTacToeMarketStatus, useMarketStatus } from '../hooks/useMarketStatus';
-import { Market, MarketType } from '../types/market';
+import { BlockHashContestStatus, TicTacToeContestStatus, useContestStatus } from '../hooks/useContestStatus';
+import { Contest, ContestType } from '../types/contest';
 import { truncateAddress } from '../utils/address';
 import { chainName } from '../utils/chain';
 
+import personIcon from '../assets/person.svg';
+
 import ChainLogo from './ChainLogo';
-import MarketBetModal from './MarketBetModal';
+import Modal from './Modal';
+import ContestBuyOutcomeModal from './ContestBuyOutcomeModal';
+import ContestResolveModal from './ContestResolveModal';
 import ProgressBar from './ProgressBar';
 
-import personIcon from '../assets/person.svg';
-import Modal from './Modal';
-import MarketResolveModal from './MarketResolveModal';
-
-const MarketCard: React.FC<{ market: Market }> = ({ market }) => {
+const ContestCard: React.FC<{ contest: Contest }> = ({ contest }) => {
     const [isBetModalOpen, setIsBetModalOpen] = useState<{open: boolean, isYes: boolean}>({open: false, isYes: false});
     const [isResolveModalOpen, setIsResolveModalOpen] = useState<boolean>(false);
 
-    const { chainId, data, isResolvable, resolvingEvent, resolveMarket, isPending, isConfirming } = useMarketStatus(market)
+    const { chainId, data, isResolvable, resolvingEvent, resolveContest, isPending, isConfirming } = useContestStatus(contest)
 
-    const yesOdds = Number(market.noBalance) / (Number(market.yesBalance) + Number(market.noBalance))
+    const yesOdds = Number(contest.noBalance) / (Number(contest.yesBalance) + Number(contest.noBalance))
 
-    const yesText = market.type === MarketType.BLOCKHASH ? 'Odd' : 'Win'
-    const noText = market.type === MarketType.BLOCKHASH ? 'Even' : 'Lose'
+    const yesText = contest.type === ContestType.BLOCKHASH ? 'Odd' : 'Win'
+    const noText = contest.type === ContestType.BLOCKHASH ? 'Even' : 'Lose'
 
-    const isLive = market.status === 0
+    const isLive = contest.outcome === 0
     return (
         <div style={styles.marketCard}>
             <div style={styles.marketRow}>
@@ -35,11 +35,11 @@ const MarketCard: React.FC<{ market: Market }> = ({ market }) => {
 
                 <div style={styles.cell}>
                     {
-                        market.type === MarketType.BLOCKHASH ?
+                        contest.type === ContestType.BLOCKHASH ?
                         (
                             <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
                                 <span style={{fontSize: '12px', lineHeight: '16px', color: '#636779'}}>BlockHeight</span>
-                                <span style={{fontSize: '16px', lineHeight: '24px'}}>{(data as BlockHashMarketStatus).targetBlockNumber.toString()}</span>
+                                <span style={{fontSize: '16px', lineHeight: '24px'}}>{(data as BlockHashContestStatus).targetBlockNumber.toString()}</span>
                             </div>
                         ) :
                         (
@@ -47,7 +47,7 @@ const MarketCard: React.FC<{ market: Market }> = ({ market }) => {
                                 <span style={{fontSize: '12px', lineHeight: '16px', color: '#636779'}}>TicTacToe: 901-0</span>
                                 <span style={{fontSize: '16px', lineHeight: '24px'}}>
                                     <img src={personIcon} style={{width: '14px', height: '14px', marginRight: '4px'}} />
-                                    {truncateAddress((data as TicTacToeMarketStatus).player)}
+                                    {truncateAddress((data as TicTacToeContestStatus).player)}
                                 </span>
                             </div>
                         )
@@ -58,7 +58,7 @@ const MarketCard: React.FC<{ market: Market }> = ({ market }) => {
                     {isLive ?  <ProgressBar width='64px' height='32px' progress={yesOdds} yesColor='#0DA529' noColor='#0DA529' /> : <span style={{marginLeft: '24px'}}>-</span> }
                 </div>
 
-                <div style={styles.cell}>{isLive ? (Number(market.ethBalance) / 10 ** 18).toFixed(2) + ' ETH' : <span style={{marginLeft: '24px'}}>-</span>}</div>
+                <div style={styles.cell}>{isLive ? (Number(contest.ethBalance) / 10 ** 18).toFixed(2) + ' ETH' : <span style={{marginLeft: '24px'}}>-</span>}</div>
 
                 <div style={{...styles.cell, ...styles.statusText}}>
                     {
@@ -87,29 +87,29 @@ const MarketCard: React.FC<{ market: Market }> = ({ market }) => {
             </div>
 
             <Modal isOpen={isBetModalOpen.open} onClose={() => setIsBetModalOpen({open: false, isYes: false})} title='Place Bet'>
-                <MarketBetModal chainId={chainId} data={data} isYes={isBetModalOpen.isYes} yesOdds={yesOdds} yesText={yesText} noText={noText} market={market} />
+                <ContestBuyOutcomeModal chainId={chainId} data={data} isYes={isBetModalOpen.isYes} yesOdds={yesOdds} yesText={yesText} noText={noText} contest={contest} />
             </Modal>
 
-            <Modal isOpen={isResolveModalOpen} onClose={() => setIsResolveModalOpen(false)} title='Resolve Market'>
-                <MarketResolveModal resolvingEvent={resolvingEvent!} resolveMarket={resolveMarket} isPending={isPending} isConfirming={isConfirming} />
+            <Modal isOpen={isResolveModalOpen} onClose={() => setIsResolveModalOpen(false)} title='Resolve Contest'>
+                <ContestResolveModal resolvingEvent={resolvingEvent!} resolveContest={resolveContest} isPending={isPending} isConfirming={isConfirming} />
             </Modal>
         </div>
     )
 }
 
-const Markets: React.FC<{ markets: any[] }> = ({ markets }) => {
-    const liveMarkets = markets.filter((market) => market.status === 0)
-    const closedMarkets = markets.filter((market) => market.status === 1)
+const Contests: React.FC<{ contests: Contest[] }> = ({ contests }) => {
+    const liveContests = contests.filter((contest) => contest.outcome === 0)
+    const closedContests = contests.filter((contest) => contest.outcome === 1)
 
     return (
         <div style={styles.container}>
-            <div style={{fontWeight: '600', fontSize: '20px', lineHeight:'28px'}}>Markets</div>
-            <div style={{fontSize: '16px', lineHeight:'24px', color: '#636779'}}>View all created markets. Place your wager</div>
+            <div style={{fontWeight: '600', fontSize: '20px', lineHeight:'28px'}}>Contests</div>
+            <div style={{fontSize: '16px', lineHeight:'24px', color: '#636779'}}>View all created contests. Make decisions!</div>
             
             {/* Table Header */}
             <div style={styles.tableHeader}>
                 <div style={styles.headerCell}>Chain</div>
-                <div style={styles.headerCell}>Market</div>
+                <div style={styles.headerCell}>Contest</div>
                 <div style={styles.headerCell}>Odds</div>
                 <div style={styles.headerCell}>Liquidity</div>
                 <div style={{...styles.headerCell}}>Status</div>
@@ -117,11 +117,11 @@ const Markets: React.FC<{ markets: any[] }> = ({ markets }) => {
             </div>
 
             {
-                liveMarkets.length === 0 && closedMarkets.length === 0 ?
+                liveContests.length === 0 && closedContests.length === 0 ?
                     <span>...</span> :
                     <div style={styles.marketList}>
-                        {liveMarkets.map((market) => ( <MarketCard key={market.resolver} market={market} /> ))}
-                        {closedMarkets.map((market) => ( <div key={market.resolver} style={{fontStyle: 'italic', color: '#6B7280'}}><MarketCard market={market} /> </div> ))}
+                        {liveContests.map((contest) => ( <ContestCard key={contest.resolver} contest={contest} /> ))}
+                        {closedContests.map((contest) => ( <div key={contest.resolver} style={{fontStyle: 'italic', color: '#6B7280'}}><ContestCard contest={contest} /> </div> ))}
                     </div>
             }
 
@@ -191,4 +191,4 @@ const styles = {
     },
 }
 
-export default Markets;
+export default Contests;

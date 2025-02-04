@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { useBlockNumber, useConfig } from 'wagmi';
 
-import { useMarketCreation } from '../hooks/useMarketCreation';
+import { useContestCreation } from '../hooks/useContestCreation';
 import { useTicTacToeGames } from '../hooks/useTicTacToeGames';
 
 import { AcceptedGame, GameKey } from '../types/tictactoe';
 import { chainName } from '../utils/chain';
 
-const MarketCreateModal: React.FC = () => {
+const ContestCreateModal: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'blockhash' | 'tictactoe' | null>(null);
     return (
         <>
             <div style={styles.field}>
-                <label style={styles.label}>Select Market<span style={styles.required}>*</span></label>
+                <label style={styles.label}>Select Contest<span style={styles.required}>*</span></label>
                 <div style={styles.nav}>
                     <button
                         onClick={() => setActiveTab('blockhash')}
@@ -42,11 +42,11 @@ const MarketCreateModal: React.FC = () => {
     );
 };
 
-const BlockHashModal: React.FC<{}> = () => {
+const BlockHashModal: React.FC = () => {
     const [selectedChain, setSelectedChain] = useState<901 | 902 | 903>(901);
     const [liquidityAmount, setliquidityAmount] = useState('');
 
-    const { newBlockHashMarket, isPending, isConfirming } = useMarketCreation()
+    const { newBlockHashContest, isPending, isConfirming } = useContestCreation()
     const { chains } = useConfig()
 
     const [blockNumber, setBlockNumber] = useState<number>(0);
@@ -90,21 +90,21 @@ const BlockHashModal: React.FC<{}> = () => {
             <button
                 style={{ ...styles.createButton, opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }} 
                 disabled={disabled}
-                onClick={() => newBlockHashMarket(BigInt(selectedChain), BigInt(blockNumber), liquidity)}>
-                {isPending || isConfirming ? 'Creating...' : 'Create Market'}
+                onClick={() => newBlockHashContest(BigInt(selectedChain), BigInt(blockNumber), liquidity)}>
+                {isPending || isConfirming ? 'Creating...' : 'Create Contest'}
             </button>
         </>
     )
 }
 
-const TicTacToeModal: React.FC<{}> = () => {
+const TicTacToeModal: React.FC = () => {
     const [selectedGame, setSelectedGame] = useState<AcceptedGame | null>(null);
     const [liquidityAmount, setliquidityAmount] = useState('');
 
-    const { newTicTacToeMarket, isPending, isConfirming } = useMarketCreation()
+    const { newTicTacToeContest, isPending, isConfirming } = useContestCreation()
     const { availableGames } = useTicTacToeGames()
 
-    // TODO: Filter games with a market already created. Also filter resolved games
+    // TODO: Filter games with a contest already created. Also filter resolved games
     const liquidity = liquidityAmount === '' ? 0 : Number(liquidityAmount) * 10 ** 18
     const disabled = selectedGame === null || liquidity <= 0 || isPending || isConfirming
     return (
@@ -133,8 +133,8 @@ const TicTacToeModal: React.FC<{}> = () => {
             <button
                 style={{ ...styles.createButton, opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }} 
                 disabled={disabled}
-                onClick={() => newTicTacToeMarket(selectedGame!, liquidity)}>
-                {isPending || isConfirming ? 'Creating...' : 'Create Market'}
+                onClick={() => newTicTacToeContest(selectedGame!, liquidity)}>
+                {isPending || isConfirming ? 'Creating...' : 'Create Contest'}
             </button>
 
         </>
@@ -213,4 +213,4 @@ const styles = {
     },
 };
 
-export default MarketCreateModal; 
+export default ContestCreateModal; 

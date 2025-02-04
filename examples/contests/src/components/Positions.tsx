@@ -1,9 +1,9 @@
 import React from 'react';
 
-import { useMarketPositions } from '../hooks/useMarketPositions';
-import { BlockHashMarketStatus, TicTacToeMarketStatus, useMarketStatus } from '../hooks/useMarketStatus';
+import { useContestPositions } from '../hooks/useContestPositions';
+import { BlockHashContestStatus, TicTacToeContestStatus, useContestStatus } from '../hooks/useContestStatus';
 
-import { Market, MarketType } from '../types/market';
+import { Contest, ContestType } from '../types/contest';
 import { chainName } from '../utils/chain';
 import { truncateAddress } from '../utils/address';
 
@@ -11,30 +11,30 @@ import ChainLogo from './ChainLogo';
 
 import personIcon from '../assets/person.svg';
 
-const Position: React.FC<{ market: Market }> = ({ market }) => {
-    const { chainId, data } = useMarketStatus(market)
+const Position: React.FC<{ contest: Contest }> = ({ contest }) => {
+    const { chainId, data } = useContestStatus(contest)
+    const { positions, redeem, isPending, isConfirming } = useContestPositions(contest);
 
-    const { positions, redeem, isPending, isConfirming } = useMarketPositions(market);
     if (!positions) return null;
 
-    const isLive = market.status === 0;
+    const isLive = contest.outcome === 0;
 
     // Factor in the LP balance
     const hasLP = positions.lpBalance > 0
 
     // Include tokens that this user would get for their LP tokens
-    const yesBalance = positions.yesBalance + Number(market.yesBalance) * positions.lpBalance / positions.lpSupply
-    const noBalance = positions.noBalance + Number(market.noBalance) * positions.lpBalance / positions.lpSupply
+    const yesBalance = positions.yesBalance + Number(contest.yesBalance) * positions.lpBalance / positions.lpSupply
+    const noBalance = positions.noBalance + Number(contest.noBalance) * positions.lpBalance / positions.lpSupply
 
-    const yesEthPayout = Number(market.ethBalance) * yesBalance / positions.yesSupply
-    const noEthPayout = Number(market.ethBalance) * noBalance / positions.noSupply
+    const yesEthPayout = Number(contest.ethBalance) * yesBalance / positions.yesSupply
+    const noEthPayout = Number(contest.ethBalance) * noBalance / positions.noSupply
 
-    const yesText = market.type === MarketType.BLOCKHASH ? 'Odd' : 'Win'
-    const noText = market.type === MarketType.BLOCKHASH ? 'Even' : 'Lose'
+    const yesText = contest.type === ContestType.BLOCKHASH ? 'Odd' : 'Win'
+    const noText = contest.type === ContestType.BLOCKHASH ? 'Even' : 'Lose'
 
     const renderPayout = (outcome: string, amount: number, payout: number) => {
         // If this was redeemable and the user's balance is zero, that indicates that they redeemed
-        const redeemable = {"Yes": Number(market.outcome) === 1, "No": Number(market.outcome) === 2, "LP": market.outcome !== 0}[outcome]
+        const redeemable = {"Yes": Number(contest.outcome) === 1, "No": Number(contest.outcome) === 2, "LP": contest.outcome !== 0}[outcome]
 
         return (
             <div style={styles.positionCard}>
@@ -49,17 +49,17 @@ const Position: React.FC<{ market: Market }> = ({ market }) => {
                     <div style={styles.cell}><ChainLogo chainId={chainId}/><span style={{marginLeft: '6px'}}>{chainName(chainId)}</span></div>
 
                     <div style={styles.cell}>
-                        {market.type === MarketType.BLOCKHASH ? (
+                        {contest.type === ContestType.BLOCKHASH ? (
                             <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
                                 <span style={{fontSize: '12px', lineHeight: '16px', color: '#636779'}}>BlockHeight</span>
-                                <span style={{fontSize: '16px', lineHeight: '24px'}}>{(data as BlockHashMarketStatus).targetBlockNumber.toString()}</span>
+                                <span style={{fontSize: '16px', lineHeight: '24px'}}>{(data as BlockHashContestStatus).targetBlockNumber.toString()}</span>
                             </div>
                         ) : (
                             <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
                                 <span style={{fontSize: '12px', lineHeight: '16px', color: '#636779'}}>TicTacToe: 901-0</span>
                                 <span style={{fontSize: '16px', lineHeight: '24px'}}>
                                     <img src={personIcon} style={{width: '14px', height: '14px', marginRight: '4px'}} />
-                                    {truncateAddress((data as TicTacToeMarketStatus).player)}
+                                    {truncateAddress((data as TicTacToeContestStatus).player)}
                                 </span>
                             </div>
                         )}
@@ -76,7 +76,7 @@ const Position: React.FC<{ market: Market }> = ({ market }) => {
                             !redeemable ?  <span style={{ fontStyle: 'italic', color: '#6b7280' }}>Lost</span> :
                             <button
                                 style={{...styles.redeemButton, opacity: isPending || isConfirming ? 0.5 : 1, cursor: isPending || isConfirming ? 'not-allowed' : 'pointer'}}
-                                onClick={() => redeem(market.resolver, hasLP)}
+                                onClick={() => redeem(contest.resolver, hasLP)}
                                 disabled={isPending || isConfirming}>
                                 {isPending || isConfirming ? 'Redeeming...' : 'Redeem'}
                             </button>
@@ -96,9 +96,9 @@ const Position: React.FC<{ market: Market }> = ({ market }) => {
     );
 }
 
-const Positions: React.FC<{ markets: any[] }> = ({ markets }) => {
-    const liveMarkets = markets.filter((market) => market.status === 0)
-    const closedMarkets = markets.filter((market) => market.status === 1)
+const Positions: React.FC<{ contests: Contest[] }> = ({ contests }) => {
+    const liveContests = contests.filter((contest) => contest.outcome === 0)
+    const closedContests = contests.filter((contest) => contest.outcome !== 0)
 
     return (
         <div style={styles.container}>
@@ -118,11 +118,11 @@ const Positions: React.FC<{ markets: any[] }> = ({ markets }) => {
 
             {/* Position List */}
             <div style={styles.positionsList}>
-                {liveMarkets.length === 0  && closedMarkets.length === 0 ?
+                {liveContests.length === 0  && closedContests.length === 0 ?
                     <span>...</span>:
                     <div>
-                        {liveMarkets.map((market) => ( <Position key={market.resolver} market={market} />))}
-                        {closedMarkets.map((market) => ( <div key={market.resolver} style={{fontStyle: 'italic', color: '#6b7280'}}><Position market={market} /></div>))}
+                        {liveContests.map((contest) => ( <Position key={contest.resolver} contest={contest} />))}
+                        {closedContests.map((contest) => ( <div key={contest.resolver} style={{fontStyle: 'italic', color: '#6b7280'}}><Position contest={contest} /></div>))}
                     </div>
                 }
             </div>
