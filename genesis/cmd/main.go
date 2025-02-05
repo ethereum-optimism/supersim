@@ -7,7 +7,6 @@ import (
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/foundry"
 	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/artifacts"
-	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/bootstrap"
 	"github.com/ethereum-optimism/optimism/op-service/ioutil"
 	"github.com/ethereum-optimism/optimism/op-service/jsonutil"
 	oplog "github.com/ethereum-optimism/optimism/op-service/log"
@@ -43,42 +42,28 @@ func worldgenMain(ctx *cli.Context) error {
 		logger.Info("monorepo artifacts download progress", "current", curr, "total", total)
 	}
 
-	monorepoOPCMConfig := &bootstrap.OPCMConfig{
-		ArtifactsLocator: &artifacts.Locator{
-			URL: cliConfig.MonorepoArtifactsURL,
-		},
+	monorepoArtifactsLocator := &artifacts.Locator{
+		URL: cliConfig.MonorepoArtifactsURL,
 	}
 
-	monorepoArtifactsFS, monorepoArtifactsCleanup, err := artifacts.Download(ctx.Context, monorepoOPCMConfig.ArtifactsLocator, monorepoProgressor)
+	monorepoArtifactsFS, err := artifacts.Download(ctx.Context, monorepoArtifactsLocator, monorepoProgressor)
 	if err != nil {
 		return fmt.Errorf("failed to download monorepo artifacts: %w", err)
 	}
-	defer func() {
-		if err := monorepoArtifactsCleanup(); err != nil {
-			logger.Warn("failed to clean up monorepo artifacts", "err", err)
-		}
-	}()
 
 	// Download periphery contract artifacts
 	peripheryProgressor := func(curr, total int64) {
 		logger.Info("monorepo artifacts download progress", "current", curr, "total", total)
 	}
 
-	peripheryOPCMConfig := &bootstrap.OPCMConfig{
-		ArtifactsLocator: &artifacts.Locator{
-			URL: cliConfig.PeripheryArtifactsURL,
-		},
+	peripheryArtifactsLocator := &artifacts.Locator{
+		URL: cliConfig.PeripheryArtifactsURL,
 	}
 
-	peripheryArtifactsFS, peripheryArtifactsCleanup, err := artifacts.Download(ctx.Context, peripheryOPCMConfig.ArtifactsLocator, peripheryProgressor)
+	peripheryArtifactsFS, err := artifacts.Download(ctx.Context, peripheryArtifactsLocator, peripheryProgressor)
 	if err != nil {
 		return fmt.Errorf("failed to download periphery artifacts: %w", err)
 	}
-	defer func() {
-		if err := peripheryArtifactsCleanup(); err != nil {
-			logger.Warn("failed to clean up periphery artifacts", "err", err)
-		}
-	}()
 
 	worldDeployment, worldOutput, err := worldgen.GenerateWorld(ctx.Context, logger, &foundry.ArtifactsFS{FS: monorepoArtifactsFS}, &foundry.ArtifactsFS{FS: peripheryArtifactsFS})
 
