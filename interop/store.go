@@ -59,6 +59,7 @@ type L2ToL2MessageStoreEntry struct {
 	identifier *bindings.Identifier
 	log        *types.Log
 	lifecycle  *L2ToL2MessageLifecycle
+	msgHash    common.Hash
 }
 
 func (e *L2ToL2MessageStoreEntry) Message() *L2ToL2Message {
@@ -126,6 +127,7 @@ func (s *L2ToL2MessageStore) UpdateLifecycle(msgHash common.Hash, updater Update
 	newEntry := &L2ToL2MessageStoreEntry{
 		message:   entry.message,
 		lifecycle: newLifecycle,
+		msgHash:   entry.msgHash,
 	}
 
 	s.entryByHash[msgHash] = newEntry
@@ -167,6 +169,7 @@ func (m *L2ToL2MessageStoreManager) HandleSentEvent(log *types.Log, identifier *
 		identifier: identifier,
 		lifecycle:  lifecycle,
 		log:        log,
+		msgHash:    msgHash,
 	}
 
 	if err := m.store.Set(msgHash, entry); err != nil {
