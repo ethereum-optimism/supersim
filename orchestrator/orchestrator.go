@@ -146,7 +146,7 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 
 		if o.l2ToL2MsgRelayer != nil {
 			o.log.Info("starting L2ToL2CrossDomainMessenger autorelayer") // `info` since it's explictily enabled
-			if err := o.l2ToL2MsgRelayer.Start(o.l2ToL2MsgIndexer, l2OpSimClientByChainId); err != nil {
+			if err := o.l2ToL2MsgRelayer.Start(o.l2ToL2MsgIndexer, l2OpSimClientByChainId, o.l2Chains); err != nil {
 				return fmt.Errorf("l2 to l2 message relayer failed to start: %w", err)
 			}
 		}
