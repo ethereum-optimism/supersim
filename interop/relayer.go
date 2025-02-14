@@ -2,6 +2,7 @@ package interop
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -194,7 +195,20 @@ func (r *L2ToL2MessageRelayer) Stop(ctx context.Context) {
 func (r *L2ToL2MessageRelayer) relayMessageWithRetry(l2tol2CDM *bindings.L2ToL2CrossDomainMessengerTransactor, transactor *bind.TransactOpts, sentMessage *L2ToL2MessageStoreEntry, maxRetries int) error {
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if _, err := l2tol2CDM.RelayMessage(transactor, *sentMessage.Identifier(), sentMessage.MessagePayload()); err != nil {
-			r.logger.Debug("failed to relay message", "err", err, "attempt", attempt+1, "maxRetries", maxRetries)
+			r.logger.Error("failed to relay message", "err", err, "attempt", attempt+1, "maxRetries", maxRetries)
+			traceCallResult, traceErr := r.traceRelayMessage(transactor, sentMessage)
+			if traceErr != nil {
+				r.logger.Error("failed to trace failed relay message", "err", traceErr)
+			} else {
+				prettyJSON, prettyErr := json.MarshalIndent(traceCallResult, "", "    ")
+				if prettyErr != nil {
+					r.logger.Error("failed to marshal failed relay trace result", "err", prettyErr)
+				} else {
+					fmt.Printf("debug trace result of failed relay:\n%s\n", string(prettyJSON))
+					r.logger.Error("sent message identifier of failed relay", "origin", sentMessage.Identifier().Origin, "blockNumber", sentMessage.Identifier().BlockNumber, "logIndex", sentMessage.Identifier().LogIndex, "timestamp", sentMessage.Identifier().Timestamp, "chainId", sentMessage.Identifier().ChainId)
+					r.logger.Error("sent message payload and destination of failed relay", "payload", hexutil.Encode(sentMessage.MessagePayload()), "destination", sentMessage.message.Destination)
+				}
+			}
 			if attempt == maxRetries-1 {
 				return fmt.Errorf("failed to relay message after %d attempts: %w", maxRetries, err)
 			}
@@ -209,6 +223,16 @@ func (r *L2ToL2MessageRelayer) relayMessageWithRetry(l2tol2CDM *bindings.L2ToL2C
 func (r *L2ToL2MessageRelayer) fetchDependentMsgHash(transactor *bind.TransactOpts, sentMessage *L2ToL2MessageStoreEntry, destinationChainID uint64) (*common.Hash, error) {
 	r.checkForDependentMsgHashMutex.Lock()
 	defer r.checkForDependentMsgHashMutex.Unlock()
+	traceCallResult, err := r.traceRelayMessage(transactor, sentMessage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to trace relay message: %w", err)
+	}
+
+	msgHash := checkForDependentMsgNotSuccessfulRevert(*traceCallResult)
+	return msgHash, nil
+}
+
+func (r *L2ToL2MessageRelayer) traceRelayMessage(transactor *bind.TransactOpts, sentMessage *L2ToL2MessageStoreEntry) (*config.TraceCallResult, error) {
 	l2tol2CDMABI, err := abi.JSON(strings.NewReader(bindings.L2ToL2CrossDomainMessengerMetaData.ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read l2tol2CDM abi: %w", err)
@@ -223,9 +247,9 @@ func (r *L2ToL2MessageRelayer) fetchDependentMsgHash(transactor *bind.TransactOp
 		return nil, fmt.Errorf("failed to pack relayMessage transaction data: %w", err)
 	}
 
-	chain, ok := r.chains[destinationChainID]
+	chain, ok := r.chains[sentMessage.message.Destination]
 	if !ok {
-		return nil, fmt.Errorf("no client found for chain ID %d", destinationChainID)
+		return nil, fmt.Errorf("no client found for chain ID %d", sentMessage.message.Destination)
 	}
 
 	gasPrice, err := chain.EthClient().SuggestGasPrice(r.tasksCtx)
@@ -256,8 +280,7 @@ func (r *L2ToL2MessageRelayer) fetchDependentMsgHash(transactor *bind.TransactOp
 		return nil, fmt.Errorf("autorelaying failed while simulating transaction: %w", err)
 	}
 
-	msgHash := checkForDependentMsgNotSuccessfulRevert(*traceCallResult)
-	return msgHash, nil
+	return traceCallResult, nil
 }
 
 func checkForDependentMsgNotSuccessfulRevert(trace config.TraceCallResult) *common.Hash {
