@@ -111,7 +111,6 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 				select {
 				case relayedMsg := <-relayedMsgChan:
 					r.checkForDependentMsgHashMutex.RLock()
-					defer r.checkForDependentMsgHashMutex.RUnlock()
 					r.messageWaitingPoolMutex.Lock()
 					if waitingMsgs, exists := r.messageWaitingPool[relayedMsg.msgHash]; exists {
 						delete(r.messageWaitingPool, relayedMsg.msgHash)
@@ -120,12 +119,12 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 						for _, waitingMsg := range waitingMsgs {
 							if err := r.relayMessageWithRetry(l2tol2CDM, transactor, waitingMsg, 1); err != nil {
 								r.logger.Error("failed to relay waiting message", "err", err)
-								return err
 							}
 						}
 					} else {
 						r.messageWaitingPoolMutex.Unlock()
 					}
+					r.checkForDependentMsgHashMutex.RUnlock()
 				case <-r.tasksCtx.Done():
 					unsubscribe()
 					close(relayedMsgChan)
@@ -166,12 +165,12 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 					dependentMsgHash, err := r.fetchDependentMsgHash(transactor, sentMessage, destinationChainID)
 					if err != nil {
 						r.logger.Error("failed to relay message while checking for dependent message", "err", err)
-						return err
+						continue
 					}
 					if dependentMsgHash == nil {
 						if err := r.relayMessageWithRetry(l2tol2CDM, transactor, sentMessage, 1); err != nil {
 							r.logger.Error("failed to relay message after retries", "err", err)
-							return err
+							continue
 						}
 					}
 					if dependentMsgHash != nil {
