@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -25,11 +26,11 @@ var l2AddressesJSON []byte
 
 func runCmd(command string) (string, error) {
 	cmd := exec.Command("bash", "-c", command)
+	cmd.Env = append(os.Environ(), "FOUNDRY_DISABLE_NIGHTLY_WARNING=true")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("error executing command: %w\nOutput: %s", err, output)
 	}
-	// Trim any trailing whitespace (including newlines)
 	return strings.TrimSpace(string(output)), nil
 }
 
