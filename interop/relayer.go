@@ -119,7 +119,7 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 
 						for _, waitingMsg := range waitingMsgs {
 							if err := r.relayMessageWithRetry(l2tol2CDM, transactor, waitingMsg, 1); err != nil {
-								r.logger.Error("failed to relay waiting message", "err", err)
+								r.logger.Error("failed to relay message", "msgHash", waitingMsg.msgHash.Hex(), "err", err)
 							}
 						}
 					} else {
@@ -165,17 +165,18 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 				case sentMessage := <-sentMessageCh:
 					dependentMsgHash, err := r.fetchDependentMsgHash(transactor, sentMessage, destinationChainID)
 					if err != nil {
-						r.logger.Error("failed to relay message while checking for dependent message", "err", err)
+						r.logger.Error("failed to relay message while checking for dependent message", "msgHash", sentMessage.msgHash.Hex(), "err", err)
 						continue
 					}
 					if dependentMsgHash == nil {
 						if err := r.relayMessageWithRetry(l2tol2CDM, transactor, sentMessage, 1); err != nil {
-							r.logger.Error("failed to relay message after retries", "err", err)
+							r.logger.Error("failed to relay message after retries", "msgHash", sentMessage.msgHash.Hex(), "err", err)
 							continue
 						}
 					}
 					if dependentMsgHash != nil {
 						r.messageWaitingPoolMutex.Lock()
+						r.logger.Info("adding message to relayer waiting pool", "dependentMsgHash", dependentMsgHash.Hex(), "sentMessageHash", sentMessage.msgHash.Hex())
 						r.messageWaitingPool[*dependentMsgHash] = append(r.messageWaitingPool[*dependentMsgHash], sentMessage)
 						r.messageWaitingPoolMutex.Unlock()
 					}
@@ -195,18 +196,18 @@ func (r *L2ToL2MessageRelayer) Stop(ctx context.Context) {
 func (r *L2ToL2MessageRelayer) relayMessageWithRetry(l2tol2CDM *bindings.L2ToL2CrossDomainMessengerTransactor, transactor *bind.TransactOpts, sentMessage *L2ToL2MessageStoreEntry, maxRetries int) error {
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if _, err := l2tol2CDM.RelayMessage(transactor, *sentMessage.Identifier(), sentMessage.MessagePayload()); err != nil {
-			r.logger.Error("failed to relay message", "err", err, "attempt", attempt+1, "maxRetries", maxRetries)
+			r.logger.Error("failed to relay message", "msgHash", sentMessage.msgHash.Hex(), "err", err, "attempt", attempt+1, "maxRetries", maxRetries)
 			traceCallResult, traceErr := r.traceRelayMessage(transactor, sentMessage)
 			if traceErr != nil {
-				r.logger.Error("failed to trace failed relay message", "err", traceErr)
+				r.logger.Error("failed to trace failed relay message", "msgHash", sentMessage.msgHash.Hex(), "err", traceErr)
 			} else {
 				prettyJSON, prettyErr := json.MarshalIndent(traceCallResult, "", "    ")
 				if prettyErr != nil {
-					r.logger.Error("failed to marshal failed relay trace result", "err", prettyErr)
+					r.logger.Error("failed to marshal failed relay trace result", "msgHash", sentMessage.msgHash.Hex(), "err", prettyErr)
 				} else {
-					fmt.Printf("debug trace result of failed relay:\n%s\n", string(prettyJSON))
-					r.logger.Error("sent message identifier of failed relay", "origin", sentMessage.Identifier().Origin, "blockNumber", sentMessage.Identifier().BlockNumber, "logIndex", sentMessage.Identifier().LogIndex, "timestamp", sentMessage.Identifier().Timestamp, "chainId", sentMessage.Identifier().ChainId)
-					r.logger.Error("sent message payload and destination of failed relay", "payload", hexutil.Encode(sentMessage.MessagePayload()), "destination", sentMessage.message.Destination)
+					fmt.Printf("debug trace result of failed relay for msgHash %s:\n%s\n", sentMessage.msgHash.Hex(), string(prettyJSON))
+					r.logger.Error("sent message identifier of failed relay", "msgHash", sentMessage.msgHash.Hex(), "origin", sentMessage.Identifier().Origin, "blockNumber", sentMessage.Identifier().BlockNumber, "logIndex", sentMessage.Identifier().LogIndex, "timestamp", sentMessage.Identifier().Timestamp, "chainId", sentMessage.Identifier().ChainId)
+					r.logger.Error("sent message payload and destination of failed relay", "msgHash", sentMessage.msgHash.Hex(), "payload", hexutil.Encode(sentMessage.MessagePayload()), "destination", sentMessage.message.Destination)
 				}
 			}
 			if attempt == maxRetries-1 {
