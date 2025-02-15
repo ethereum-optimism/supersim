@@ -7,7 +7,7 @@ executors:
 
 orbs:
   go: circleci/go@2.2.3
-  utils: ethereum-optimism/circleci-utils@0.0.13
+  utils: ethereum-optimism/circleci-utils@1.0.8
 
 commands:
   # By default, CircleCI does not checkout any submodules
@@ -100,11 +100,13 @@ jobs:
       - checkout-with-submodules
       - install-dependencies
       - install-go-modules
-      - utils/get-github-access-token:
+      - run:
+          name: Get GitHub token
+          command: |
+            echo "export GITHUB_TOKEN=$GITHUB_TOKEN_GOVERNANCE" >> $BASH_ENV
           # GoReleaser uses the GITHUB_TOKEN environment variable to authenticate with GitHub
           # 
           # It's important that the token has write permissions both to this repository and to the homebrew-tap repository
-          output-token-name: GITHUB_TOKEN
       - run:
           name: Run GoReleaser
           command: goreleaser release --clean
@@ -130,7 +132,6 @@ jobs:
       - checkout
       - attach_workspace:
           at: /tmp/docs
-      - utils/get-github-access-token
       - utils/github-pages-deploy:
           src-pages-dir: /tmp/docs/book
 
