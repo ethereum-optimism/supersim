@@ -1,0 +1,1 @@
+export const CONTESTS_CHAIN_ID = 903

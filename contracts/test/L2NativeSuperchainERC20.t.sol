@@ -8,8 +8,8 @@ import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
 import {ERC20} from "@solady-v0.0.245/tokens/ERC20.sol";
 
 import {L2NativeSuperchainERC20, ZeroAddress} from "../src/L2NativeSuperchainERC20.sol";
-import {IERC7802} from "@contracts-bedrock/L2/interfaces/IERC7802.sol";
-import {ISuperchainERC20} from "@contracts-bedrock/L2/interfaces/ISuperchainERC20.sol";
+import {IERC7802} from "@contracts-bedrock-interfaces/L2/IERC7802.sol";
+import {ISuperchainERC20} from "@contracts-bedrock-interfaces/L2/ISuperchainERC20.sol";
 
 contract L2NativeSuperchainERC20Test is Test {
     address internal constant ZERO_ADDRESS = address(0);

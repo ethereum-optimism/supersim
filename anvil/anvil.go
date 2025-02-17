@@ -345,6 +345,31 @@ func (a *Anvil) SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]typ
 	return logs, err
 }
 
+func (a *Anvil) DebugTraceCall(ctx context.Context, tx *types.Transaction) (*config.TraceCallResult, error) {
+	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve tx sender: %w", err)
+	}
+
+	txArgs := txArgs{
+		From:     from,
+		To:       tx.To(),
+		Gas:      hexutil.Uint64(tx.Gas()),
+		GasPrice: (*hexutil.Big)(tx.GasPrice()),
+		Data:     tx.Data(),
+		Value:    (*hexutil.Big)(tx.Value()),
+	}
+
+	var result config.TraceCallResult
+	err = a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "pending", map[string]interface{}{
+		"tracer": "callTracer",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("debug_traceCall failed: %w", err)
+	}
+	return &result, nil
+}
+
 func (a *Anvil) removeFile(file *os.File) {
 	if err := os.Remove(file.Name()); err != nil {
 		a.log.Warn("failed to remove temp genesis file", "file.path", file.Name(), "err", err)

@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
 
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
-import {Identifier, ICrossL2Inbox} from "@contracts-bedrock/L2/interfaces/ICrossL2Inbox.sol";
+import {Identifier, ICrossL2Inbox} from "@contracts-bedrock-interfaces/L2/ICrossL2Inbox.sol";
 
 import {TicTacToe} from "../../src/tictactoe/TicTacToe.sol";
 import {
@@ -206,16 +206,18 @@ contract TicTacToeTest is Test {
         game.startGame(acceptGameId, acceptGameData, x, y);
     }
 
-    function testFuzz_startGame_incorrectSender_reverts(uint256 gameId, address opponent, uint8 x, uint8 y) public {
+    function testFuzz_startGame_incorrectSender_reverts(uint256 gameId, address opponent) public {
+        // this test is not the player
+        address player = address(0);
+        vm.assume(address(this) != player);
+
         TicTacToe game = new TicTacToe();
 
         // This test is not authorized to start the game
         uint256 chainId = block.chainid;
-        address player = address(game);
-
         Identifier memory acceptGameId = Identifier(address(game), 0, 0, 0, chainId);
         bytes memory acceptGameData =
-            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, opponent, player));
+            abi.encodePacked(TicTacToe.AcceptedGame.selector, abi.encode(chainId, gameId, player, opponent));
         vm.mockCall({
             callee: Predeploys.CROSS_L2_INBOX,
             data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, acceptGameId, acceptGameData),
@@ -223,7 +225,7 @@ contract TicTacToeTest is Test {
         });
 
         vm.expectRevert(SenderNotPlayer.selector);
-        game.startGame(acceptGameId, acceptGameData, x, y);
+        game.startGame(acceptGameId, acceptGameData, 0, 0);
     }
 
     function testFuzz_startGame_invalidMove_reverts(uint256 gameId, address opponent, uint8 x, uint8 y) public {
