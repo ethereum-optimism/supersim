@@ -512,7 +512,7 @@ OPTIONS:
 <p>L2 chains running on <code>supersim</code> also includes some useful contracts for testing purposes that are not part of the OP Stack by default.</p>
 <h3 id="l2nativesuperchainerc20"><a class="header" href="#l2nativesuperchainerc20">L2NativeSuperchainERC20</a></h3>
 <p>A simple ERC20 that adheres to the SuperchainERC20 standard. It includes permissionless minting for easy testing.</p>
-<p>Source: <a href="chain-environment/contracts//contracts/src/L2NativeSuperchainERC20.sol">L2NativeSuperchainERC20.sol</a></p>
+<p>Source: <a href="chain-environment/contracts/../../../contracts/src/L2NativeSuperchainERC20.sol">L2NativeSuperchainERC20.sol</a></p>
 <p>Deployed address: <code>0x420beeF000000000000000000000000000000001</code></p>
 <h4 id="minting-new-tokens"><a class="header" href="#minting-new-tokens">Minting new tokens</a></h4>
 <pre><code class="language-bash">cast send 0x420beeF000000000000000000000000000000001 "mint(address _to, uint256 _amount)" $RECIPIENT_ADDRESS 1ether  --rpc-url $L2_RPC_URL
