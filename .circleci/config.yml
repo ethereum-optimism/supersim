@@ -7,7 +7,7 @@ executors:
 
 orbs:
   go: circleci/go@2.2.3
-  utils: ethereum-optimism/circleci-utils@0.0.13
+  utils: ethereum-optimism/circleci-utils@dev:first
 
 commands:
   # By default, CircleCI does not checkout any submodules
