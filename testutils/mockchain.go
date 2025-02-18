@@ -59,6 +59,10 @@ func (c *MockChain) EthClient() *ethclient.Client {
 	return nil
 }
 
+func (c *MockChain) DebugTraceCall(ctx context.Context, tx *types.Transaction) (*config.TraceCallResult, error) {
+	return nil, nil
+}
+
 func (c *MockChain) SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]types.Log, error) {
 	return nil, nil
 }

@@ -82,6 +82,20 @@ type NetworkConfig struct {
 	InteropDelay     uint64
 }
 
+type TraceCallResult struct {
+	Type    string            `json:"type"`
+	From    common.Address    `json:"from"`
+	To      common.Address    `json:"to"`
+	Value   *hexutil.Big      `json:"value"`
+	Gas     hexutil.Uint64    `json:"gas"`
+	GasUsed hexutil.Uint64    `json:"gasUsed"`
+	Input   hexutil.Bytes     `json:"input"`
+	Output  hexutil.Bytes     `json:"output"`
+	Error   string            `json:"error"`
+	Revert  string            `json:"revert"`
+	Calls   []TraceCallResult `json:"calls"`
+}
+
 type Chain interface {
 	// Properties
 	Endpoint() string
@@ -90,6 +104,7 @@ type Chain interface {
 	EthClient() *ethclient.Client
 
 	// Additional methods
+	DebugTraceCall(ctx context.Context, tx *types.Transaction) (*TraceCallResult, error)
 	SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]types.Log, error)
 	SetCode(ctx context.Context, result interface{}, address common.Address, code string) error
 	SetStorageAt(ctx context.Context, result interface{}, address common.Address, storageSlot string, storageValue string) error
