@@ -1,5 +1,8 @@
 version: 2
 
+release:
+  replace_existing_artifacts: true # allows us to re-run the release without having to create new tags
+
 before:
   hooks:
     - go mod tidy
