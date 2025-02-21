@@ -33,7 +33,7 @@ var (
 )
 
 const (
-	minAnvilTimestamp = "2025-02-10T09:00:00.000000000Z"
+	minAnvilTimestamp = "2025-02-17T00:00:00.000000000Z"
 )
 
 func main() {
