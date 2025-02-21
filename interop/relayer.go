@@ -45,8 +45,8 @@ type L2ToL2MessageRelayer struct {
 }
 
 var (
-	ErrDependentMsgNotSuccessful = hexutil.Encode(
-		crypto.Keccak256([]byte("DependentMessageNotSuccessful(bytes32)"))[:4],
+	ErrRequiredMsgNotSuccessful = hexutil.Encode(
+		crypto.Keccak256([]byte("RequiredMessageNotSuccessful(bytes32)"))[:4],
 	)
 )
 
@@ -285,7 +285,7 @@ func (r *L2ToL2MessageRelayer) traceRelayMessage(transactor *bind.TransactOpts, 
 }
 
 func checkForDependentMsgNotSuccessfulRevert(trace config.TraceCallResult) *common.Hash {
-	if trace.From == predeploys.L2toL2CrossDomainMessengerAddr && trace.Output != nil && len(trace.Output) >= 4 && hexutil.Encode(trace.Output[:4]) == ErrDependentMsgNotSuccessful {
+	if trace.From == predeploys.L2toL2CrossDomainMessengerAddr && trace.Output != nil && len(trace.Output) >= 4 && hexutil.Encode(trace.Output[:4]) == ErrRequiredMsgNotSuccessful {
 		msgHash := common.BytesToHash(trace.Output[4:])
 		return &msgHash
 	}
