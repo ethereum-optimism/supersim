@@ -31,6 +31,9 @@ contract DeployL2PeripheryContracts is Script {
 
     function run() public broadcast {
         deployL2NativeSuperchainERC20();
+        // TODO: Remove once longer term fix is merged
+        // https://github.com/ethereum-optimism/supersim/pull/347#issuecomment-2676472821
+        vm.deal(0x0000000000000000000000000000000000000000, 10);
     }
 
     function deployL2NativeSuperchainERC20() public {
