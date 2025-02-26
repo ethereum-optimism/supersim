@@ -181,9 +181,7 @@ func (m *RPCMethods) GetL1Addresses(args *uint64) (*map[string]string, error) {
 		"OptimismPortalProxy":               chain.L2Config.L1Addresses.OptimismPortalProxy.String(),
 		"SystemConfigProxy":                 chain.L2Config.L1Addresses.SystemConfigProxy.String(),
 		"ProxyAdmin":                        chain.L2Config.L1Addresses.ProxyAdmin.String(),
-		"SuperchainConfig":                  chain.L2Config.L1Addresses.SuperchainConfig.String(),
 	}
-	m.log.Debug("admin_getL2Addresses")
 	return &reply, nil
 }
 

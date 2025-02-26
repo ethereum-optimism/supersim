@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/genesis"
-	registry "github.com/ethereum-optimism/superchain-registry/superchain"
+	"github.com/ethereum/go-ethereum/superchain"
 )
 
 type GenesisJson struct {
@@ -98,17 +98,17 @@ type L2GenesisDeployment struct {
 // addresses. Any experimental contracts will be managed externally from this list. The registry
 // and op-chain-ops L1Deployments type will be consolidated in the future as well.
 //   - See: https://github.com/ethereum-optimism/optimism/blob/5be91416a3d017d3f8648140b3c41189b234ff6e/op-chain-ops/genesis/config.go#L693
-func (d *L2GenesisDeployment) RegistryAddressList() *registry.AddressList {
-	return &registry.AddressList{
-		AddressManager:                    registry.Address(d.L1DeploymentAddresses.AddressManager),
-		L1CrossDomainMessengerProxy:       registry.Address(d.L1DeploymentAddresses.L1CrossDomainMessengerProxy),
-		L1ERC721BridgeProxy:               registry.Address(d.L1DeploymentAddresses.L1ERC721BridgeProxy),
-		L1StandardBridgeProxy:             registry.Address(d.L1DeploymentAddresses.L1StandardBridgeProxy),
-		L2OutputOracleProxy:               registry.Address(d.L1DeploymentAddresses.L2OutputOracleProxy),
-		OptimismMintableERC20FactoryProxy: registry.Address(d.L1DeploymentAddresses.OptimismMintableERC20FactoryProxy),
-		OptimismPortalProxy:               registry.Address(d.L1DeploymentAddresses.OptimismPortalProxy),
-		SystemConfigProxy:                 registry.Address(d.L1DeploymentAddresses.SystemConfigProxy),
-		ProxyAdmin:                        registry.Address(d.L1DeploymentAddresses.ProxyAdmin),
+func (d *L2GenesisDeployment) RegistryAddressList() *superchain.AddressesConfig {
+	return &superchain.AddressesConfig{
+		AddressManager:                    &d.L1DeploymentAddresses.AddressManager,
+		L1CrossDomainMessengerProxy:       &d.L1DeploymentAddresses.L1CrossDomainMessengerProxy,
+		L1ERC721BridgeProxy:               &d.L1DeploymentAddresses.L1ERC721BridgeProxy,
+		L1StandardBridgeProxy:             &d.L1DeploymentAddresses.L1StandardBridgeProxy,
+		L2OutputOracleProxy:               &d.L1DeploymentAddresses.L2OutputOracleProxy,
+		OptimismMintableERC20FactoryProxy: &d.L1DeploymentAddresses.OptimismMintableERC20FactoryProxy,
+		OptimismPortalProxy:               &d.L1DeploymentAddresses.OptimismPortalProxy,
+		SystemConfigProxy:                 &d.L1DeploymentAddresses.SystemConfigProxy,
+		ProxyAdmin:                        &d.L1DeploymentAddresses.ProxyAdmin,
 	}
 }
 

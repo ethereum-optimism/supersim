@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
-	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/genesis"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -17,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/superchain"
 )
 
 var (
@@ -40,7 +40,7 @@ type SecretsConfig struct {
 
 type L2Config struct {
 	L1ChainID     uint64
-	L1Addresses   *registry.AddressList
+	L1Addresses   *superchain.AddressesConfig
 	DependencySet []uint64
 }
 

@@ -159,8 +159,8 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 	// Relay deposit tx from L1 to L2
 	opSim.bgTasks.Go(func() error {
 		depositTxCh := make(chan *types.DepositTx)
-		portalAddress := common.Address(opSim.Config().L2Config.L1Addresses.OptimismPortalProxy)
-		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain.EthClient(), portalAddress, depositTxCh)
+		portalAddress := opSim.Config().L2Config.L1Addresses.OptimismPortalProxy
+		sub, err := SubscribeDepositTx(context.Background(), opSim.l1Chain.EthClient(), *portalAddress, depositTxCh)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to deposit tx: %w", err)
 		}
