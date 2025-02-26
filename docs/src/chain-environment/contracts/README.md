@@ -33,7 +33,7 @@ L2 chains running on `supersim` also includes some useful contracts for testing 
 
 A simple ERC20 that adheres to the SuperchainERC20 standard. It includes permissionless minting for easy testing.
 
-Source: [L2NativeSuperchainERC20.sol](/contracts/src/L2NativeSuperchainERC20.sol)
+Source: [L2NativeSuperchainERC20.sol](https://github.com/ethereum-optimism/supersim/blob/main/contracts/src/L2NativeSuperchainERC20.sol)
 
 Deployed address: `0x420beeF000000000000000000000000000000001`
 
