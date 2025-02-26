@@ -1,13 +1,14 @@
 package config
 
 import (
-	registry "github.com/ethereum-optimism/superchain-registry/superchain"
+	"github.com/ethereum-optimism/supersim/registry"
+	"github.com/ethereum/go-ethereum/superchain"
 )
 
-func OPChainByName(superchain *registry.Superchain, name string) *registry.ChainConfig {
-	for _, id := range superchain.ChainIDs {
-		if registry.OPChains[id].Chain == name {
-			return registry.OPChains[id]
+func OPChainConfigByName(superchain *registry.RegistrySuperchain, identifier string) *superchain.ChainConfig {
+	for _, chain := range superchain.Chains {
+		if chain.Identifier == identifier {
+			return chain.Config
 		}
 	}
 	return nil
@@ -15,23 +16,23 @@ func OPChainByName(superchain *registry.Superchain, name string) *registry.Chain
 
 func superchainNetworks() []string {
 	var networks []string
-	for name := range registry.Superchains {
-		networks = append(networks, name)
+	for identifier := range registry.SuperchainsByIdentifier {
+		networks = append(networks, identifier)
 	}
 	return networks
 }
 
-func superchainMemberChains(superchain *registry.Superchain) []string {
+func superchainMemberChains(superchain *registry.RegistrySuperchain) []string {
 	var chains []string
-	for _, id := range superchain.ChainIDs {
-		chains = append(chains, registry.OPChains[id].Chain)
+	for _, chain := range superchain.Chains {
+		chains = append(chains, chain.Identifier)
 	}
 	return chains
 }
 
-func isInSuperchain(name string, superchain *registry.Superchain) bool {
-	for _, id := range superchain.ChainIDs {
-		if registry.OPChains[id].Chain == name {
+func isInSuperchain(identifier string, superchain *registry.RegistrySuperchain) bool {
+	for _, chain := range superchain.Chains {
+		if chain.Identifier == identifier {
 			return true
 		}
 	}

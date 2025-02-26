@@ -13,10 +13,10 @@ import (
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
-	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
+	"github.com/ethereum-optimism/supersim/registry"
 	"github.com/joho/godotenv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -152,9 +152,9 @@ func createForkedInteropTestSuite(t *testing.T, opts ...ConfigOption) *InteropTe
 
 	testSuite := createTestSuite(t, cfgOpt)
 
-	superchain := registry.Superchains[testSuite.Cfg.ForkConfig.Network]
-	srcChainCfg := config.OPChainByName(superchain, srcChain)
-	destChainCfg := config.OPChainByName(superchain, destChain)
+	superchain := registry.SuperchainsByIdentifier[testSuite.Cfg.ForkConfig.Network]
+	srcChainCfg := config.OPChainConfigByName(superchain, srcChain)
+	destChainCfg := config.OPChainConfigByName(superchain, destChain)
 
 	sourceURL := testSuite.Supersim.Orchestrator.Endpoint(srcChainCfg.ChainID)
 	sourceEthClient, _ := ethclient.Dial(sourceURL)
@@ -252,11 +252,11 @@ func TestL1GenesisState(t *testing.T) {
 
 		l1Addrs := chain.Config().L2Config.L1Addresses
 
-		code, err := l1Client.CodeAt(context.Background(), common.Address(l1Addrs.AddressManager), nil)
+		code, err := l1Client.CodeAt(context.Background(), *l1Addrs.AddressManager, nil)
 		require.Nil(t, err)
 		require.NotEqual(t, emptyCode, code, "AddressManager is not deployed")
 
-		code, err = l1Client.CodeAt(context.Background(), common.Address(l1Addrs.OptimismPortalProxy), nil)
+		code, err = l1Client.CodeAt(context.Background(), *l1Addrs.OptimismPortalProxy, nil)
 		require.Nil(t, err)
 		require.NotEqual(t, emptyCode, code, "OptimismPortalProxy is not deployed")
 	}
@@ -325,7 +325,7 @@ func TestOptimismPortalDeposit(t *testing.T) {
 
 			transactor, _ := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(l1Chain.Config().ChainID)))
 			transactor.Value = oneEth
-			optimismPortal, _ := opbindings.NewOptimismPortal(common.Address(chain.Config().L2Config.L1Addresses.OptimismPortalProxy), l1EthClient)
+			optimismPortal, _ := opbindings.NewOptimismPortal(*chain.Config().L2Config.L1Addresses.OptimismPortalProxy, l1EthClient)
 
 			// needs a lock because the gas estimation can be outdated between transactions
 			l1TxMutex.Lock()

@@ -55,6 +55,15 @@ calculate-artifact-url:
     checksum=$(bash scripts/ops/calculate-checksum.sh) && \
     echo "https://storage.googleapis.com/oplabs-contract-artifacts/artifacts-v1-$checksum.tar.gz"
 
+vendor-superchain-registry:
+    #!/usr/bin/env bash
+    ./scripts/vendor-superchain-registry.sh
+
+update-superchain-registry:
+    ./scripts/update-superchain-registry-commit-hash.sh
+
+update-and-vendor-superchain-registry: update-superchain-registry vendor-superchain-registry
+
 generate-monorepo-bindings: install-abigen
     ./scripts/generate-bindings.sh -u $(just calculate-artifact-url) -n CrossL2Inbox,L2ToL2CrossDomainMessenger,L1BlockInterop,SuperchainWETH,SuperchainERC20,SuperchainTokenBridge -o ./bindings
 

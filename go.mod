@@ -3,9 +3,9 @@ module github.com/ethereum-optimism/supersim
 go 1.22.3
 
 require (
+	github.com/BurntSushi/toml v1.4.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/ethereum-optimism/optimism v1.10.1-0.20250203160054-66fea80cb9d0
-	github.com/ethereum-optimism/superchain-registry/superchain v0.0.0-20241126105717-d31591e83048
 	github.com/ethereum/go-ethereum v1.15.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/joho/godotenv v1.5.1
@@ -14,7 +14,6 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/DataDog/zstd v1.5.6-0.20230824185856-869dae002e5e // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/VictoriaMetrics/fastcache v1.12.2 // indirect
@@ -123,7 +122,6 @@ require (
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c // indirect
-	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect

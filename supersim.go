@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
-	registry "github.com/ethereum-optimism/superchain-registry/superchain"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/orchestrator"
+	"github.com/ethereum-optimism/supersim/registry"
 
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -32,8 +32,8 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 	// Generate conifg. If Forking, override the network config with the generated fork config
 	networkConfig := config.GetNetworkConfig(cliConfig)
 	if cliConfig.ForkConfig != nil {
-		superchain := registry.Superchains[cliConfig.ForkConfig.Network]
-		log.Info("generating fork configuration", "superchain", superchain.Superchain)
+		superchain := registry.SuperchainsByIdentifier[cliConfig.ForkConfig.Network]
+		log.Info("generating fork configuration", "superchain", superchain.Identifier)
 
 		var err error
 		networkConfig, err = orchestrator.NetworkConfigFromForkCLIConfig(log, envPrefix, cliConfig)
@@ -46,9 +46,9 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 			l1ForkHeightStr = fmt.Sprintf("%d", cliConfig.ForkConfig.L1ForkHeight)
 		}
 
-		log.Info("forked l1 chain config", "name", superchain.Superchain, "chain.id", networkConfig.L1Config.ChainID, "fork.height", l1ForkHeightStr)
+		log.Info("forked l1 chain config", "name", superchain.Identifier, "chain.id", networkConfig.L1Config.ChainID, "fork.height", l1ForkHeightStr)
 		for _, chainCfg := range networkConfig.L2Configs {
-			name := registry.OPChains[chainCfg.ChainID].Chain
+			name := registry.ChainsByID[chainCfg.ChainID].Identifier
 			log.Info("forked l2 chain config", "name", name, "chain.id", chainCfg.ChainID, "fork.height", chainCfg.ForkConfig.BlockNumber)
 		}
 	}

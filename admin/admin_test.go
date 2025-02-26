@@ -75,6 +75,5 @@ func TestGetL1AddressesRPC(t *testing.T) {
 	assert.Equal(t, registryAddresses.OptimismMintableERC20FactoryProxy.String(), addresses["OptimismMintableERC20FactoryProxy"])
 	assert.Equal(t, registryAddresses.OptimismPortalProxy.String(), addresses["OptimismPortalProxy"])
 	assert.Equal(t, registryAddresses.ProxyAdmin.String(), addresses["ProxyAdmin"])
-	assert.Equal(t, registryAddresses.SuperchainConfig.String(), addresses["SuperchainConfig"])
 	assert.Equal(t, registryAddresses.SystemConfigProxy.String(), addresses["SystemConfigProxy"])
 }

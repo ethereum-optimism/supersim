@@ -9,7 +9,7 @@ import (
 	"net"
 	"regexp"
 
-	registry "github.com/ethereum-optimism/superchain-registry/superchain"
+	"github.com/ethereum-optimism/supersim/registry"
 
 	"github.com/urfave/cli/v2"
 )
@@ -117,7 +117,7 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 
 func ForkCLIFlags(envPrefix string) []cli.Flag {
 	networks := strings.Join(superchainNetworks(), ", ")
-	mainnetMembers := strings.Join(superchainMemberChains(registry.Superchains["mainnet"]), ", ")
+	mainnetMembers := strings.Join(superchainMemberChains(registry.SuperchainsByIdentifier["mainnet"]), ", ")
 	return []cli.Flag{
 		&cli.Uint64Flag{
 			Name:    L1ForkHeightFlagName,
@@ -225,7 +225,7 @@ func (c *CLIConfig) Check() error {
 	if c.ForkConfig != nil {
 		forkCfg := c.ForkConfig
 
-		superchain, ok := registry.Superchains[forkCfg.Network]
+		superchain, ok := registry.SuperchainsByIdentifier[forkCfg.Network]
 		if !ok {
 			return fmt.Errorf("unrecognized superchain network `%s`, available networks: [%s]",
 				forkCfg.Network, strings.Join(superchainNetworks(), ", "))
