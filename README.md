@@ -271,6 +271,8 @@ Below, find a list of all kinds of interesting projects built with Supersim - If
 - [Infinity Pets](https://github.com/karlfloersch/infinity-pets) - An example of horizontally scalable smart contract system and frontend application
 - [Interop Interactions and Interopable token](https://github.com/ismailmoazami/Supersim-interactions-and-OpInteropToken-contracts) - Script for transferring tokens seamlessly between local OP chains and sample token contract that is SuperchainERC20 bridgable called OpInteropToken.
 - [SuperUI](https://github.com/Nerd3Lab/superUI) - UI for local development with Supersim, making it easier than ever to build and test your interop application.
+- [Superfuse Wizard](https://github.com/Ratimon/redprint-wizard) - [UI](https://superfuse.ninja/) for interactive smart contract code generator to customize, deploy and test your  dApp on Superchain/ERC-7802 on Superchain.
+- [superfuse-forge](https://github.com/Ratimon/superfuse-forge) - A developer-friendly framework/library in solidity to build/deploy your interop contracts on Superchain.
 
 
 ## 🤝 Contributing
