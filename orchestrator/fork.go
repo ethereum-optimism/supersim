@@ -16,8 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/superchain"
 )
 
-const blockTime = 2
-
 func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, cliConfig *config.CLIConfig) (config.NetworkConfig, error) {
 	forkConfig := cliConfig.ForkConfig
 	superchain := registry.SuperchainsByIdentifier[forkConfig.Network]
@@ -54,6 +52,7 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, cliConfig 
 
 	networkConfig.L1Config = config.ChainConfig{
 		Name:          forkConfig.Network,
+		BlockTime:     config.DefaultL1BlockTime,
 		ChainID:       superchain.Config.L1.ChainID,
 		SecretsConfig: config.DefaultSecretsConfig,
 		LogsDirectory: cliConfig.LogsDirectory,
@@ -98,6 +97,7 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, cliConfig 
 		l2ChainConfig := config.ChainConfig{
 			Name:          chainCfg.Name,
 			ChainID:       chainCfg.ChainID,
+			BlockTime:     config.DefaultL1BlockTime,
 			SecretsConfig: config.DefaultSecretsConfig,
 			LogsDirectory: cliConfig.LogsDirectory,
 			ForkConfig: &config.ForkConfig{
@@ -143,8 +143,8 @@ func latestL2HeightFromL1Header(l2Cfg *superchain.ChainConfig, l2Client *ethclie
 	blockNum := latestHeader.Number.Uint64()
 	if latestHeader.Time > l1Header.Time {
 		timeDiff := latestHeader.Time - l1Header.Time
-		blocksToWalkBack := timeDiff / blockTime
-		if timeDiff%2 != 0 {
+		blocksToWalkBack := timeDiff / l2Cfg.BlockTime
+		if timeDiff%l2Cfg.BlockTime != 0 {
 			blocksToWalkBack++
 		}
 		blockNum = blockNum - blocksToWalkBack

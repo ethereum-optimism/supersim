@@ -19,6 +19,11 @@ import (
 	"github.com/ethereum/go-ethereum/superchain"
 )
 
+const (
+	DefaultL1BlockTime = 12
+	DefaultL2BlockTime = 2
+)
+
 var (
 	DefaultSecretsConfig = SecretsConfig{
 		Accounts:       10,
@@ -49,6 +54,8 @@ type ChainConfig struct {
 	Host    string
 	Port    uint64
 	ChainID uint64
+
+	BlockTime uint64
 
 	GenesisJSON   []byte
 	SecretsConfig SecretsConfig
@@ -130,6 +137,7 @@ func GetNetworkConfig(cliConfig *CLIConfig) NetworkConfig {
 		L1Config: ChainConfig{
 			Name:              "Local",
 			ChainID:           genesis.GeneratedGenesisDeployment.L1.ChainID,
+			BlockTime:         DefaultL1BlockTime,
 			SecretsConfig:     DefaultSecretsConfig,
 			GenesisJSON:       genesis.GeneratedGenesisDeployment.L1.GenesisJSON,
 			StartingTimestamp: startingTimestamp,
@@ -145,6 +153,7 @@ func GetNetworkConfig(cliConfig *CLIConfig) NetworkConfig {
 			GenesisJSON:       genesis.GeneratedGenesisDeployment.L2s[i].GenesisJSON,
 			StartingTimestamp: startingTimestamp,
 			LogsDirectory:     cliConfig.LogsDirectory,
+			BlockTime:         DefaultL2BlockTime,
 			L2Config: &L2Config{
 				L1ChainID:     genesis.GeneratedGenesisDeployment.L1.ChainID,
 				L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[i].RegistryAddressList(),
