@@ -42,8 +42,9 @@ func (c *MockChain) String() string {
 
 func (c *MockChain) Config() *config.ChainConfig {
 	return &config.ChainConfig{
-		Name:    "mockchain",
-		ChainID: 1,
+		Name:      "mockchain",
+		ChainID:   1,
+		BlockTime: 2,
 	}
 }
 

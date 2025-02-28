@@ -208,9 +208,15 @@ func (a *Anvil) Start(ctx context.Context) error {
 
 	go func() {
 		if err := a.cmd.Wait(); err != nil {
-			anvilLog.Error("anvil terminated with an error", "error", err)
+			// Get last line from log file for more context
+			if lastLines, readErr := readLastLines(a.logFilePath, 1); readErr == nil && len(lastLines) > 0 {
+				anvilLog.Error("anvil terminated with an error", "error", err, "with", lastLines[0])
+			} else {
+				anvilLog.Error("anvil terminated with an error", "error", err)
+			}
 		} else {
 			anvilLog.Debug("anvil terminated")
+
 		}
 
 		// If anvil stops, signal that the entire app should be closed
@@ -384,4 +390,25 @@ func (a *Anvil) executeCleanup() {
 
 func (a *Anvil) registerCleanupTask(task func()) {
 	a.cleanupTasks = append(a.cleanupTasks, task)
+}
+
+func readLastLines(filename string, numLines int) ([]string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+		if len(lines) > numLines {
+			lines = lines[1:]
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return lines, nil
 }
