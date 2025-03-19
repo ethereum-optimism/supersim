@@ -32,7 +32,7 @@ config
 	      chave
 }
 
-func isInSuperchain(identifica     , superchain *registro.RegistroSuperchain) bool {
+     isInSuperchain(identifica     , superchain *registro.RegistroSuperchain) bool {
 	    _, chave := reach superchain.Chains {
 		   chain.Identifica == identifica {
 			     true
