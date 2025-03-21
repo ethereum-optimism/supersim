@@ -65,7 +65,7 @@ update-superchain-registry:
 update-and-vendor-superchain-registry: update-superchain-registry vendor-superchain-registry
 
 generate-monorepo-bindings: install-abigen
-    ./scripts/generate-bindings.sh -u $(just calculate-artifact-url) -n CrossL2Inbox,L2ToL2CrossDomainMessenger,L1BlockInterop,SuperchainWETH,SuperchainERC20,SuperchainTokenBridge -o ./bindings
+    ./scripts/generate-bindings.sh -u $(just calculate-artifact-url) -n CrossL2Inbox,L2ToL2CrossDomainMessenger,L1Block,SuperchainWETH,SuperchainERC20,SuperchainTokenBridge -o ./bindings
 
 generate-genesis: build-contracts
     go run ./genesis/cmd/main.go --monorepo-artifacts $(just calculate-artifact-url) --periphery-artifacts ./contracts/out --outdir ./genesis/generated

@@ -40,7 +40,7 @@ type Identifier struct {
 
 // CrossL2InboxMetaData contains all meta data concerning the CrossL2Inbox contract.
 var CrossL2InboxMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"function\",\"name\":\"blockNumber\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"chainId\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"interopStart\",\"inputs\":[],\"outputs\":[{\"name\":\"interopStart_\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"logIndex\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"origin\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"setInteropStart\",\"inputs\":[],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"timestamp\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"validateMessage\",\"inputs\":[{\"name\":\"_id\",\"type\":\"tuple\",\"internalType\":\"structIdentifier\",\"components\":[{\"name\":\"origin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"logIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"chainId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"_msgHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"version\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"ExecutingMessage\",\"inputs\":[{\"name\":\"msgHash\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"id\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structIdentifier\",\"components\":[{\"name\":\"origin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"logIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"chainId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"InteropStartAlreadySet\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NoExecutingDeposits\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotDepositor\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotEntered\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ReentrantCall\",\"inputs\":[]}]",
+	ABI: "[{\"type\":\"function\",\"name\":\"calculateChecksum\",\"inputs\":[{\"name\":\"_id\",\"type\":\"tuple\",\"internalType\":\"structIdentifier\",\"components\":[{\"name\":\"origin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"logIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"chainId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"_msgHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"checksum_\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"pure\"},{\"type\":\"function\",\"name\":\"validateMessage\",\"inputs\":[{\"name\":\"_id\",\"type\":\"tuple\",\"internalType\":\"structIdentifier\",\"components\":[{\"name\":\"origin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"logIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"chainId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"_msgHash\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"version\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"ExecutingMessage\",\"inputs\":[{\"name\":\"msgHash\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"id\",\"type\":\"tuple\",\"indexed\":false,\"internalType\":\"structIdentifier\",\"components\":[{\"name\":\"origin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"logIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"chainId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"BlockNumberTooHigh\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"LogIndexTooHigh\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NoExecutingDeposits\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotInAccessList\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"TimestampTooHigh\",\"inputs\":[]}]",
 }
 
 // CrossL2InboxABI is the input ABI used to generate the binding from.
@@ -189,190 +189,35 @@ func (_CrossL2Inbox *CrossL2InboxTransactorRaw) Transact(opts *bind.TransactOpts
 	return _CrossL2Inbox.Contract.contract.Transact(opts, method, params...)
 }
 
-// BlockNumber is a free data retrieval call binding the contract method 0x57e871e7.
+// CalculateChecksum is a free data retrieval call binding the contract method 0x331b637f.
 //
-// Solidity: function blockNumber() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxCaller) BlockNumber(opts *bind.CallOpts) (*big.Int, error) {
+// Solidity: function calculateChecksum((address,uint256,uint256,uint256,uint256) _id, bytes32 _msgHash) pure returns(bytes32 checksum_)
+func (_CrossL2Inbox *CrossL2InboxCaller) CalculateChecksum(opts *bind.CallOpts, _id Identifier, _msgHash [32]byte) ([32]byte, error) {
 	var out []interface{}
-	err := _CrossL2Inbox.contract.Call(opts, &out, "blockNumber")
+	err := _CrossL2Inbox.contract.Call(opts, &out, "calculateChecksum", _id, _msgHash)
 
 	if err != nil {
-		return *new(*big.Int), err
+		return *new([32]byte), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
 
 	return out0, err
 
 }
 
-// BlockNumber is a free data retrieval call binding the contract method 0x57e871e7.
+// CalculateChecksum is a free data retrieval call binding the contract method 0x331b637f.
 //
-// Solidity: function blockNumber() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxSession) BlockNumber() (*big.Int, error) {
-	return _CrossL2Inbox.Contract.BlockNumber(&_CrossL2Inbox.CallOpts)
+// Solidity: function calculateChecksum((address,uint256,uint256,uint256,uint256) _id, bytes32 _msgHash) pure returns(bytes32 checksum_)
+func (_CrossL2Inbox *CrossL2InboxSession) CalculateChecksum(_id Identifier, _msgHash [32]byte) ([32]byte, error) {
+	return _CrossL2Inbox.Contract.CalculateChecksum(&_CrossL2Inbox.CallOpts, _id, _msgHash)
 }
 
-// BlockNumber is a free data retrieval call binding the contract method 0x57e871e7.
+// CalculateChecksum is a free data retrieval call binding the contract method 0x331b637f.
 //
-// Solidity: function blockNumber() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxCallerSession) BlockNumber() (*big.Int, error) {
-	return _CrossL2Inbox.Contract.BlockNumber(&_CrossL2Inbox.CallOpts)
-}
-
-// ChainId is a free data retrieval call binding the contract method 0x9a8a0592.
-//
-// Solidity: function chainId() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxCaller) ChainId(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _CrossL2Inbox.contract.Call(opts, &out, "chainId")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// ChainId is a free data retrieval call binding the contract method 0x9a8a0592.
-//
-// Solidity: function chainId() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxSession) ChainId() (*big.Int, error) {
-	return _CrossL2Inbox.Contract.ChainId(&_CrossL2Inbox.CallOpts)
-}
-
-// ChainId is a free data retrieval call binding the contract method 0x9a8a0592.
-//
-// Solidity: function chainId() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxCallerSession) ChainId() (*big.Int, error) {
-	return _CrossL2Inbox.Contract.ChainId(&_CrossL2Inbox.CallOpts)
-}
-
-// InteropStart is a free data retrieval call binding the contract method 0xb1745ada.
-//
-// Solidity: function interopStart() view returns(uint256 interopStart_)
-func (_CrossL2Inbox *CrossL2InboxCaller) InteropStart(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _CrossL2Inbox.contract.Call(opts, &out, "interopStart")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// InteropStart is a free data retrieval call binding the contract method 0xb1745ada.
-//
-// Solidity: function interopStart() view returns(uint256 interopStart_)
-func (_CrossL2Inbox *CrossL2InboxSession) InteropStart() (*big.Int, error) {
-	return _CrossL2Inbox.Contract.InteropStart(&_CrossL2Inbox.CallOpts)
-}
-
-// InteropStart is a free data retrieval call binding the contract method 0xb1745ada.
-//
-// Solidity: function interopStart() view returns(uint256 interopStart_)
-func (_CrossL2Inbox *CrossL2InboxCallerSession) InteropStart() (*big.Int, error) {
-	return _CrossL2Inbox.Contract.InteropStart(&_CrossL2Inbox.CallOpts)
-}
-
-// LogIndex is a free data retrieval call binding the contract method 0xda99f729.
-//
-// Solidity: function logIndex() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxCaller) LogIndex(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _CrossL2Inbox.contract.Call(opts, &out, "logIndex")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// LogIndex is a free data retrieval call binding the contract method 0xda99f729.
-//
-// Solidity: function logIndex() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxSession) LogIndex() (*big.Int, error) {
-	return _CrossL2Inbox.Contract.LogIndex(&_CrossL2Inbox.CallOpts)
-}
-
-// LogIndex is a free data retrieval call binding the contract method 0xda99f729.
-//
-// Solidity: function logIndex() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxCallerSession) LogIndex() (*big.Int, error) {
-	return _CrossL2Inbox.Contract.LogIndex(&_CrossL2Inbox.CallOpts)
-}
-
-// Origin is a free data retrieval call binding the contract method 0x938b5f32.
-//
-// Solidity: function origin() view returns(address)
-func (_CrossL2Inbox *CrossL2InboxCaller) Origin(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _CrossL2Inbox.contract.Call(opts, &out, "origin")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// Origin is a free data retrieval call binding the contract method 0x938b5f32.
-//
-// Solidity: function origin() view returns(address)
-func (_CrossL2Inbox *CrossL2InboxSession) Origin() (common.Address, error) {
-	return _CrossL2Inbox.Contract.Origin(&_CrossL2Inbox.CallOpts)
-}
-
-// Origin is a free data retrieval call binding the contract method 0x938b5f32.
-//
-// Solidity: function origin() view returns(address)
-func (_CrossL2Inbox *CrossL2InboxCallerSession) Origin() (common.Address, error) {
-	return _CrossL2Inbox.Contract.Origin(&_CrossL2Inbox.CallOpts)
-}
-
-// Timestamp is a free data retrieval call binding the contract method 0xb80777ea.
-//
-// Solidity: function timestamp() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxCaller) Timestamp(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _CrossL2Inbox.contract.Call(opts, &out, "timestamp")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// Timestamp is a free data retrieval call binding the contract method 0xb80777ea.
-//
-// Solidity: function timestamp() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxSession) Timestamp() (*big.Int, error) {
-	return _CrossL2Inbox.Contract.Timestamp(&_CrossL2Inbox.CallOpts)
-}
-
-// Timestamp is a free data retrieval call binding the contract method 0xb80777ea.
-//
-// Solidity: function timestamp() view returns(uint256)
-func (_CrossL2Inbox *CrossL2InboxCallerSession) Timestamp() (*big.Int, error) {
-	return _CrossL2Inbox.Contract.Timestamp(&_CrossL2Inbox.CallOpts)
+// Solidity: function calculateChecksum((address,uint256,uint256,uint256,uint256) _id, bytes32 _msgHash) pure returns(bytes32 checksum_)
+func (_CrossL2Inbox *CrossL2InboxCallerSession) CalculateChecksum(_id Identifier, _msgHash [32]byte) ([32]byte, error) {
+	return _CrossL2Inbox.Contract.CalculateChecksum(&_CrossL2Inbox.CallOpts, _id, _msgHash)
 }
 
 // Version is a free data retrieval call binding the contract method 0x54fd4d50.
@@ -404,27 +249,6 @@ func (_CrossL2Inbox *CrossL2InboxSession) Version() (string, error) {
 // Solidity: function version() view returns(string)
 func (_CrossL2Inbox *CrossL2InboxCallerSession) Version() (string, error) {
 	return _CrossL2Inbox.Contract.Version(&_CrossL2Inbox.CallOpts)
-}
-
-// SetInteropStart is a paid mutator transaction binding the contract method 0xc8ab72ca.
-//
-// Solidity: function setInteropStart() returns()
-func (_CrossL2Inbox *CrossL2InboxTransactor) SetInteropStart(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _CrossL2Inbox.contract.Transact(opts, "setInteropStart")
-}
-
-// SetInteropStart is a paid mutator transaction binding the contract method 0xc8ab72ca.
-//
-// Solidity: function setInteropStart() returns()
-func (_CrossL2Inbox *CrossL2InboxSession) SetInteropStart() (*types.Transaction, error) {
-	return _CrossL2Inbox.Contract.SetInteropStart(&_CrossL2Inbox.TransactOpts)
-}
-
-// SetInteropStart is a paid mutator transaction binding the contract method 0xc8ab72ca.
-//
-// Solidity: function setInteropStart() returns()
-func (_CrossL2Inbox *CrossL2InboxTransactorSession) SetInteropStart() (*types.Transaction, error) {
-	return _CrossL2Inbox.Contract.SetInteropStart(&_CrossL2Inbox.TransactOpts)
 }
 
 // ValidateMessage is a paid mutator transaction binding the contract method 0xab4d6f75.
