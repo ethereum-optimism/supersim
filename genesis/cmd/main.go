@@ -46,7 +46,12 @@ func worldgenMain(ctx *cli.Context) error {
 		URL: cliConfig.MonorepoArtifactsURL,
 	}
 
-	monorepoArtifactsFS, err := artifacts.Download(ctx.Context, monorepoArtifactsLocator, monorepoProgressor)
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	monorepoArtifactsFS, err := artifacts.Download(ctx.Context, monorepoArtifactsLocator, monorepoProgressor, path.Join(homeDir, ".op-deployer/cache"))
 	if err != nil {
 		return fmt.Errorf("failed to download monorepo artifacts: %w", err)
 	}
@@ -60,7 +65,7 @@ func worldgenMain(ctx *cli.Context) error {
 		URL: cliConfig.PeripheryArtifactsURL,
 	}
 
-	peripheryArtifactsFS, err := artifacts.Download(ctx.Context, peripheryArtifactsLocator, peripheryProgressor)
+	peripheryArtifactsFS, err := artifacts.Download(ctx.Context, peripheryArtifactsLocator, peripheryProgressor, path.Join(homeDir, ".op-deployer/cache"))
 	if err != nil {
 		return fmt.Errorf("failed to download periphery artifacts: %w", err)
 	}
