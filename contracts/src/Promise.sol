@@ -23,6 +23,12 @@ contract Promise is TransientReentrancyAware {
     /// @notice a mapping of message hashes to their registered callbacks
     mapping(bytes32 => Callback[]) public callbacks;
 
+    /// @notice the relay identifier that is satisfying the promise
+    Identifier internal currentRelayIdentifier;
+
+    /// @notice the context that is being propagated with the promise
+    bytes internal currentContext;
+
     /// @notice a mapping of message sent by this library. To prevent callbacks being registered to messages
     ///         sent directly to the L2ToL2CrossDomainMessenger which does not emit the return value (yet)
     mapping(bytes32 => bool) private sentMessages;
@@ -93,19 +99,21 @@ contract Promise is TransientReentrancyAware {
         bytes32 eventSel = abi.decode(_payload[:32], (bytes32));
         require(eventSel == RelayedMessage.selector, "Promise: invalid event");
 
-        // TODO: make the identifier available in transient storage
+        currentRelayIdentifier = _id;
 
         (bytes32 msgHash, bytes memory returnData) = abi.decode(_payload[32:], (bytes32, bytes));
         for (uint256 i = 0; i < callbacks[msgHash].length; i++) {
             Callback memory callback = callbacks[msgHash][i];
+            if (callback.context.length > 0) {
+                currentContext = callback.context;
+            }
 
-            // TODO: store context in transient storage instead of encoding it as data to the target
-            bytes memory data = callback.context.length > 0 ?
-                abi.encodePacked(callback.selector, abi.encode(returnData, callback.context)) :
-                abi.encodePacked(callback.selector, returnData);
-
-            (bool completed,) = callback.target.call(data);
+            (bool completed,) = callback.target.call(abi.encodePacked(callback.selector, returnData));
             require(completed, "Promise: callback call failed");
+
+            if (callback.context.length > 0) {
+                delete currentContext;
+            }
         }
 
         emit CallbacksCompleted(msgHash);
@@ -113,5 +121,16 @@ contract Promise is TransientReentrancyAware {
         // storage cleanup
         delete callbacks[msgHash];
         delete sentMessages[msgHash];
+        delete currentRelayIdentifier;
+    }
+
+    /// @notice get the context that is being propagated with the promise
+    function promiseContext() public view returns (bytes memory) {
+        return currentContext;
+    }
+
+    /// @notice get the relay identifier that is satisfying the promise
+    function promiseRelayIdentifier() public view returns (Identifier memory) {
+        return currentRelayIdentifier;
     }
 }

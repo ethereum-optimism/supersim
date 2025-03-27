@@ -34,41 +34,9 @@ contract PromiseTest is Test {
     function test_then_succeeds(uint256 _destination) public {
         vm.assume(_destination != block.chainid);
 
-        // Mock the call over the `isInDependencySet` function to return true
-        vm.mockCall(
-            Predeploys.L1_BLOCK_ATTRIBUTES,
-            abi.encodeCall(IDependencySet.isInDependencySet, (_destination)),
-            abi.encode(true)
-        );
-
-        // example IERC20 balanceOf query
-        bytes32 msgHash = p.sendMessage(_destination, address(0), abi.encodeCall(IERC20.balanceOf, (address(this))));
-        p.then(msgHash, this.balanceHandler.selector);
-
-        // construct some return value for this message with a balance
-        uint256 balance = 100;
-        Identifier memory id = Identifier(address(p), 0, 0, 0, _destination);
-        bytes memory payload = abi.encodePacked(Promise.RelayedMessage.selector, abi.encode(msgHash, abi.encode(balance)));
-
-        // mock the CrossL2Inbox validation
-        vm.mockCall({
-            callee: Predeploys.CROSS_L2_INBOX,
-            data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, id, payload),
-            returnData: ""
-        });
-
-        // dispatch the callback
-        vm.recordLogs();
-        p.dispatchCallbacks(id, payload);
-
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        assertEq(logs.length, 2);
-        assertEq(logs[0].topics[0], HandlerCalled.selector);
-        assertEq(logs[1].topics[0], Promise.CallbacksCompleted.selector);
-    }
-
-    function test_then_withContext_succeeds(uint256 _destination) public {
-        vm.assume(_destination != block.chainid);
+        // context is empty
+        assertEq(p.promiseContext().length, 0);
+        assertEq(p.promiseRelayIdentifier().origin, address(0));
 
         // Mock the call over the `isInDependencySet` function to return true
         vm.mockCall(
@@ -77,9 +45,10 @@ contract PromiseTest is Test {
             abi.encode(true)
         );
 
-        // example IERC20 balanceOf query, propogating the query param as context
-        bytes32 msgHash = p.sendMessage(_destination, address(0), abi.encodeCall(IERC20.balanceOf, (address(this))));
-        p.then(msgHash, this.balanceHandlerWithContext.selector, abi.encode(address(this)));
+        // example IERC20 remote balanceOf query
+        address tokenAddress = address(0x1234567890123456789012345678901234567890);
+        bytes32 msgHash = p.sendMessage(_destination, tokenAddress, abi.encodeCall(IERC20.balanceOf, (address(this))));
+        p.then(msgHash, this.balanceHandler.selector, "abc");
 
         // construct some return value for this message with a balance
         uint256 balance = 100;
@@ -102,23 +71,19 @@ contract PromiseTest is Test {
         assertEq(logs[0].topics[0], HandlerCalled.selector);
         assertEq(logs[1].topics[0], Promise.CallbacksCompleted.selector);
 
+        // context is empty
+        assertEq(p.promiseContext().length, 0);
+        assertEq(p.promiseRelayIdentifier().origin, address(0));
     }
 
     function balanceHandler(uint256 balance) async public {
         require(balance == 100, "PromiseTest: balance mismatch");
 
-        emit HandlerCalled();
-    }
+        Identifier memory id = p.promiseRelayIdentifier();
+        require(id.origin == address(p), "PromiseTest: origin mismatch");
 
-    /// rather than placing context as an argument, we could instead store it in transient storage to retain type
-    /// safety with the return value.
-    function balanceHandlerWithContext(bytes memory returnData, bytes memory context) async public {
-
-        uint256 balance = abi.decode(returnData, (uint256));
-        require(balance == 100, "PromiseTest: balance mismatch");
-
-        address queryAddress = abi.decode(context, (address));
-        require(queryAddress == address(this), "PromiseTest: query address mismatch");
+        bytes memory context = p.promiseContext();
+        require(keccak256(context) == keccak256("abc"), "PromiseTest: context mismatch");
 
         emit HandlerCalled();
     }
