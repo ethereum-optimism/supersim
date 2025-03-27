@@ -46,8 +46,9 @@ contract PromiseTest is Test {
         p.then(msgHash, this.balanceHandler.selector);
 
         // construct some return value for this message with a balance
+        uint256 balance = 100;
         Identifier memory id = Identifier(address(p), 0, 0, 0, _destination);
-        bytes memory payload = abi.encodePacked(Promise.RelayedMessage.selector, abi.encode(msgHash, abi.encode(100)));
+        bytes memory payload = abi.encodePacked(Promise.RelayedMessage.selector, abi.encode(msgHash, abi.encode(balance)));
 
         // mock the CrossL2Inbox validation
         vm.mockCall({
@@ -81,8 +82,9 @@ contract PromiseTest is Test {
         p.then(msgHash, this.balanceHandlerWithContext.selector, abi.encode(address(this)));
 
         // construct some return value for this message with a balance
+        uint256 balance = 100;
         Identifier memory id = Identifier(address(p), 0, 0, 0, _destination);
-        bytes memory payload = abi.encodePacked(Promise.RelayedMessage.selector, abi.encode(msgHash, abi.encode(100)));
+        bytes memory payload = abi.encodePacked(Promise.RelayedMessage.selector, abi.encode(msgHash, abi.encode(balance)));
 
         // mock the CrossL2Inbox validation
         vm.mockCall({
@@ -102,17 +104,21 @@ contract PromiseTest is Test {
 
     }
 
-    function balanceHandler(uint256) async public {
+    function balanceHandler(uint256 balance) async public {
+        require(balance == 100, "PromiseTest: balance mismatch");
+
         emit HandlerCalled();
     }
 
     /// rather than placing context as an argument, we could instead store it in transient storage to retain type
     /// safety with the return value.
-    function balanceHandlerWithContext(bytes memory) async public {
-        (bytes memory returnData, bytes memory context) = abi.decode(msg.data, (bytes, bytes));
+    function balanceHandlerWithContext(bytes memory returnData, bytes memory context) async public {
 
         uint256 balance = abi.decode(returnData, (uint256));
+        require(balance == 100, "PromiseTest: balance mismatch");
+
         address queryAddress = abi.decode(context, (address));
+        require(queryAddress == address(this), "PromiseTest: query address mismatch");
 
         emit HandlerCalled();
     }

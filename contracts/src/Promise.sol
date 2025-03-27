@@ -101,8 +101,8 @@ contract Promise is TransientReentrancyAware {
 
             // TODO: store context in transient storage instead of encoding it as data to the target
             bytes memory data = callback.context.length > 0 ?
-                abi.encode(callback.selector, returnData, callback.context) :
-                abi.encode(callback.selector, returnData);
+                abi.encodePacked(callback.selector, abi.encode(returnData, callback.context)) :
+                abi.encodePacked(callback.selector, returnData);
 
             (bool completed,) = callback.target.call(data);
             require(completed, "Promise: callback call failed");
