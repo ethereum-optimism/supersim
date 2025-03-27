@@ -2,7 +2,10 @@
 pragma solidity ^0.8.25;
 
 import {Script, console} from "forge-std/Script.sol";
+
 import {L2NativeSuperchainERC20} from "../src/L2NativeSuperchainERC20.sol";
+import {Promise} from "../src/Promise.sol";
+import {PromiseExample} from "../src/PromiseExample.sol";
 
 contract DeployL2PeripheryContracts is Script {
     /// @notice Used for tracking the next address to deploy a periphery contract at.
@@ -30,7 +33,13 @@ contract DeployL2PeripheryContracts is Script {
     }
 
     function run() public broadcast {
+        deployPromise();
         deployL2NativeSuperchainERC20();
+    }
+
+    function deployPromise() public {
+        Promise p = new Promise{salt: _salt()}();
+        console.log("Deployed Promise at address: ", address(p));
     }
 
     function deployL2NativeSuperchainERC20() public {
