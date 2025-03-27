@@ -1,0 +1,119 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.25;
+
+import {Test} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
+
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import {ICrossL2Inbox, Identifier} from "@contracts-bedrock-interfaces/L2/ICrossL2Inbox.sol";
+import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
+import {L2ToL2CrossDomainMessenger, IDependencySet} from "@contracts-bedrock/L2/L2ToL2CrossDomainMessenger.sol";
+
+import {Promise} from "../src/Promise.sol";
+
+contract PromiseTest is Test {
+    Promise public p;
+
+    event HandlerCalled();
+
+    function setUp() public {
+        vm.etch(
+            Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+            address(new L2ToL2CrossDomainMessenger()).code
+        );
+
+        p = new Promise();
+    }
+
+    modifier async() {
+        require(msg.sender == address(p), "PromiseTest: caller not Promise");
+        _;
+    }
+
+    function test_then_succeeds(uint256 _destination) public {
+        vm.assume(_destination != block.chainid);
+
+        // Mock the call over the `isInDependencySet` function to return true
+        vm.mockCall(
+            Predeploys.L1_BLOCK_ATTRIBUTES,
+            abi.encodeCall(IDependencySet.isInDependencySet, (_destination)),
+            abi.encode(true)
+        );
+
+        // example IERC20 balanceOf query
+        bytes32 msgHash = p.sendMessage(_destination, address(0), abi.encodeCall(IERC20.balanceOf, (address(this))));
+        p.then(msgHash, this.balanceHandler.selector);
+
+        // construct some return value for this message with a balance
+        Identifier memory id = Identifier(address(p), 0, 0, 0, _destination);
+        bytes memory payload = abi.encodePacked(Promise.RelayedMessage.selector, abi.encode(msgHash, abi.encode(100)));
+
+        // mock the CrossL2Inbox validation
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, id, payload),
+            returnData: ""
+        });
+
+        // dispatch the callback
+        vm.recordLogs();
+        p.dispatchCallbacks(id, payload);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        assertEq(logs.length, 2);
+        assertEq(logs[0].topics[0], HandlerCalled.selector);
+        assertEq(logs[1].topics[0], Promise.CallbacksCompleted.selector);
+    }
+
+    function test_then_withContext_succeeds(uint256 _destination) public {
+        vm.assume(_destination != block.chainid);
+
+        // Mock the call over the `isInDependencySet` function to return true
+        vm.mockCall(
+            Predeploys.L1_BLOCK_ATTRIBUTES,
+            abi.encodeCall(IDependencySet.isInDependencySet, (_destination)),
+            abi.encode(true)
+        );
+
+        // example IERC20 balanceOf query, propogating the query param as context
+        bytes32 msgHash = p.sendMessage(_destination, address(0), abi.encodeCall(IERC20.balanceOf, (address(this))));
+        p.then(msgHash, this.balanceHandlerWithContext.selector, abi.encode(address(this)));
+
+        // construct some return value for this message with a balance
+        Identifier memory id = Identifier(address(p), 0, 0, 0, _destination);
+        bytes memory payload = abi.encodePacked(Promise.RelayedMessage.selector, abi.encode(msgHash, abi.encode(100)));
+
+        // mock the CrossL2Inbox validation
+        vm.mockCall({
+            callee: Predeploys.CROSS_L2_INBOX,
+            data: abi.encodeWithSelector(ICrossL2Inbox.validateMessage.selector, id, payload),
+            returnData: ""
+        });
+
+        // dispatch the callback
+        vm.recordLogs();
+        p.dispatchCallbacks(id, payload);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        assertEq(logs.length, 2);
+        assertEq(logs[0].topics[0], HandlerCalled.selector);
+        assertEq(logs[1].topics[0], Promise.CallbacksCompleted.selector);
+
+    }
+
+    function balanceHandler(uint256) async public {
+        emit HandlerCalled();
+    }
+
+    /// rather than placing context as an argument, we could instead store it in transient storage to retain type
+    /// safety with the return value.
+    function balanceHandlerWithContext(bytes memory) async public {
+        (bytes memory returnData, bytes memory context) = abi.decode(msg.data, (bytes, bytes));
+
+        uint256 balance = abi.decode(returnData, (uint256));
+        address queryAddress = abi.decode(context, (address));
+
+        emit HandlerCalled();
+    }
+}
