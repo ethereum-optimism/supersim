@@ -61,7 +61,7 @@ contract PromiseTest is Relayer, Test {
 
         relayAllMessages();
 
-        relayPromises(p, chainIdByForkId[chainA]);
+        relayAllPromises(p, chainIdByForkId[chainA]);
 
         assertEq(handlerCalled, true);
         // context is empty
