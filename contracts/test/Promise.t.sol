@@ -9,7 +9,8 @@ import {ICrossL2Inbox, Identifier} from "@contracts-bedrock-interfaces/L2/ICross
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
 import {L2ToL2CrossDomainMessenger} from "@contracts-bedrock/L2/L2ToL2CrossDomainMessenger.sol";
 import {L2NativeSuperchainERC20} from "../src/L2NativeSuperchainERC20.sol";
-import {Promise} from "../src/Promise.sol";
+import {Promise} from "@interop-lib/Promise.sol";
+import {Identifier as PromiseIdentifier} from "@interop-lib/interfaces/IIdentifier.sol";
 import {Relayer, RelayedMessage} from "@interop-lib/test/Relayer.sol";
 
 contract PromiseTest is Relayer, Test {
@@ -60,24 +61,7 @@ contract PromiseTest is Relayer, Test {
 
         relayAllMessages();
 
-        // need to refetch recorded logs and get the RelayedMessage
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        Vm.Log memory relayMessageLog;
-
-        for (uint256 i = 0; i < logs.length; i++) {
-            if (logs[i].topics[0] == keccak256("RelayedMessage(bytes32,bytes)")) {
-                relayMessageLog = logs[i];
-                break;
-            }
-        }
-
-        bytes memory payload = constructMessagePayload(relayMessageLog);
-        Identifier memory id = Identifier(relayMessageLog.emitter, block.number, 0, block.timestamp, chainIdByForkId[chainB]);
-
-        // dispatch the callback
-        p.dispatchCallbacks(id, payload);
-
-        relayAllMessages();
+        relayPromises(p, chainIdByForkId[chainA]);
 
         assertEq(handlerCalled, true);
         // context is empty
@@ -89,7 +73,7 @@ contract PromiseTest is Relayer, Test {
         handlerCalled = true;
         require(balance == 100, "PromiseTest: balance mismatch");
 
-        Identifier memory id = p.promiseRelayIdentifier();
+        PromiseIdentifier memory id = p.promiseRelayIdentifier();
         require(id.origin == address(p), "PromiseTest: origin mismatch");
 
         bytes memory context = p.promiseContext();
