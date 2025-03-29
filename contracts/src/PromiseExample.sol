@@ -7,7 +7,7 @@ import {Promise} from "./Promise.sol";
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
 
 contract PromiseExample {
-    Promise public p = Promise(0xaeB79eD99f24273707d6D9dF38AdF54dCc1f3Fa1);
+    Promise public p = Promise(0xFcdC08d2DFf80DCDf1e954c4759B3316BdE86464);
 
     mapping(address => uint256) public wethBalances;
 
