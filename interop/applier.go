@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
+	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/genesis"
 
@@ -54,6 +55,15 @@ func Configure(ctx context.Context, chain config.Chain) error {
 			if err := applyAllocForPredeploy(ctx, chain, predeploy, l2Genesis); err != nil {
 				return fmt.Errorf("failed to apply predeploy %s", predeploy.proxy)
 			}
+		}
+
+		// Manually set the code the Promise contract
+		promiseAlloc, ok := l2Genesis.Alloc[strings.ToLower(bindings.PromiseAddr.Hex()[2:])]
+		if !ok {
+			return fmt.Errorf("promise alloc not found %s:", bindings.PromiseAddr)
+		}
+		if err := chain.SetCode(ctx, nil, bindings.PromiseAddr, promiseAlloc.Code); err != nil {
+			return fmt.Errorf("failed to set code for %s: %w", bindings.PromiseAddr, err)
 		}
 	}
 

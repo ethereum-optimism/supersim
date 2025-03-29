@@ -50,10 +50,20 @@ func (i *L2ToL2MessageIndexer) Start(ctx context.Context, clients map[uint64]*et
 	for chainID, client := range i.clients {
 		i.tasks.Go(func() error {
 			logCh := make(chan types.Log)
+
+			// L2ToL2CrossDomainMessenger
 			fq := ethereum.FilterQuery{Addresses: []common.Address{predeploys.L2toL2CrossDomainMessengerAddr}}
 			sub, err := client.SubscribeFilterLogs(i.tasksCtx, fq, logCh)
 			if err != nil {
 				return fmt.Errorf("failed to subscribe to L2ToL2CrossDomainMessenger events: %w", err)
+			}
+
+			// Promise Library
+			promiseLogCh := make(chan types.Log)
+			fq = ethereum.FilterQuery{Addresses: []common.Address{common.Address{}}}
+			promiseSub, err := client.SubscribeFilterLogs(i.tasksCtx, fq, promiseLogCh)
+			if err != nil {
+				return fmt.Errorf("failed to subscribe to PromiseLibrary events: %w", err)
 			}
 
 			for {
@@ -62,8 +72,13 @@ func (i *L2ToL2MessageIndexer) Start(ctx context.Context, clients map[uint64]*et
 					if err := i.processEventLog(i.tasksCtx, client, chainID, &log); err != nil {
 						fmt.Printf("failed to process log: %v\n", err)
 					}
+				case log := <-promiseLogCh:
+					if err := i.processEventLog(i.tasksCtx, client, chainID, &log); err != nil {
+						fmt.Printf("failed to process log: %v\n", err)
+					}
 				case <-i.tasksCtx.Done():
 					sub.Unsubscribe()
+					promiseSub.Unsubscribe()
 				}
 			}
 		})
