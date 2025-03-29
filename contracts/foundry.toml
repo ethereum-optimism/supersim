@@ -13,7 +13,8 @@ remappings = [
   "@contracts-bedrock-interfaces/=lib/optimism/packages/contracts-bedrock/interfaces/",
   "@solady-v0.0.245/=lib/optimism/packages/contracts-bedrock/lib/solady-v0.0.245/src/",
   "@solady/=lib/optimism/packages/contracts-bedrock/lib/solady/src/",
-  "@openzeppelin/contracts=lib/optimism/packages/contracts-bedrock/lib/openzeppelin-contracts/contracts"
+  "@openzeppelin/contracts=lib/optimism/packages/contracts-bedrock/lib/openzeppelin-contracts/contracts",
+  "@interop-lib/=lib/interop-lib/src/"
 ]
 
 [rpc_endpoints]
