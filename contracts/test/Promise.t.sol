@@ -12,9 +12,11 @@ import {L2NativeSuperchainERC20} from "../src/L2NativeSuperchainERC20.sol";
 import {Promise} from "@interop-lib/Promise.sol";
 import {Identifier as PromiseIdentifier} from "@interop-lib/interfaces/IIdentifier.sol";
 import {Relayer, RelayedMessage} from "@interop-lib/test/Relayer.sol";
+import {IPromise} from "@interop-lib/interfaces/IPromise.sol";
+import {PredeployAddresses} from "@interop-lib/libraries/PredeployAddresses.sol";
 
 contract PromiseTest is Relayer, Test {
-    Promise public p;
+    IPromise public p = IPromise(PredeployAddresses.PROMISE);
     L2NativeSuperchainERC20 public token;
 
     event HandlerCalled();
@@ -30,7 +32,6 @@ contract PromiseTest is Relayer, Test {
 
     function setUp() public {
         vm.selectFork(chainA);
-        p = new Promise{salt: bytes32(0)}();
         token = new L2NativeSuperchainERC20{salt: bytes32(0)}();
 
         vm.selectFork(chainB);
