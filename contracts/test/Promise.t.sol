@@ -25,8 +25,8 @@ contract PromiseTest is Relayer, Test {
 
     constructor()
         Relayer(
-            vm.envOr("CHAIN_A_RPC_URL", string("http://127.0.0.1:9545")),
-            vm.envOr("CHAIN_B_RPC_URL", string("http://127.0.0.1:9546"))
+            vm.envOr("CHAIN_A_RPC_URL", string("https://interop-alpha-0.optimism.io")),
+            vm.envOr("CHAIN_B_RPC_URL", string("https://interop-alpha-1.optimism.io"))
         )
     {}
 
