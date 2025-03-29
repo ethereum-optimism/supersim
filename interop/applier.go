@@ -62,8 +62,8 @@ func Configure(ctx context.Context, chain config.Chain) error {
 		if !ok {
 			return fmt.Errorf("promise alloc not found %s:", bindings.PromiseAddr)
 		}
-		if err := chain.SetCode(ctx, nil, bindings.PromiseAddr, promiseAlloc.Code); err != nil {
-			return fmt.Errorf("failed to set code for %s: %w", bindings.PromiseAddr, err)
+		if err := applyAllocToAddress(ctx, chain, &promiseAlloc, bindings.PromiseAddr); err != nil {
+			return fmt.Errorf("failed to apply alloc for %s: %w", bindings.PromiseAddr, err)
 		}
 	}
 
