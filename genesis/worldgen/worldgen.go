@@ -12,9 +12,17 @@ import (
 	"github.com/ethereum-optimism/optimism/op-chain-ops/interopgen"
 )
 
+const defaultBlockTime = 2
+
 var defaultRecipe = interopgen.InteropDevRecipe{
-	L1ChainID:        900,
-	L2ChainIDs:       []uint64{901, 902, 903, 904, 905},
+	L1ChainID: 900,
+	L2s: []interopgen.InteropDevL2Recipe{
+		{ChainID: 901, BlockTime: defaultBlockTime},
+		{ChainID: 902, BlockTime: defaultBlockTime},
+		{ChainID: 903, BlockTime: defaultBlockTime},
+		{ChainID: 904, BlockTime: defaultBlockTime},
+		{ChainID: 905, BlockTime: defaultBlockTime},
+	},
 	GenesisTimestamp: uint64(time.Now().Unix()),
 }
 

@@ -104,21 +104,17 @@ contract Promise is TransientReentrancyAware {
         (bytes32 msgHash, bytes memory returnData) = abi.decode(_payload[32:], (bytes32, bytes));
         for (uint256 i = 0; i < callbacks[msgHash].length; i++) {
             Callback memory callback = callbacks[msgHash][i];
-            if (callback.context.length > 0) {
-                currentContext = callback.context;
-            }
+            currentContext = callback.context;
 
             (bool completed,) = callback.target.call(abi.encodePacked(callback.selector, returnData));
             require(completed, "Promise: callback call failed");
 
-            if (callback.context.length > 0) {
-                delete currentContext;
-            }
+            delete currentContext;
         }
 
         emit CallbacksCompleted(msgHash);
 
-        // storage cleanup
+        // cleanup
         delete callbacks[msgHash];
         delete sentMessages[msgHash];
         delete currentRelayIdentifier;

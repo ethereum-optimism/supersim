@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
+	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/orchestrator"
 	"github.com/ethereum-optimism/supersim/registry"
@@ -118,6 +119,7 @@ func (s *Supersim) ConfigAsString() string {
 		fmt.Fprintln(&b, "\nAdded Predeploy Contracts:")
 		fmt.Fprintf(&b, " - L2ToL2CrossDomainMessenger: %s\n", predeploys.L2toL2CrossDomainMessenger)
 		fmt.Fprintf(&b, " - CrossL2Inbox:               %s\n", predeploys.CrossL2Inbox)
+		fmt.Fprintf(&b, " - Promise:                    %s\n", bindings.PromiseAddr)
 		fmt.Fprintf(&b, " - SuperchainTokenBridge:      %s\n", predeploys.SuperchainTokenBridge)
 		fmt.Fprintf(&b, " - SuperchainWETH:             %s\n", predeploys.SuperchainWETH)
 	}
