@@ -238,7 +238,7 @@ func (r *L2ToL2MessageRelayer) tryDispatchCallbacks(sentMessage *L2ToL2MessageSt
 			continue
 		}
 
-		// use a different key to avoid nonce conflicts with relayed messages on the soruce
+		// use a different key to avoid nonce conflicts with relayed messages on the source
 		keys, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
 		if err != nil {
 			return fmt.Errorf("failed to create dev keys: %w", err)
