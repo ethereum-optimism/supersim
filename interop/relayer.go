@@ -265,6 +265,23 @@ func (r *L2ToL2MessageRelayer) tryDispatchCallbacks(sentMessage *L2ToL2MessageSt
 		if err != nil {
 			return fmt.Errorf("failed to create promise transactor: %w", err)
 		}
+		crossL2InboxCaller, err := bindings.NewCrossL2InboxCaller(predeploys.CrossL2InboxAddr, sourceClient)
+		if err != nil {
+			return fmt.Errorf("failed to create caller: %w", err)
+		}
+		messageCheckSum, err := crossL2InboxCaller.CalculateChecksum(&bind.CallOpts{}, *identifier, crypto.Keccak256Hash(payload))
+		if err != nil {
+			return fmt.Errorf("failed to calculate checksum: %w", err)
+		}
+		accessList := types.AccessList{
+			{
+				Address: predeploys.CrossL2InboxAddr,
+				StorageKeys: []common.Hash{
+					messageCheckSum,
+				},
+			},
+		}
+		sourceTransactor.AccessList = accessList
 		if _, err = promise.DispatchCallbacks(sourceTransactor, *identifier, payload); err != nil {
 			return fmt.Errorf("failed to dispatch callbacks: %w", err)
 		}

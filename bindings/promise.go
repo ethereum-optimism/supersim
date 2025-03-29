@@ -39,7 +39,7 @@ var PromiseMetaData = &bind.MetaData{
 var PromiseABI = PromiseMetaData.ABI
 
 // Manually Added as this is nto an official predeploy
-var PromiseAddr = common.HexToAddress("0xa86C2271B8795649F1438D6DE0AF3d16F6bdF2DF")
+var PromiseAddr = common.HexToAddress("0xaeB79eD99f24273707d6D9dF38AdF54dCc1f3Fa1")
 
 // Promise is an auto generated Go binding around an Ethereum contract.
 type Promise struct {

@@ -8,7 +8,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ICrossL2Inbox, Identifier} from "@contracts-bedrock-interfaces/L2/ICrossL2Inbox.sol";
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
-import {L2ToL2CrossDomainMessenger, IDependencySet} from "@contracts-bedrock/L2/L2ToL2CrossDomainMessenger.sol";
+import {L2ToL2CrossDomainMessenger} from "@contracts-bedrock/L2/L2ToL2CrossDomainMessenger.sol";
 
 import {Promise} from "../src/Promise.sol";
 
@@ -37,13 +37,6 @@ contract PromiseTest is Test {
         // context is empty
         assertEq(p.promiseContext().length, 0);
         assertEq(p.promiseRelayIdentifier().origin, address(0));
-
-        // Mock the call over the `isInDependencySet` function to return true
-        vm.mockCall(
-            Predeploys.L1_BLOCK_ATTRIBUTES,
-            abi.encodeCall(IDependencySet.isInDependencySet, (_destination)),
-            abi.encode(true)
-        );
 
         // example IERC20 remote balanceOf query
         address tokenAddress = address(0x1234567890123456789012345678901234567890);
