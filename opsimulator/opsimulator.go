@@ -50,11 +50,10 @@ type OpSimulator struct {
 	bgTasksCancel context.CancelFunc
 	peers         map[uint64]config.Chain
 
-	host           string
-	port           uint64
-	httpServer     *ophttp.HTTPServer
-	crossL2Inbox   *bindings.CrossL2Inbox
-	l1BlockInterop *bindings.L1BlockInterop
+	host         string
+	port         uint64
+	httpServer   *ophttp.HTTPServer
+	crossL2Inbox *bindings.CrossL2Inbox
 
 	ethClient *ethclient.Client
 
@@ -124,12 +123,6 @@ func (opSim *OpSimulator) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to create cross L2 inbox: %w", err)
 	}
 	opSim.crossL2Inbox = crossL2Inbox
-
-	l1BlockInterop, err := bindings.NewL1BlockInterop(predeploys.L1BlockAddr, ethClient)
-	if err != nil {
-		return fmt.Errorf("failed to create L1 block interop: %w", err)
-	}
-	opSim.l1BlockInterop = l1BlockInterop
 
 	opSim.startBackgroundTasks()
 	return nil
@@ -473,22 +466,6 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 			initiatingMsgPayloadHash := crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(&initiatingMessageLogs[0]))
 			if common.BytesToHash(executingMessage.MsgHash[:]).Cmp(initiatingMsgPayloadHash) != 0 {
 				return fmt.Errorf("executing and initiating message fields are not equal")
-			}
-
-			interopStart, err := opSim.crossL2Inbox.InteropStart(&bind.CallOpts{})
-			if err != nil {
-				return fmt.Errorf("failed to fetch interop start: %w", err)
-			}
-			if interopStart.Cmp(identifier.Timestamp) > 0 {
-				return fmt.Errorf("interop start is greater than initiating message timestamp")
-			}
-
-			isInDependencySet, err := opSim.l1BlockInterop.IsInDependencySet(&bind.CallOpts{}, big.NewInt(identifier.ChainId.Int64()))
-			if err != nil {
-				return fmt.Errorf("failed to check if chain id is in dependency set: %w", err)
-			}
-			if !isInDependencySet {
-				return fmt.Errorf("chain id is not in dependency set")
 			}
 
 			if opSim.interopDelay != 0 {

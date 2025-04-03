@@ -308,12 +308,13 @@ func (a *Anvil) SetIntervalMining(ctx context.Context, result interface{}, inter
 
 // DebugTraceCall internal types
 type txArgs struct {
-	From     common.Address  `json:"from"`
-	To       *common.Address `json:"to"`
-	Gas      hexutil.Uint64  `json:"gas"`
-	GasPrice *hexutil.Big    `json:"gasPrice"`
-	Data     hexutil.Bytes   `json:"data"`
-	Value    *hexutil.Big    `json:"value"`
+	From       common.Address   `json:"from"`
+	To         *common.Address  `json:"to"`
+	Gas        hexutil.Uint64   `json:"gas"`
+	GasPrice   *hexutil.Big     `json:"gasPrice"`
+	Data       hexutil.Bytes    `json:"data"`
+	Value      *hexutil.Big     `json:"value"`
+	AccessList types.AccessList `json:"accessList"`
 }
 type callFrame struct {
 	Logs  []callLog   `json:"logs"`
@@ -331,7 +332,15 @@ func (a *Anvil) SimulatedLogs(ctx context.Context, tx *types.Transaction) ([]typ
 		return nil, fmt.Errorf("failed to retrieve tx sender: %w", err)
 	}
 
-	txArgs := txArgs{From: from, To: tx.To(), Gas: hexutil.Uint64(tx.Gas()), GasPrice: (*hexutil.Big)(tx.GasPrice()), Data: tx.Data(), Value: (*hexutil.Big)(tx.Value())}
+	txArgs := txArgs{
+		From:       from,
+		To:         tx.To(),
+		Gas:        hexutil.Uint64(tx.Gas()),
+		GasPrice:   (*hexutil.Big)(tx.GasPrice()),
+		Data:       tx.Data(),
+		Value:      (*hexutil.Big)(tx.Value()),
+		AccessList: tx.AccessList(),
+	}
 	result := callFrame{}
 	if err := a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "pending", logTracerParams); err != nil {
 		return nil, err
@@ -358,14 +367,14 @@ func (a *Anvil) DebugTraceCall(ctx context.Context, tx *types.Transaction) (*con
 	}
 
 	txArgs := txArgs{
-		From:     from,
-		To:       tx.To(),
-		Gas:      hexutil.Uint64(tx.Gas()),
-		GasPrice: (*hexutil.Big)(tx.GasPrice()),
-		Data:     tx.Data(),
-		Value:    (*hexutil.Big)(tx.Value()),
+		From:       from,
+		To:         tx.To(),
+		Gas:        hexutil.Uint64(tx.Gas()),
+		GasPrice:   (*hexutil.Big)(tx.GasPrice()),
+		Data:       tx.Data(),
+		Value:      (*hexutil.Big)(tx.Value()),
+		AccessList: tx.AccessList(),
 	}
-
 	var result config.TraceCallResult
 	err = a.rpcClient.CallContext(ctx, &result, "debug_traceCall", txArgs, "pending", map[string]interface{}{
 		"tracer": "callTracer",
