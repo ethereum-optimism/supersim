@@ -3,6 +3,8 @@ pragma solidity ^0.8.25;
 
 import {Script, console} from "forge-std/Script.sol";
 
+import {PredeployAddresses} from "@interop-lib/libraries/PredeployAddresses.sol";
+
 import {L2NativeSuperchainERC20} from "../src/L2NativeSuperchainERC20.sol";
 import {Promise} from "../src/Promise.sol";
 import {PromiseExample} from "../src/PromiseExample.sol";
@@ -38,8 +40,25 @@ contract DeployL2PeripheryContracts is Script {
     }
 
     function deployPromise() public {
-        Promise p = new Promise{salt: _salt()}();
-        console.log("Deployed Promise at address: ", address(p));
+        address p = address(new Promise{salt: _salt()}());
+        // the promise library is not an official predeploy, so we manually deployed the Promise
+        // contract to this address in devnet, so we need to manually etch the code to the
+        // expected address
+        vm.etch(PredeployAddresses.PROMISE, p.code);
+        // Number of slots to check
+        uint256 slotsToCheck = 1000;
+
+        // Copy storage slots
+        for (uint256 slot = 0; slot < slotsToCheck; slot++) {
+            bytes32 value = vm.load(p, bytes32(slot));
+
+            // Only copy non-zero slots to save gas
+            if (value != bytes32(0)) {
+                console.log("Copying slot %d: %s on address %s", slot, vm.toString(value), PredeployAddresses.PROMISE);
+                vm.store(PredeployAddresses.PROMISE, bytes32(slot), value);
+            }
+        }
+        console.log("Deployed Promise at address: ", PredeployAddresses.PROMISE);
     }
 
     function deployL2NativeSuperchainERC20() public {

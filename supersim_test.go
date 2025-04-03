@@ -538,21 +538,7 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	}
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
 	require.NoError(t, err)
-
-	// configure access list
-	crossL2InboxCaller, err := bindings.NewCrossL2InboxCaller(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
-	checksum, err := crossL2InboxCaller.CalculateChecksum(nil, identifier, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
-	require.NoError(t, err)
-	accessList := types.AccessList{
-		{
-			Address: predeploys.CrossL2InboxAddr,
-			StorageKeys: []common.Hash{
-				checksum,
-			},
-		},
-	}
-	transactor.AccessList = accessList
+	transactor.AccessList = interop.MessageAccessList(&identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
 
 	// Should succeed
 	tx, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
@@ -610,26 +596,7 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
 	require.NoError(t, err)
 
-	// configure access list
-	crossL2InboxCaller, err := bindings.NewCrossL2InboxCaller(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
-	checksum, err := crossL2InboxCaller.CalculateChecksum(nil, bindings.Identifier{
-		Origin:      origin,
-		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
-		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
-		ChainId:     testSuite.SourceChainID,
-	}, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
-	require.NoError(t, err)
-	accessList := types.AccessList{
-		{
-			Address: predeploys.CrossL2InboxAddr,
-			StorageKeys: []common.Hash{
-				checksum,
-			},
-		},
-	}
-	transactor.AccessList = accessList
+	transactor.AccessList = interop.MessageAccessList(&identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
 
 	// Should fail because the log index is incorrect
 	_, err = crossL2Inbox.ValidateMessage(transactor, identifier, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
@@ -683,28 +650,7 @@ func TestInteropInvariantCheckBadBlockNumber(t *testing.T) {
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
 	require.NoError(t, err)
 
-	// configure access list
-	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
-	require.NoError(t, err)
-	crossL2InboxCaller, err := bindings.NewCrossL2InboxCaller(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
-	checksum, err := crossL2InboxCaller.CalculateChecksum(nil, bindings.Identifier{
-		Origin:      origin,
-		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
-		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
-		ChainId:     testSuite.SourceChainID,
-	}, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
-	require.NoError(t, err)
-	accessList := types.AccessList{
-		{
-			Address: predeploys.CrossL2InboxAddr,
-			StorageKeys: []common.Hash{
-				checksum,
-			},
-		},
-	}
-	transactor.AccessList = accessList
+	transactor.AccessList = interop.MessageAccessList(&identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
 
 	// Should fail because the block number is incorrect
 	_, err = crossL2Inbox.ValidateMessage(transactor, identifier, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
@@ -757,26 +703,7 @@ func TestInteropInvariantCheckBadBlockTimestamp(t *testing.T) {
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
 	require.NoError(t, err)
 
-	// configure access list
-	crossL2InboxCaller, err := bindings.NewCrossL2InboxCaller(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
-	checksum, err := crossL2InboxCaller.CalculateChecksum(nil, bindings.Identifier{
-		Origin:      origin,
-		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
-		LogIndex:    big.NewInt(0),
-		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
-		ChainId:     testSuite.SourceChainID,
-	}, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
-	require.NoError(t, err)
-	accessList := types.AccessList{
-		{
-			Address: predeploys.CrossL2InboxAddr,
-			StorageKeys: []common.Hash{
-				checksum,
-			},
-		},
-	}
-	transactor.AccessList = accessList
+	transactor.AccessList = interop.MessageAccessList(&identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
 
 	// Should fail because the block timestamp is incorrect
 	_, err = crossL2Inbox.ValidateMessage(transactor, identifier, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
@@ -832,20 +759,7 @@ func TestForkedInteropInvariantCheckSucceeds(t *testing.T) {
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
 	require.NoError(t, err)
 
-	// configure access list
-	crossL2InboxCaller, err := bindings.NewCrossL2InboxCaller(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
-	checksum, err := crossL2InboxCaller.CalculateChecksum(nil, identifier, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
-	require.NoError(t, err)
-	accessList := types.AccessList{
-		{
-			Address: predeploys.CrossL2InboxAddr,
-			StorageKeys: []common.Hash{
-				checksum,
-			},
-		},
-	}
-	transactor.AccessList = accessList
+	transactor.AccessList = interop.MessageAccessList(&identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
 
 	// Should succeed
 	tx, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
@@ -1067,20 +981,7 @@ func TestInteropInvariantSucceedsWithDelay(t *testing.T) {
 	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
 	require.NoError(t, err)
 
-	// configure access list
-	crossL2InboxCaller, err := bindings.NewCrossL2InboxCaller(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
-	checksum, err := crossL2InboxCaller.CalculateChecksum(nil, identifier, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
-	require.NoError(t, err)
-	accessList := types.AccessList{
-		{
-			Address: predeploys.CrossL2InboxAddr,
-			StorageKeys: []common.Hash{
-				checksum,
-			},
-		},
-	}
-	transactor.AccessList = accessList
+	transactor.AccessList = interop.MessageAccessList(&identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
 
 	// Should succeed because delay time has passed
 	tx, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
@@ -1135,20 +1036,7 @@ func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
 
-	// configure access list
-	crossL2InboxCaller, err := bindings.NewCrossL2InboxCaller(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
-	checksum, err := crossL2InboxCaller.CalculateChecksum(nil, identifier, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
-	require.NoError(t, err)
-	accessList := types.AccessList{
-		{
-			Address: predeploys.CrossL2InboxAddr,
-			StorageKeys: []common.Hash{
-				checksum,
-			},
-		},
-	}
-	transactor.AccessList = accessList
+	transactor.AccessList = interop.MessageAccessList(&identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
 
 	// Should fail because the delay time hasn't passed
 	_, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))

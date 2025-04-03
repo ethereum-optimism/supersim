@@ -108,12 +108,6 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 				return fmt.Errorf("failed to create	transactor: %w", err)
 			}
 
-			crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, client)
-			if err != nil {
-				r.logger.Debug("failed to create transactor", "err", err)
-				return fmt.Errorf("failed to create	transactor: %w", err)
-			}
-
 			for {
 				select {
 				case relayedMsg := <-relayedMsgChan:
@@ -124,7 +118,7 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 						r.messageWaitingPoolMutex.Unlock()
 
 						for _, waitingMsg := range waitingMsgs {
-							if err := r.relayMessageWithRetry(l2tol2CDM, crossL2Inbox, client, transactor, waitingMsg, 1); err != nil {
+							if err := r.relayMessageWithRetry(l2tol2CDM, transactor, waitingMsg, 1); err != nil {
 								r.logger.Error("failed to relay message", "msgHash", waitingMsg.msgHash.Hex(), "err", err)
 							}
 						}
@@ -168,12 +162,6 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 				return fmt.Errorf("failed to create	transactor: %w", err)
 			}
 
-			crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, client)
-			if err != nil {
-				r.logger.Debug("failed to create transactor", "err", err)
-				return fmt.Errorf("failed to create	transactor: %w", err)
-			}
-
 			for {
 				select {
 				case <-r.tasksCtx.Done():
@@ -197,7 +185,7 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 						continue
 					}
 					if dependentMsgHash == nil {
-						if err := r.relayMessageWithRetry(l2tol2CDM, crossL2Inbox, client, transactor, sentMessage, 1); err != nil {
+						if err := r.relayMessageWithRetry(l2tol2CDM, transactor, sentMessage, 1); err != nil {
 							r.logger.Error("failed to relay message after retries", "msgHash", sentMessage.msgHash.Hex(), "err", err)
 							continue
 						}
@@ -265,23 +253,7 @@ func (r *L2ToL2MessageRelayer) tryDispatchCallbacks(sentMessage *L2ToL2MessageSt
 		if err != nil {
 			return fmt.Errorf("failed to create promise transactor: %w", err)
 		}
-		crossL2InboxCaller, err := bindings.NewCrossL2InboxCaller(predeploys.CrossL2InboxAddr, sourceClient)
-		if err != nil {
-			return fmt.Errorf("failed to create caller: %w", err)
-		}
-		messageCheckSum, err := crossL2InboxCaller.CalculateChecksum(&bind.CallOpts{}, *identifier, crypto.Keccak256Hash(payload))
-		if err != nil {
-			return fmt.Errorf("failed to calculate checksum: %w", err)
-		}
-		accessList := types.AccessList{
-			{
-				Address: predeploys.CrossL2InboxAddr,
-				StorageKeys: []common.Hash{
-					messageCheckSum,
-				},
-			},
-		}
-		sourceTransactor.AccessList = accessList
+		sourceTransactor.AccessList = MessageAccessList(sentMessage.Identifier(), sentMessage.MessagePayload())
 		if _, err = promise.DispatchCallbacks(sourceTransactor, *identifier, payload); err != nil {
 			return fmt.Errorf("failed to dispatch callbacks: %w", err)
 		}
@@ -292,25 +264,9 @@ func (r *L2ToL2MessageRelayer) tryDispatchCallbacks(sentMessage *L2ToL2MessageSt
 	return nil
 }
 
-func (r *L2ToL2MessageRelayer) relayMessageWithRetry(l2tol2CDM *bindings.L2ToL2CrossDomainMessengerTransactor, crossL2Inbox *bindings.CrossL2Inbox, client *ethclient.Client, transactor *bind.TransactOpts, sentMessage *L2ToL2MessageStoreEntry, maxRetries int) error {
+func (r *L2ToL2MessageRelayer) relayMessageWithRetry(l2tol2CDM *bindings.L2ToL2CrossDomainMessengerTransactor, transactor *bind.TransactOpts, sentMessage *L2ToL2MessageStoreEntry, maxRetries int) error {
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		crossL2InboxCaller, err := bindings.NewCrossL2InboxCaller(predeploys.CrossL2InboxAddr, client)
-		if err != nil {
-			return fmt.Errorf("failed to create caller: %w", err)
-		}
-		messageCheckSum, err := crossL2InboxCaller.CalculateChecksum(&bind.CallOpts{}, *sentMessage.Identifier(), crypto.Keccak256Hash(sentMessage.MessagePayload()))
-		if err != nil {
-			return fmt.Errorf("failed to calculate checksum: %w", err)
-		}
-		accessList := types.AccessList{
-			{
-				Address: predeploys.CrossL2InboxAddr,
-				StorageKeys: []common.Hash{
-					messageCheckSum,
-				},
-			},
-		}
-		transactor.AccessList = accessList
+		transactor.AccessList = MessageAccessList(sentMessage.Identifier(), sentMessage.MessagePayload())
 		if _, err := l2tol2CDM.RelayMessage(transactor, *sentMessage.Identifier(), sentMessage.MessagePayload()); err != nil {
 			r.logger.Error("failed to relay message", "msgHash", sentMessage.msgHash.Hex(), "err", err, "attempt", attempt+1, "maxRetries", maxRetries)
 			traceCallResult, traceErr := r.traceRelayMessage(transactor, sentMessage)
