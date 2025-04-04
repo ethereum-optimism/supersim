@@ -125,9 +125,11 @@ func (s *L2ToL2MessageStore) UpdateLifecycle(msgHash common.Hash, updater Update
 	}
 
 	newEntry := &L2ToL2MessageStoreEntry{
-		message:   entry.message,
-		lifecycle: newLifecycle,
-		msgHash:   entry.msgHash,
+		message:    entry.message,
+		identifier: entry.identifier,
+		lifecycle:  newLifecycle,
+		log:        entry.log,
+		msgHash:    entry.msgHash,
 	}
 
 	s.entryByHash[msgHash] = newEntry
