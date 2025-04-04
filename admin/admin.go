@@ -6,12 +6,18 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 
+	"github.com/ethereum-optimism/optimism/op-service/eth"
+	"github.com/ethereum-optimism/optimism/op-service/predeploys"
+	supervisortypes "github.com/ethereum-optimism/optimism/op-supervisor/supervisor/types"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/gin-gonic/gin"
@@ -50,12 +56,59 @@ type JSONL2ToL2Message struct {
 	Message     hexutil.Bytes  `json:"Message"`
 }
 
+// JSONAccessList represents the access list in a format suitable for JSON RPC response
+type JSONAccessList struct {
+	AccessList []types.AccessTuple `json:"accessList"`
+}
+
+// JSONIdentifierWithPayload is a struct with Identifier fields and message payload
+type JSONIdentifierWithPayload struct {
+	Origin      common.Address `json:"origin"`
+	BlockNumber *BigIntStr     `json:"blockNumber"`
+	LogIndex    *BigIntStr     `json:"logIndex"`
+	Timestamp   *BigIntStr     `json:"timestamp"`
+	ChainId     *BigIntStr     `json:"chainId"`
+	Payload     hexutil.Bytes  `json:"payload"`
+}
+
 func (e *JSONRPCError) Error() string {
 	return e.Message
 }
 
 func (err *JSONRPCError) ErrorCode() int {
 	return err.Code
+}
+
+type BigIntStr big.Int
+
+func (b *BigIntStr) UnmarshalJSON(data []byte) error {
+	// Remove quotes if present
+	s := strings.Trim(string(data), "\"")
+
+	// Check if it's a hex string
+	if strings.HasPrefix(s, "0x") {
+		num, ok := new(big.Int).SetString(s[2:], 16)
+		if !ok {
+			return fmt.Errorf("invalid hex number: %s", s)
+		}
+		*b = BigIntStr(*num)
+		return nil
+	}
+
+	// Try parsing as regular number
+	num, ok := new(big.Int).SetString(s, 10)
+	if !ok {
+		return fmt.Errorf("invalid number: %s", s)
+	}
+	*b = BigIntStr(*num)
+	return nil
+}
+
+func (b *BigIntStr) ToBigInt() *big.Int {
+	if b == nil {
+		return nil
+	}
+	return (*big.Int)(b)
 }
 
 func NewAdminServer(log log.Logger, port uint64, networkConfig *config.NetworkConfig, indexer *interop.L2ToL2MessageIndexer) *AdminServer {
@@ -219,5 +272,79 @@ func (m *RPCMethods) GetL2ToL2MessageByMsgHash(args *common.Hash) (*JSONL2ToL2Me
 		Sender:      msg.Sender,
 		Target:      msg.Target,
 		Message:     msg.Message,
+	}, nil
+}
+
+// GetAccessListForIdentifier calculates and returns the access list for a given Identifier and payload
+func (m *RPCMethods) GetAccessListForIdentifier(args *JSONIdentifierWithPayload) (*JSONAccessList, error) {
+	m.log.Info("admin_getAccessListForIdentifier")
+
+	if args == nil {
+		return nil, &JSONRPCError{
+			Code:    -32602,
+			Message: "Invalid parameters: identifier is required",
+		}
+	}
+
+	if args.Origin == (common.Address{}) || args.BlockNumber == nil || args.LogIndex == nil ||
+		args.Timestamp == nil || args.ChainId == nil || len(args.Payload) == 0 {
+		return nil, &JSONRPCError{
+			Code:    -32602,
+			Message: "Invalid parameters: all identifier fields and payload are required",
+		}
+	}
+
+	identifier := supervisortypes.Identifier{
+		Origin:      args.Origin,
+		BlockNumber: args.BlockNumber.ToBigInt().Uint64(),
+		LogIndex:    uint32(args.LogIndex.ToBigInt().Uint64()),
+		Timestamp:   args.Timestamp.ToBigInt().Uint64(),
+		ChainID:     eth.ChainIDFromBig(args.ChainId.ToBigInt()),
+	}
+
+	access := identifier.ChecksumArgs(crypto.Keccak256Hash(args.Payload)).Access()
+
+	accessList := []types.AccessTuple{
+		{
+			Address:     predeploys.CrossL2InboxAddr,
+			StorageKeys: supervisortypes.EncodeAccessList([]supervisortypes.Access{access}),
+		},
+	}
+
+	return &JSONAccessList{
+		AccessList: accessList,
+	}, nil
+}
+
+// GetAccessListByMsgHash retrieves a message by its hash and returns its access list
+func (m *RPCMethods) GetAccessListByMsgHash(args *common.Hash) (*JSONAccessList, error) {
+	m.log.Info("admin_getAccessListByMsgHash", "msgHash", args.Hex())
+
+	if m.l2ToL2MsgIndexer == nil {
+		return nil, &JSONRPCError{
+			Code:    -32603,
+			Message: "L2ToL2MsgIndexer is not initialized. Ensure that interop is enabled using the --interop.enabled flag.",
+		}
+	}
+
+	if (args == nil || args == &common.Hash{}) {
+		return nil, &JSONRPCError{
+			Code:    -32602,
+			Message: "Valid msg hash not provided",
+		}
+	}
+
+	storeEntry, err := m.l2ToL2MsgIndexer.Get(*args)
+	if err != nil {
+		return nil, &JSONRPCError{
+			Code:    -32602,
+			Message: fmt.Sprintf("Failed to get message: %v", err),
+		}
+	}
+
+	accessList := interop.MessageAccessList(storeEntry.Identifier(), storeEntry.MessagePayload())
+
+	return &JSONAccessList{
+		AccessList: accessList,
 	}, nil
 }
