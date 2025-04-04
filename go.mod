@@ -5,7 +5,7 @@ go 1.22.3
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/ethereum-optimism/optimism v1.12.3-0.20250321205731-53f0d3d2db3b
+	github.com/ethereum-optimism/optimism v1.12.3-0.20250325150409-4764cdcff9c4
 	github.com/ethereum/go-ethereum v1.15.3
 	github.com/gin-gonic/gin v1.10.0
 	github.com/joho/godotenv v1.5.1
@@ -58,7 +58,7 @@ require (
 	github.com/goccy/go-json v0.10.4 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
@@ -135,4 +135,4 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101503.2-rc.2
+replace github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101503.2-rc.5.0.20250401164435-02dfe8692a3c
