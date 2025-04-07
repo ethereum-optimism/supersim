@@ -1,0 +1,88 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.25;
+
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock-interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
+import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
+
+contract PhantomSuperchainERC20 is ERC20 {
+    /// @notice the chain the ERC20 lives on
+    uint256 public homeChainId;
+
+    /// @notice the ERC20 token this phantom representation is based on
+    ERC20 public erc20;
+
+    /// @dev The messenger predeploy to handle message passing
+    IL2ToL2CrossDomainMessenger internal messenger =
+        IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+
+    /// @notice The constructor
+    /// @param _homeChainId The chain the ERC20 lives on
+    /// @param _erc20 The ERC20 token this phantom representation is based on
+    constructor(uint256 _homeChainId, ERC20 _erc20) ERC20(_erc20.name(), _erc20.symbol()) {
+        homeChainId = _homeChainId;
+        erc20 = _erc20;
+    }
+
+    /// @notice Get the decimals of the ERC20. Defined since decimal specification requires
+    ///         overloading as a non-constructor argument.
+    /// @return The decimals of the ERC20
+    function decimals() public view override returns (uint8) {
+        return erc20.decimals();
+    }
+
+    /// @notice Transfer the Phantom ERC20
+    /// @param _to The recipient
+    /// @param _amount The amount
+    /// @return success True if the transfer was successful
+    function transfer(address _to, uint256 _amount) public override returns (bool) {
+        if (block.chainid != homeChainId) {
+            // Transfer through the home chain.
+
+            // (1) Remove the phantom tokens
+            super._burn(msg.sender, _amount);
+
+            // (2) Send a message to the home chain to unlock to the recipient
+            messenger.sendMessage(homeChainId, address(this), abi.encodeCall(this.transfer, (_to, _amount)));
+            return true;
+        } else {
+            // Unlock from a remote transfer call
+            require(msg.sender == address(messenger));
+
+            // (1) Call must have come from the phantom contract
+            address sender = messenger.crossDomainMessageSender();
+            require(sender == address(this));
+
+            // (2) Unlock the erc20 to the recipient
+            erc20.transfer(_to, _amount);
+            return true;
+        }
+    }
+
+    /// @notice Deposit the ERC20
+    /// @param _destination The destination chain controlling the phantom representation
+    /// @param _to The recipient on the destination chain
+    /// @param _amount The amount
+    function depositTo(uint256 _destination, address _to, uint256 _amount) public {
+        require(block.chainid == homeChainId);
+        require(_destination != homeChainId);
+
+        // (1) Escrow the ERC20 within the phantom contract
+        erc20.transferFrom(msg.sender, address(this), _amount);
+
+        // (2) Send a message to the destination to mint the phantom erc20 to the recipient
+        messenger.sendMessage(_destination, address(this), abi.encodeCall(this.handleDeposit, (_to, _amount)));
+    }
+
+    /// @notice Handle a deposit from the home chain to create the phantom representation
+    function handleDeposit(address _to, uint256 _amount) external {
+        require(msg.sender == address(messenger));
+
+        address sender = messenger.crossDomainMessageSender();
+        require(sender == address(this));
+
+        // (1) Mint the phantom erc20 to the recipient
+        super._mint(_to, _amount);
+    }
+}
