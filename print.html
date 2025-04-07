@@ -1562,10 +1562,11 @@ console.log(`Balance on OPChainB: ${balance}`);
 <li><a href="guides/interop/cast.html#2-mint-tokens-to-transfer-on-chain-901">2. Mint tokens to transfer on chain 901</a></li>
 <li><a href="guides/interop/cast.html#3-initiate-the-send-transaction-on-chain-901">3. Initiate the send transaction on chain 901</a></li>
 <li><a href="guides/interop/cast.html#4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger">4. Get the log emitted by the <code>L2ToL2CrossDomainMessenger</code></a></li>
-<li><a href="guides/interop/cast.html#5-get-the-block-timestamp-the-log-was-emitted-in">5. Get the block timestamp the log was emitted in</a></li>
-<li><a href="guides/interop/cast.html#6-prepare-the-identifier">6. Prepare the identifier</a></li>
-<li><a href="guides/interop/cast.html#7-send-the-relaymessage-transaction">7. Send the relayMessage transaction</a></li>
-<li><a href="guides/interop/cast.html#8-check-the-balance-on-chain-902">8. Check the balance on chain 902</a></li>
+<li><a href="guides/interop/cast.html#5-retrieve-the-block-timestamp-the-log-was-emitted-in">5. Retrieve the block timestamp the log was emitted in</a></li>
+<li><a href="guides/interop/cast.html#6-prepare-the-message-identifier--payload">6. Prepare the message identifier &amp; payload</a></li>
+<li><a href="guides/interop/cast.html#7-construct-the-access-list-for-the-message">7. Construct the access list for the message</a></li>
+<li><a href="guides/interop/cast.html#8-send-the-relay-message-transaction">8. Send the relay message transaction</a></li>
+<li><a href="guides/interop/cast.html#9-check-the-balance-on-chain-902">9. Check the balance on chain 902</a></li>
 </ul>
 </li>
 <li><a href="guides/interop/cast.html#alternatives">Alternatives</a></li>
@@ -1628,72 +1629,108 @@ The sequencer and smart contracts (CrossL2Inbox) use the identifier to perform <
 </code></pre>
 <h3 id="4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger"><a class="header" href="#4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger">4. Get the log emitted by the <code>L2ToL2CrossDomainMessenger</code></a></h3>
 <p>The token contract calls the <a href="https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol">L2ToL2CrossDomainMessenger</a>, which emits a message (log) that can be relayed on the destination chain.</p>
-<pre><code class="language-sh">$ cast logs --address 0x4200000000000000000000000000000000000023 --rpc-url http://127.0.0.1:9545
-
-address: 0x4200000000000000000000000000000000000023
-blockHash: 0x3905831f1b109ce787d180c1ed977ebf0ff1a6334424a0ae8f3731b035e3f708
-blockNumber: 4
-data: 0x000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000
-logIndex: 1
+<pre><code class="language-sh">cast logs --address 0x4200000000000000000000000000000000000023 --rpc-url http://127.0.0.1:9545
+</code></pre>
+<p>Sample output:</p>
+<pre><code>address: 0x4200000000000000000000000000000000000023
+blockHash: 0x311f8ccea3fc121aa3af18e0a87766ae56ed3f1d08cae91ec29f34a9919abcc0
+blockNumber: 14
+data: 0x0000000000000000000000004200000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000847cfd6dbc000000000000000000000000420beef000000000000000000000000000000001000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000
+logIndex: 2
+removed: false
 topics: [
-      0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320
-      0x0000000000000000000000000000000000000000000000000000000000000386
-      0x000000000000000000000000420beef000000000000000000000000000000001
-      0x0000000000000000000000000000000000000000000000000000000000000000
+  0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320
+  0x0000000000000000000000000000000000000000000000000000000000000386
+  0x0000000000000000000000004200000000000000000000000000000000000028
+  0x0000000000000000000000000000000000000000000000000000000000000000
 ]
-...
+transactionHash: 0x746a3e8a3a0ed0787367c3476269fa3050a2f9113637b563a4579fbc03efe5c4
+transactionIndex: 0
 </code></pre>
 <h3 id="5-retrieve-the-block-timestamp-the-log-was-emitted-in"><a class="header" href="#5-retrieve-the-block-timestamp-the-log-was-emitted-in">5. Retrieve the block timestamp the log was emitted in</a></h3>
 <p>Since the message identifier requires the block timestamp, fetch the block info to get the timestamp.</p>
-<pre><code class="language-sh">$ cast block 0xREPLACE_WITH_CORRECT_BLOCKHASH --rpc-url http://127.0.0.1:9545
-...
-timestamp            1728507703
-...
+<pre><code class="language-sh">cast block 0xREPLACE_WITH_CORRECT_BLOCKHASH --rpc-url http://127.0.0.1:9545
+</code></pre>
+<p>Sample output:</p>
+<pre><code>// (truncated for brevity)
+
+timestamp            1743801675
+
+// ...
 </code></pre>
 <h3 id="6-prepare-the-message-identifier--payload"><a class="header" href="#6-prepare-the-message-identifier--payload">6. Prepare the message identifier &amp; payload</a></h3>
 <p>Now we have all the information needed for the message (log) identifier.</p>
 <div class="table-wrapper"><table><thead><tr><th><strong>Parameter</strong></th><th><strong>Value</strong></th><th><strong>Note</strong></th></tr></thead><tbody>
 <tr><td>origin</td><td>0x4200000000000000000000000000000000000023</td><td>L2ToL2CrossDomainMessenger</td></tr>
-<tr><td>blocknumber</td><td>4</td><td>from step 4</td></tr>
-<tr><td>logIndex</td><td>1</td><td>from step 4</td></tr>
-<tr><td>timestamp</td><td>1728507703</td><td>from step 5</td></tr>
+<tr><td>blocknumber</td><td>14</td><td>from step 4</td></tr>
+<tr><td>logIndex</td><td>2</td><td>from step 4</td></tr>
+<tr><td>timestamp</td><td>1743801675</td><td>from step 5</td></tr>
 <tr><td>chainid</td><td>901</td><td>OPChainA chainID</td></tr>
 </tbody></table>
 </div>
 <p>The message payload is the concatenation of the [...topics, data] in order.</p>
 <pre><code>0x + 382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f320
    + 0000000000000000000000000000000000000000000000000000000000000386
-   + 000000000000000000000000420beef000000000000000000000000000000001
+   + 0000000000000000000000004200000000000000000000000000000000000028
    + 0000000000000000000000000000000000000000000000000000000000000000
-   + 000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000
+   + 0000000000000000000000004200000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000847cfd6dbc000000000000000000000000420beef000000000000000000000000000000001000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000
 </code></pre>
-<p>Payload: <code>0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f3200000000000000000000000000000000000000000000000000000000000000386000000000000000000000000420beef0000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000</code></p>
-<h3 id="7-calculate-the-checksum"><a class="header" href="#7-calculate-the-checksum">7. Calculate the checksum</a></h3>
-<p>Call <code>calculateChecksum</code> on the <code>CrossL2Inbox</code>.</p>
-<p><strong><code>calculateChecksum</code> parameters</strong></p>
-<ul>
-<li><code>ICrossL2Inbox.Identifier calldata _id</code>: identifier pointing to the <code>SentMessage</code> log on the source chain</li>
-<li><code>bytes32 _msgHash</code>: the hash of the message payload (the hash of the encoding of the log topics &amp; data)</li>
-</ul>
-<p>To get the <code>_msgHash</code> the <code>keccak256</code> hash of the message payload can be calculated using the following cast command:</p>
-<pre><code class="language-sh">cast keccak 0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f3200000000000000000000000000000000000000000000000000000000000000386000000000000000000000000420beef0000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000
-...
-result            0x3bf5f05393af50ad8fdff0caa67a4f7fb618b161c3fbf4e8e67c91fbf8e022e8
-...
+<p>Payload:</p>
+<pre><code>0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f3200000000000000000000000000000000000000000000000000000000000000386000000000000000000000000420000000000000000000000000000000000002800000000000000000000000000000000000000000000000000000000000000000000000000000000000000004200000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000847cfd6dbc000000000000000000000000420beef000000000000000000000000000000001000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000
 </code></pre>
-<p>Now call <code>calculateChecksum</code> on the <code>CrossL2Inbox</code> with the <code>identifier</code> and the <code>_msgHash</code>.</p>
-<pre><code class="language-sh">cast call 0x4200000000000000000000000000000000000022 \
-    "calculateChecksum((address, uint256, uint256, uint256, uint256), bytes32)"  \
-    "(0x4200000000000000000000000000000000000023, 4, 1, 1728507703, 901)" \
-    0x3bf5f05393af50ad8fdff0caa67a4f7fb618b161c3fbf4e8e67c91fbf8e022e8 \
-    --rpc-url http://127.0.0.1:9546
-...
-result            0x03894bea0dedad2445ce3d280dbdb0ccd5b4f776e70e873d7e887bc0683162e5
-...
+<h3 id="7-construct-the-access-list-for-the-message"><a class="header" href="#7-construct-the-access-list-for-the-message">7. Construct the access list for the message</a></h3>
+<p>An access list must be passed along with the relay message tx. There are two admin RPC methods that can be used to construct the access list: <code>admin_getAccessListByMsgHash</code> and <code>admin_getAccessListForIdentifier</code> and.</p>
+<p>a. To get the access list using the <code>admin_getAccessListByMsgHash</code> RPC method, call the method with the message hash.</p>
+<ol>
+<li>Retrieve the message hash from the supersim logs</li>
+</ol>
+<pre><code class="language-sh">INFO [04-04|14:21:15.587] L2ToL2CrossChainMessenger#SentMessage    sourceChainID=901 destinationChainID=902 nonce=0 sender=0x4200000000000000000000000000000000000028 target=0x4200000000000000000000000000000000000028 msgHash=0xccff97c17ef11d659d319cbc5780235ea03ef34b0fa34f40b208a9519f257379 txHash=0x746a3e8a3a0ed0787367c3476269fa3050a2f9113637b563a4579fbc03efe5c4
 </code></pre>
-<p>You will use the output of this as an access list storage key in the relayMessage transaction.</p>
-<h3 id="8-send-the-relaymessage-transaction"><a class="header" href="#8-send-the-relaymessage-transaction">8. Send the relayMessage transaction</a></h3>
-<p>Call <code>relayMessage</code> on the <a href="https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol#L126">L2ToL2CrossDomainMessenger</a></p>
+<ol start="2">
+<li>Call <code>admin_getAccessListByMsgHash</code> with the message hash.</li>
+</ol>
+<pre><code class="language-sh">cast rpc admin_getAccessListByMsgHash 0xccff97c17ef11d659d319cbc5780235ea03ef34b0fa34f40b208a9519f257379 --rpc-url http://localhost:8420
+</code></pre>
+<p>Sample output:</p>
+<pre><code>{
+  "accessList": [
+    {
+      "address": "0x4200000000000000000000000000000000000022",
+      "storageKeys": [
+        "0x010000000000000000000385000000000000000e0000000067f04d4b00000002",
+        "0x03c6d2648cef120ce1d7ccf9f8d4042d6b25ff30a02e22d9ea2a47d2677ccb8d"
+      ]
+    }
+  ]
+}
+</code></pre>
+<p>b. To get the access list using the <code>admin_getAccessListForIdentifier</code> RPC method, call the method with the identifier and the message payload.</p>
+<pre><code class="language-sh">cast rpc admin_getAccessListForIdentifier \
+'{
+  "origin": "0x4200000000000000000000000000000000000023",
+  "blockNumber": "14",
+  "logIndex": "2",
+  "timestamp": "1743801675",
+  "chainId": "901",
+  "payload": "0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f3200000000000000000000000000000000000000000000000000000000000000386000000000000000000000000420000000000000000000000000000000000002800000000000000000000000000000000000000000000000000000000000000000000000000000000000000004200000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000847cfd6dbc000000000000000000000000420beef000000000000000000000000000000001000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000"
+}' \
+--rpc-url http://localhost:8420
+</code></pre>
+<p>Sample output:</p>
+<pre><code>{
+  "accessList": [
+    {
+      "address": "0x4200000000000000000000000000000000000022",
+      "storageKeys": [
+        "0x010000000000000000000385000000000000000e0000000067f04d4b00000002",
+        "0x03c6d2648cef120ce1d7ccf9f8d4042d6b25ff30a02e22d9ea2a47d2677ccb8d"
+      ]
+    }
+  ]
+}
+</code></pre>
+<h3 id="8-send-the-relay-message-transaction"><a class="header" href="#8-send-the-relay-message-transaction">8. Send the relay message transaction</a></h3>
+<p>Call <code>relayMessage</code> on the <a href="https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol">L2ToL2CrossDomainMessenger</a> with the access list.</p>
 <pre><code class="language-solidity">// L2ToL2CrossDomainMessenger.sol (truncated for brevity)
 
 contract L2ToL2CrossDomainMessenger {
@@ -1710,15 +1747,15 @@ contract L2ToL2CrossDomainMessenger {
 </code></pre>
 <p><strong><code>relayMessage</code> parameters</strong></p>
 <ul>
-<li><code>ICrossL2Inbox.Identifier calldata _id</code>: identifier pointing to the <code>SentMessage</code> log on the source chain</li>
-<li><code>bytes memory _sentMessage</code>: encoding of the log topics &amp; data</li>
+<li><code>ICrossL2Inbox.Identifier calldata _id</code>: identifier pointing to the <code>SentMessage</code> log on the source chain (from <a href="guides/interop/cast.html#6-prepare-the-message-identifier--payload">step 6</a>)</li>
+<li><code>bytes memory _sentMessage</code>: message payload (from <a href="guides/interop/cast.html#6-prepare-the-message-identifier--payload">step 6</a>)</li>
 </ul>
 <p>Below is an example call, but make sure to replace them with the correct values you received in previous steps.</p>
-<pre><code class="language-sh">$ cast send 0x4200000000000000000000000000000000000023 \
+<pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000023 \
     "relayMessage((address, uint256, uint256, uint256, uint256), bytes)" \
-    "(0x4200000000000000000000000000000000000023, 4, 1, 1728507703, 901)" \
-    0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f3200000000000000000000000000000000000000000000000000000000000000386000000000000000000000000420beef0000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000420beef00000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064d9f50046000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000 \
-    --access-list '[{"address":"0x4200000000000000000000000000000000000022","storageKeys":["0x03894bea0dedad2445ce3d280dbdb0ccd5b4f776e70e873d7e887bc0683162e5"]}]' \
+    "(0x4200000000000000000000000000000000000023, 14, 2, 1743801675, 901)" \
+    0x382409ac69001e11931a28435afef442cbfd20d9891907e8fa373ba7d351f3200000000000000000000000000000000000000000000000000000000000000386000000000000000000000000420000000000000000000000000000000000002800000000000000000000000000000000000000000000000000000000000000000000000000000000000000004200000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000847cfd6dbc000000000000000000000000420beef000000000000000000000000000000001000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000000000000000000000000000000000000000003e800000000000000000000000000000000000000000000000000000000 \
+    --access-list '[{"address":"0x4200000000000000000000000000000000000022","storageKeys":["0x010000000000000000000385000000000000000e0000000067f04d4b00000002", "0x03c6d2648cef120ce1d7ccf9f8d4042d6b25ff30a02e22d9ea2a47d2677ccb8d"]}]' \
     --rpc-url http://127.0.0.1:9546 \
     --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
@@ -1730,7 +1767,7 @@ contract L2ToL2CrossDomainMessenger {
 <p>This is obviously very tedious to do by hand 😅. Here are some alternatives</p>
 <ul>
 <li>use <code>supersim --interop.autorelay</code> - this only works on supersim, but relayers for the testnet/prod environment will be available soon!</li>
-<li><a href="guides/interop/relay-using-viem.html">use <code>viem</code> bindings/actions</a> - if you're using typescript, we have bindings available to make fetching identifiers and relaying messages easy</li>
+<li><a href="guides/interop/relay-using-viem.html">use <code>viem</code> bindings/actions</a> - if you're using typescript, we have bindings available to make fetching identifiers and relaying messages easy.</li>
 </ul>
 
                     </main>
