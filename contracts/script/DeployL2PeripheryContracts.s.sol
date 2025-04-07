@@ -3,10 +3,10 @@ pragma solidity ^0.8.25;
 
 import {Script, console} from "forge-std/Script.sol";
 
+import {Promise} from "@interop-lib/Promise.sol";
 import {PredeployAddresses} from "@interop-lib/libraries/PredeployAddresses.sol";
 
 import {L2NativeSuperchainERC20} from "../src/L2NativeSuperchainERC20.sol";
-import {Promise} from "../src/Promise.sol";
 import {PromiseExample} from "../src/PromiseExample.sol";
 
 contract DeployL2PeripheryContracts is Script {
