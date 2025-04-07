@@ -23,12 +23,12 @@ contract PhantomSuperchainERC20 is ERC20 {
     IL2ToL2CrossDomainMessenger internal messenger =
         IL2ToL2CrossDomainMessenger(Predeploys.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
-    /// @notice The constructor
+    /// @notice The constructor. ERC20Metadata is only present on the home chain so we omit it for now.
     /// @param _homeChainId The chain the ERC20 lives on
     /// @param _erc20 The ERC20 token this phantom representation is based on
     constructor(uint256 _homeChainId, IERC20 _erc20) ERC20("", "") {
 
-        // By asserting the deployer is used, we obtain safety that
+        // By asserting the deployer is used, we obtain good safety that
         //  1. This contract was deterministically created based on the constructor args
         //  2. `deposit()` only works on the correctly approved phantom address.
         require(msg.sender == CREATE2_DEPLOYER);
@@ -67,7 +67,7 @@ contract PhantomSuperchainERC20 is ERC20 {
     }
 
     /// @notice Deposit the ERC20 from a cross-domain call. This allows remote chains to pull funds
-    ///         into the phantom representation, requiring only an approval from the user. An approval
+    ///         into the phantom representation, requiring only approvals from the account. An approval
     ///         must also be made on the cross domain sender in additional to this phantom contract.
     /// @param _to The recipient on the destination chain
     /// @param _amount The amount
@@ -78,7 +78,9 @@ contract PhantomSuperchainERC20 is ERC20 {
         (address sender, uint256 destination) = messenger.crossDomainMessageContext();
         require(destination != homeChainId);
 
-        // (1) This cross domain sender must also have an approval
+        // (1) This cross domain sender MUST also have an approval. Otherwise anyone would
+        //     be able to pull from the sender's account with an approval on the phantom token
+        //     via the cross domain messenger.
         require(erc20.allowance(sender, address(this)) >= _amount);
 
         // (2) Deposit the ERC20
