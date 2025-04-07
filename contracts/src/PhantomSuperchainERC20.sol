@@ -2,15 +2,19 @@
 pragma solidity 0.8.25;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock-interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
 
 contract PhantomSuperchainERC20 is ERC20 {
+    /// @dev The address of deployer available on all optimism chains used to create the phantom representation
+    address constant CREATE2_DEPLOYER = address(0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2);
+
     /// @notice the chain the ERC20 lives on
     uint256 public homeChainId;
 
-    /// @notice the ERC20 token this phantom representation is based on
+    /// @notice the ERC20 token of this phantom representation
     ERC20 public erc20;
 
     /// @dev The messenger predeploy to handle message passing
@@ -21,6 +25,12 @@ contract PhantomSuperchainERC20 is ERC20 {
     /// @param _homeChainId The chain the ERC20 lives on
     /// @param _erc20 The ERC20 token this phantom representation is based on
     constructor(uint256 _homeChainId, ERC20 _erc20) ERC20(_erc20.name(), _erc20.symbol()) {
+
+        // By asserting the deployer is used, we obtain safety that
+        //  1. This contract was deterministically created based on the constructor args
+        //  2. `deposit()` only works on the correctly approved phantom address.
+        require(msg.sender == CREATE2_DEPLOYER);
+
         homeChainId = _homeChainId;
         erc20 = _erc20;
     }
@@ -39,6 +49,7 @@ contract PhantomSuperchainERC20 is ERC20 {
     function transfer(address _to, uint256 _amount) public override returns (bool) {
         if (block.chainid != homeChainId) {
             // Transfer through the home chain.
+            require(msg.sender != address(messenger));
 
             // (1) Remove the phantom tokens
             super._burn(msg.sender, _amount);
@@ -46,7 +57,8 @@ contract PhantomSuperchainERC20 is ERC20 {
             // (2) Send a message to the home chain to unlock to the recipient
             messenger.sendMessage(homeChainId, address(this), abi.encodeCall(this.transfer, (_to, _amount)));
             return true;
-        } else {
+        }
+        else {
             // Unlock from a remote transfer call
             require(msg.sender == address(messenger));
 
@@ -55,8 +67,7 @@ contract PhantomSuperchainERC20 is ERC20 {
             require(sender == address(this));
 
             // (2) Unlock the erc20 to the recipient
-            erc20.transfer(_to, _amount);
-            return true;
+            return erc20.transfer(_to, _amount);
         }
     }
 
