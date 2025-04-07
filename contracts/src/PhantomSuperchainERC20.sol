@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
+import {console} from "forge-std/console.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock-interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
@@ -15,7 +17,7 @@ contract PhantomSuperchainERC20 is ERC20 {
     uint256 public homeChainId;
 
     /// @notice the ERC20 token of this phantom representation
-    ERC20 public erc20;
+    IERC20 public erc20;
 
     /// @dev The messenger predeploy to handle message passing
     IL2ToL2CrossDomainMessenger internal messenger =
@@ -24,7 +26,7 @@ contract PhantomSuperchainERC20 is ERC20 {
     /// @notice The constructor
     /// @param _homeChainId The chain the ERC20 lives on
     /// @param _erc20 The ERC20 token this phantom representation is based on
-    constructor(uint256 _homeChainId, ERC20 _erc20) ERC20(_erc20.name(), _erc20.symbol()) {
+    constructor(uint256 _homeChainId, IERC20 _erc20) ERC20("", "") {
 
         // By asserting the deployer is used, we obtain safety that
         //  1. This contract was deterministically created based on the constructor args
@@ -33,13 +35,6 @@ contract PhantomSuperchainERC20 is ERC20 {
 
         homeChainId = _homeChainId;
         erc20 = _erc20;
-    }
-
-    /// @notice Get the decimals of the ERC20. Defined since decimal specification requires
-    ///         overloading as a non-constructor argument.
-    /// @return The decimals of the ERC20
-    function decimals() public view override returns (uint8) {
-        return erc20.decimals();
     }
 
     /// @notice Transfer the Phantom ERC20
