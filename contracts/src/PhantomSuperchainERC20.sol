@@ -66,15 +66,34 @@ contract PhantomSuperchainERC20 is ERC20 {
         }
     }
 
+    /// @notice Deposit the ERC20 from a cross-domain call. This allows remote chains to pull funds
+    ///         into the phantom representation, requiring only an approval from the user. An approval
+    ///         must also be made on the cross domain sender in additional to this phantom contract.
+    /// @param _to The recipient on the destination chain
+    /// @param _amount The amount
+    function crossDomainDepositFrom(address _to, uint256 _amount) public {
+        require(block.chainid == homeChainId);
+        require(msg.sender == address(messenger));
+
+        (address sender, uint256 destination) = messenger.crossDomainMessageContext();
+        require(destination != homeChainId);
+
+        // (1) This cross domain sender must also have an approval
+        require(erc20.allowance(sender, address(this)) >= _amount);
+
+        // (2) Deposit the ERC20
+        deposit(destination, _to, _amount);
+    }
+
     /// @notice Deposit the ERC20
     /// @param _destination The destination chain controlling the phantom representation
     /// @param _to The recipient on the destination chain
     /// @param _amount The amount
-    function depositTo(uint256 _destination, address _to, uint256 _amount) public {
+    function deposit(uint256 _destination, address _to, uint256 _amount) public {
         require(block.chainid == homeChainId);
         require(_destination != homeChainId);
 
-        // (1) Escrow the ERC20 within the phantom contract
+        // (1) Escrow the ERC20 within this phantom contract
         erc20.transferFrom(msg.sender, address(this), _amount);
 
         // (2) Send a message to the destination to mint the phantom erc20 to the recipient
