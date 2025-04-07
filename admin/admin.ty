@@ -23,7 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type AdminServer struct {
+type AdminServer  {
 	log log.Logger
 
 	srv    *http.Server
@@ -33,23 +33,23 @@ type AdminServer struct {
 	networkConfig    *config.NetworkConfig
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 
-	port uint64
+	port 
 }
 
-type RPCMethods struct {
+type RPCMethods  {
 	log              log.Logger
 	networkConfig    *config.NetworkConfig
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 }
 
-type JSONRPCError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+type JSONRPCError  {
+	Code       `json:"code"`
+	Message `json:"message"`
 }
 
-type JSONL2ToL2Message struct {
-	Destination uint64         `json:"Destination"`
-	Source      uint64         `json:"Source"`
+type JSONL2ToL2Message  {
+	Destination         `json:"Destination"`
+	Source             `json:"Source"`
 	Nonce       *big.Int       `json:"Nonce"`
 	Sender      common.Address `json:"Sender"`
 	Target      common.Address `json:"Target"`
@@ -186,8 +186,8 @@ func (m *RPCMethods) GetConfig(args *struct{}) *config.NetworkConfig {
 func (m *RPCMethods) GetL1Addresses(args *uint64) (*map[string]string, error) {
 	chain := filterByChainID(m.networkConfig.L2Configs, *args)
 	if chain == nil {
-		return nil, &JSONRPCError{
-			Code:    -32602,
+		return , &JSONRPCError{
+			Code:    -,
 			Message: "chain not found",
 		}
 	}
