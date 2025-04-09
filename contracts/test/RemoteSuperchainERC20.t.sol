@@ -19,21 +19,21 @@ interface ICreate2Deployer {
 }
 
 contract RemoteSuperchainERC20Test is StdUtils, Test, Relayer {
-    ICreate2Deployer constant deployer = ICreate2Deployer(0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2);
-    IERC20 constant cbBTC = IERC20(0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf);
+    ICreate2Deployer public deployer = ICreate2Deployer(0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2);
+    IERC20 public cbBTC = IERC20(0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf);
 
-    bytes32 salt = bytes32(0);
-    RemoteSuperchainERC20 remoteCbBTC;
+    bytes32 public salt = bytes32(0);
+    RemoteSuperchainERC20 public remoteCbBTC;
 
-    address spender = address(0x1);
+    address public spender = address(0x1);
 
     // Chain A (Base), Chain B (OPM)
     constructor() Relayer("https://mainnet.base.org", "https://mainnet.optimism.io") {}
 
-    function setUp() public {
+    function setUp() public virtual {
         // home chain is base, remotely controlled by the spender on OPM
         bytes memory remoteERC20CreationCode =
-            abi.encodePacked(type(RemoteSuperchainERC20).creationCode, abi.encode(8453, address(cbBTC), 10, spender));
+            abi.encodePacked(type(RemoteSuperchainERC20).creationCode, abi.encode(8453, address(cbBTC), 10));
 
         remoteCbBTC = RemoteSuperchainERC20(deployer.computeAddress(salt, keccak256(remoteERC20CreationCode)));
 
