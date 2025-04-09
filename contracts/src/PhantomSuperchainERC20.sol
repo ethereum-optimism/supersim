@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
-import {console} from "forge-std/console.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
-import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock-interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
+import {IL2ToL2CrossDomainMessenger} from "@contracts-bedrock-interfaces/L2/IL2ToL2CrossDomainMessenger.sol";
 
 contract PhantomSuperchainERC20 is ERC20 {
     /// @dev The address of deployer available on all optimism chains used to create the phantom representation
@@ -27,7 +26,6 @@ contract PhantomSuperchainERC20 is ERC20 {
     /// @param _homeChainId The chain the ERC20 lives on
     /// @param _erc20 The ERC20 token this phantom representation is based on
     constructor(uint256 _homeChainId, IERC20 _erc20) ERC20("", "") {
-
         // By asserting the deployer is used, we obtain good safety that
         //  1. This contract was deterministically created based on the constructor args
         //  2. `deposit()` only works on the correctly approved phantom address.
@@ -52,8 +50,7 @@ contract PhantomSuperchainERC20 is ERC20 {
             // (2) Send a message to the home chain to unlock to the recipient
             messenger.sendMessage(homeChainId, address(this), abi.encodeCall(this.transfer, (_to, _amount)));
             return true;
-        }
-        else {
+        } else {
             // Unlock from a remote transfer call
             require(msg.sender == address(messenger));
 
@@ -91,7 +88,7 @@ contract PhantomSuperchainERC20 is ERC20 {
     /// @param _destination The destination chain controlling the phantom representation
     /// @param _to The recipient on the destination chain
     /// @param _amount The amount
-    function deposit(uint256 _destination, address _to, uint256 _amount) public {
+    function deposit(uint256 _destination, address _to, uint256 _amount) public returns (bytes32) {
         require(block.chainid == homeChainId);
         require(_destination != homeChainId);
 
@@ -99,7 +96,7 @@ contract PhantomSuperchainERC20 is ERC20 {
         erc20.transferFrom(msg.sender, address(this), _amount);
 
         // (2) Send a message to the destination to mint the phantom erc20 to the recipient
-        messenger.sendMessage(_destination, address(this), abi.encodeCall(this.handleDeposit, (_to, _amount)));
+        return messenger.sendMessage(_destination, address(this), abi.encodeCall(this.handleDeposit, (_to, _amount)));
     }
 
     /// @notice Handle a deposit from the home chain to create the phantom representation
