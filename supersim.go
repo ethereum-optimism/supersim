@@ -121,7 +121,7 @@ func (s *Supersim) ConfigAsString() string {
 		fmt.Fprintf(&b, " - CrossL2Inbox:               %s\n", predeploys.CrossL2Inbox)
 		fmt.Fprintf(&b, " - Promise:                    %s\n", bindings.PromiseAddr)
 		fmt.Fprintf(&b, " - SuperchainTokenBridge:      %s\n", predeploys.SuperchainTokenBridge)
-		fmt.Fprintf(&b, " - SuperchainWETH:             %s\n", predeploys.SuperchainWETH)
+		fmt.Fprintf(&b, " - SuperchainETHBridge:        %s\n", predeploys.SuperchainETHBridge)
 	}
 
 	return b.String()
