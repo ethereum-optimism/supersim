@@ -74,4 +74,4 @@ The "backend" is implemented as React Hooks.
 
 ## Improvements
 
-1. In order to place bets, the account must have an ETH balance on the contests chain. We can further expand on interop capabilities by allowing the account to place a bet on any chain they have ETH, leveraging the SuperchainWETH contract for the crosschain transfer.
+1. In order to place bets, the account must have an ETH balance on the contests chain. We can further expand on interop capabilities by allowing the account to place a bet on any chain they have ETH, leveraging the SuperchainETHBridge contract for the crosschain transfer.
