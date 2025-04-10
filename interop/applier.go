@@ -20,7 +20,7 @@ var interopPredeploys = []common.Address{
 	predeploys.CrossL2InboxAddr,
 	predeploys.L2toL2CrossDomainMessengerAddr,
 	predeploys.L1BlockAddr,
-	predeploys.SuperchainWETHAddr,
+	predeploys.SuperchainETHBridgeAddr,
 	predeploys.ETHLiquidityAddr,
 	predeploys.SuperchainTokenBridgeAddr,
 }

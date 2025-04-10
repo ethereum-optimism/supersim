@@ -20,6 +20,6 @@ var L2NativeSuperchainERC20ParseABI = MustParseABI(L2NativeSuperchainERC20MetaDa
 var CrossL2InboxParsedABI = MustParseABI(CrossL2InboxMetaData.ABI)
 var L1BlockParsedABI = MustParseABI(L1BlockMetaData.ABI)
 var L2ToL2CrossDomainMessengerParsedABI = MustParseABI(L2ToL2CrossDomainMessengerMetaData.ABI)
-var SuperchainWETHParsedABI = MustParseABI(SuperchainWETHMetaData.ABI)
+var SuperchainETHBridgeParsedABI = MustParseABI(SuperchainETHBridgeMetaData.ABI)
 var SuperchainTokenBridgeParsedABI = MustParseABI(SuperchainTokenBridgeMetaData.ABI)
 var PromiseParsedABI = MustParseABI(PromiseMetaData.ABI)

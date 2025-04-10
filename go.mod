@@ -5,7 +5,7 @@ go 1.22.3
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/ethereum-optimism/optimism v1.12.3-0.20250325150409-4764cdcff9c4
+	github.com/ethereum-optimism/optimism v1.13.1-0.20250410172414-74484297d1f9
 	github.com/ethereum/go-ethereum v1.15.3
 	github.com/gin-gonic/gin v1.10.0
 	github.com/joho/godotenv v1.5.1

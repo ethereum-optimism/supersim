@@ -825,7 +825,7 @@ func TestAutoRelaySimpleStorageCallSucceeds(t *testing.T) {
 	}))
 }
 
-func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
+func TestAutoRelaySuperchainETHBridgeTransferSucceeds(t *testing.T) {
 	t.Parallel()
 	testSuite := createInteropTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
 		cfg.InteropAutoRelay = true
@@ -838,46 +838,30 @@ func TestAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
 	require.NoError(t, err)
 
-	sourceSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.SourceEthClient)
+	sourceSuperchainETHBridge, err := bindings.NewSuperchainETHBridge(predeploys.SuperchainETHBridgeAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
 
-	sourceSuperchainTokenBridge, err := bindings.NewSuperchainTokenBridge(predeploys.SuperchainTokenBridgeAddr, testSuite.SourceEthClient)
+	destStartingBalance, err := testSuite.DestEthClient.BalanceAt(context.Background(), sourceTransactor.From, nil)
 	require.NoError(t, err)
 
-	destSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
 	valueToTransfer := big.NewInt(10_000_000)
-
 	sourceTransactor.Value = valueToTransfer
-	depositTx, err := sourceSuperchainWETH.Deposit(sourceTransactor)
+	sendEthTx, err := sourceSuperchainETHBridge.SendETH(sourceTransactor, sourceTransactor.From, testSuite.DestChainID)
 	require.NoError(t, err)
-	depositTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, depositTx)
+	sendEthTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, sendEthTx)
 	require.NoError(t, err)
-	require.True(t, depositTxReceipt.Status == 1, "weth deposit transaction failed")
+	require.True(t, sendEthTxReceipt.Status == 1, "send eth transaction failed")
 	sourceTransactor.Value = nil
 
-	destStartingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
-	require.NoError(t, err)
-
-	_, err = sourceSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
-	require.NoError(t, err)
-
-	tx, err := sourceSuperchainTokenBridge.SendERC20(sourceTransactor, predeploys.SuperchainWETHAddr, sourceTransactor.From, valueToTransfer, testSuite.DestChainID)
-	require.NoError(t, err)
-
-	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
-	require.NoError(t, err)
-	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
-
 	require.NoError(t, wait.For(context.Background(), 500*time.Millisecond, func() (bool, error) {
-		destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+		destEndingBalance, err := testSuite.DestEthClient.BalanceAt(context.Background(), sourceTransactor.From, nil)
 		require.NoError(t, err)
 		diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
 		return diff.Cmp(valueToTransfer) == 0, nil
 	}))
 }
 
-func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
+func TestForkAutoRelaySuperchainETHBridgeTransferSucceeds(t *testing.T) {
 	t.Parallel()
 	testSuite := createForkedInteropTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
 		cfg.InteropAutoRelay = true
@@ -890,39 +874,23 @@ func TestForkAutoRelaySuperchainWETHTransferSucceeds(t *testing.T) {
 	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
 	require.NoError(t, err)
 
-	sourceSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.SourceEthClient)
+	sourceSuperchainETHBridge, err := bindings.NewSuperchainETHBridge(predeploys.SuperchainETHBridgeAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
 
-	sourceSuperchainTokenBridge, err := bindings.NewSuperchainTokenBridge(predeploys.SuperchainTokenBridgeAddr, testSuite.SourceEthClient)
+	destStartingBalance, err := testSuite.DestEthClient.BalanceAt(context.Background(), sourceTransactor.From, nil)
 	require.NoError(t, err)
 
-	destSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
 	valueToTransfer := big.NewInt(10_000_000)
-
 	sourceTransactor.Value = valueToTransfer
-	depositTx, err := sourceSuperchainWETH.Deposit(sourceTransactor)
+	sendEthTx, err := sourceSuperchainETHBridge.SendETH(sourceTransactor, sourceTransactor.From, testSuite.DestChainID)
 	require.NoError(t, err)
-	depositTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, depositTx)
+	sendEthTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, sendEthTx)
 	require.NoError(t, err)
-	require.True(t, depositTxReceipt.Status == 1, "weth deposit transaction failed")
+	require.True(t, sendEthTxReceipt.Status == 1, "send eth transaction failed")
 	sourceTransactor.Value = nil
 
-	destStartingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
-	require.NoError(t, err)
-
-	_, err = sourceSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
-	require.NoError(t, err)
-
-	tx, err := sourceSuperchainTokenBridge.SendERC20(sourceTransactor, predeploys.SuperchainWETHAddr, sourceTransactor.From, valueToTransfer, testSuite.DestChainID)
-	require.NoError(t, err)
-
-	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
-	require.NoError(t, err)
-	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
-
 	require.NoError(t, wait.For(context.Background(), 500*time.Millisecond, func() (bool, error) {
-		destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+		destEndingBalance, err := testSuite.DestEthClient.BalanceAt(context.Background(), sourceTransactor.From, nil)
 		require.NoError(t, err)
 		diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
 		return diff.Cmp(valueToTransfer) == 0, nil
@@ -1057,32 +1025,17 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
 	require.NoError(t, err)
 
-	sourceSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.SourceEthClient)
+	sourceSuperchainETHBridge, err := bindings.NewSuperchainETHBridge(predeploys.SuperchainETHBridgeAddr, testSuite.SourceEthClient)
 	require.NoError(t, err)
 
-	sourceSuperchainTokenBridge, err := bindings.NewSuperchainTokenBridge(predeploys.SuperchainTokenBridgeAddr, testSuite.SourceEthClient)
+	destStartingBalance, err := testSuite.DestEthClient.BalanceAt(context.Background(), sourceTransactor.From, nil)
 	require.NoError(t, err)
 
-	destSuperchainWETH, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, testSuite.DestEthClient)
-	require.NoError(t, err)
 	valueToTransfer := big.NewInt(10_000_000)
-
 	sourceTransactor.Value = valueToTransfer
-	depositTx, err := sourceSuperchainWETH.Deposit(sourceTransactor)
+	tx, err := sourceSuperchainETHBridge.SendETH(sourceTransactor, sourceTransactor.From, testSuite.DestChainID)
 	require.NoError(t, err)
-	depositTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, depositTx)
-	require.NoError(t, err)
-	require.True(t, depositTxReceipt.Status == 1, "weth deposit transaction failed")
 	sourceTransactor.Value = nil
-
-	destStartingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
-	require.NoError(t, err)
-
-	_, err = sourceSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
-	require.NoError(t, err)
-
-	tx, err := sourceSuperchainTokenBridge.SendERC20(sourceTransactor, predeploys.SuperchainWETHAddr, sourceTransactor.From, valueToTransfer, testSuite.DestChainID)
-	require.NoError(t, err)
 
 	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), testSuite.SourceEthClient, tx)
 	require.NoError(t, err)
@@ -1090,7 +1043,7 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 
 	var client *rpc.Client
 	require.NoError(t, wait.For(context.Background(), 500*time.Millisecond, func() (bool, error) {
-		destEndingBalance, err := destSuperchainWETH.BalanceOf(&bind.CallOpts{}, sourceTransactor.From)
+		destEndingBalance, err := testSuite.DestEthClient.BalanceAt(context.Background(), sourceTransactor.From, nil)
 		require.NoError(t, err)
 		diff := new(big.Int).Sub(destEndingBalance, destStartingBalance)
 
@@ -1105,8 +1058,8 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 
 	var message *JSONL2ToL2Message
 
-	// msgHash for the above sendERC20 txn
-	msgHash := "0x3656fd893944321663b2877d10db2895fb68e2346fd7e3f648ce5b986c200166"
+	// msgHash for the above sendETH txn
+	msgHash := "0x358a8ff1dbea56deb9bdcea844c849a790a573be454e5b14691fe1dbf0e11f36"
 	rpcErr := client.CallContext(context.Background(), &message, "admin_getL2ToL2MessageByMsgHash", msgHash)
 	require.NoError(t, rpcErr)
 
