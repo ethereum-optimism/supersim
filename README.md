@@ -272,6 +272,7 @@ Below, find a list of all kinds of interesting projects built with Supersim - If
 - [Interop Interactions and Interopable token](https://github.com/ismailmoazami/Supersim-interactions-and-OpInteropToken-contracts) - Script for transferring tokens seamlessly between local OP chains and sample token contract that is SuperchainERC20 bridgable called OpInteropToken.
 - [SuperUI](https://github.com/Nerd3Lab/superUI) - UI for local development with Supersim, making it easier than ever to build and test your interop application.
 - [Scoutup](https://github.com/blockscout/scoutup) - Local Blockscout instances to run on top of Supersim, interop enabled.
+- [SuperScan](https://github.com/walnuthq/super-scan) - Optimism Superchain explorer with built-in support for Supersim and Interop.
 
 
 ## 🤝 Contributing
