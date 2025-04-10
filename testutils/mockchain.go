@@ -32,6 +32,10 @@ func (c *MockChain) Endpoint() string {
 	return "http://localhost:8545"
 }
 
+func (c *MockChain) WSEndpoint() string {
+	return "ws://localhost:8545"
+}
+
 func (c *MockChain) LogPath() string {
 	return "var/chain/log"
 }
