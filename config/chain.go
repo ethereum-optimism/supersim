@@ -106,6 +106,7 @@ type TraceCallResult struct {
 type Chain interface {
 	// Properties
 	Endpoint() string
+	WSEndpoint() string
 	LogPath() string
 	Config() *ChainConfig
 	EthClient() *ethclient.Client
