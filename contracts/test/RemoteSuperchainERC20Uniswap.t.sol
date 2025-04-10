@@ -46,10 +46,10 @@ contract RemoteSuperchainERC20UniswapTest is Test, RemoteSuperchainERC20Test, Un
     }
 
     function setUp() public override {
-        // Setup RemoteSuperchainERC20 for the cbBTC token on chain A & B
+        // Setup RemoteSuperchainERC20 for the erc20 token on chain A & B
         super.setUp();
 
-        // The v4 pool only exists on the remote chain with no cbBTC (B)
+        // The v4 pool only exists on the remote chain with no erc20 (B)
         vm.selectFork(chainB);
 
         // creates the pool manager, utility routers, and test tokens
@@ -57,8 +57,8 @@ contract RemoteSuperchainERC20UniswapTest is Test, RemoteSuperchainERC20Test, Un
         deployMintAndApprove2Currencies();
         deployAndApprovePosm(manager);
 
-        // setup the create eth/cbBTC pool
-        poolKey = PoolKey(Currency.wrap(address(0)), Currency.wrap(address(remoteCbBTC)), 3000, 60, IHooks(address(0)));
+        // setup the create eth/erc20 pool
+        poolKey = PoolKey(Currency.wrap(address(0)), Currency.wrap(address(remoteERC20)), 3000, 60, IHooks(address(0)));
         poolId = poolKey.toId();
         manager.initialize(poolKey, SQRT_PRICE_1_1);
     }
@@ -76,18 +76,18 @@ contract RemoteSuperchainERC20UniswapTest is Test, RemoteSuperchainERC20Test, Un
             liquidityAmount
         );
 
-        // Deal cbBTC on the home chain
+        // Deal erc20 on the home chain
         vm.selectFork(chainA);
-        deal(address(cbBTC), address(this), amount1Expected + 1);
-        cbBTC.approve(address(remoteCbBTC), amount1Expected + 1);
+        deal(address(erc20), address(this), amount1Expected + 1);
+        erc20.approve(address(remoteERC20), amount1Expected + 1);
 
         // Approve Permit2 with the remote token to be pulled
-        remoteCbBTC.approve(address(permit2), amount1Expected + 1);
+        remoteERC20.approve(address(permit2), amount1Expected + 1);
         relayAllMessages();
 
         // On remote, approve permit2 for the posm (could also just be a signature)
         vm.selectFork(chainB);
-        permit2.approve(address(remoteCbBTC), address(posm), type(uint160).max, type(uint48).max);
+        permit2.approve(address(remoteERC20), address(posm), type(uint160).max, type(uint48).max);
 
         // Mint Pool Liquidity (add the expected eth)
         vm.deal(address(this), amount0Expected + 1);
@@ -109,7 +109,7 @@ contract RemoteSuperchainERC20UniswapTest is Test, RemoteSuperchainERC20Test, Un
 
         // No Balance on the home chain
         vm.selectFork(chainA);
-        console.log(cbBTC.balanceOf(address(this)));
+        assertEq(erc20.balanceOf(address(this)), 0);
 
         // Swap in ETH on the remote chain
         vm.selectFork(chainB);
@@ -117,8 +117,8 @@ contract RemoteSuperchainERC20UniswapTest is Test, RemoteSuperchainERC20Test, Un
         swap(poolKey, true, -1 ether, ZERO_BYTES);
         relayAllMessages();
 
-        // Check balance on the home hcain
+        // THERE IS A BALANCE
         vm.selectFork(chainA);
-        console.log(cbBTC.balanceOf(address(this)));
+        assertGt(erc20.balanceOf(address(this)), 0);
     }
 }
