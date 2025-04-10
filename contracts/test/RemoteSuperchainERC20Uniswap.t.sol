@@ -41,6 +41,10 @@ contract RemoteSuperchainERC20UniswapTest is Test, RemoteSuperchainERC20Test, Un
     // Chain A (Base), Chain B (OPM)
     constructor() RemoteSuperchainERC20Test() {}
 
+    function spender() public view override returns (address) {
+        return address(permit2);
+    }
+
     function setUp() public override {
         // Setup RemoteSuperchainERC20 for the cbBTC token on chain A & B
         super.setUp();

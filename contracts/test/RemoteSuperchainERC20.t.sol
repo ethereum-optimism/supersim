@@ -25,15 +25,17 @@ contract RemoteSuperchainERC20Test is StdUtils, Test, Relayer {
     bytes32 public salt = bytes32(0);
     RemoteSuperchainERC20 public remoteCbBTC;
 
-    address public spender = address(0x1);
-
     // Chain A (Base), Chain B (OPM)
     constructor() Relayer("https://mainnet.base.org", "https://mainnet.optimism.io") {}
+
+    function spender() public view virtual returns (address) {
+        return address(0x1);
+    }
 
     function setUp() public virtual {
         // home chain is base, remotely controlled by the spender on OPM
         bytes memory remoteERC20CreationCode =
-            abi.encodePacked(type(RemoteSuperchainERC20).creationCode, abi.encode(8453, address(cbBTC), 10, spender));
+            abi.encodePacked(type(RemoteSuperchainERC20).creationCode, abi.encode(8453, address(cbBTC), 10, spender()));
 
         remoteCbBTC = RemoteSuperchainERC20(deployer.computeAddress(salt, keccak256(remoteERC20CreationCode)));
 
@@ -53,7 +55,7 @@ contract RemoteSuperchainERC20Test is StdUtils, Test, Relayer {
     function test_approve(address _holder) public {
         vm.selectFork(chainA);
         vm.assume(cbBTC.balanceOf(_holder) == 0);
-        vm.assume(_holder != spender && _holder != address(0));
+        vm.assume(_holder != spender() && _holder != address(0));
         vm.assume(_holder != address(remoteCbBTC) && _holder != address(cbBTC));
 
         deal(address(cbBTC), _holder, 1e18);
@@ -62,15 +64,15 @@ contract RemoteSuperchainERC20Test is StdUtils, Test, Relayer {
         // Approve
         vm.startPrank(_holder);
         cbBTC.approve(address(remoteCbBTC), 1e18);
-        remoteCbBTC.approve(spender, 1e18);
+        remoteCbBTC.approve(spender(), 1e18);
         assertEq(cbBTC.balanceOf(_holder), 0);
 
         // Check allowance
         relayAllMessages();
         vm.selectFork(chainB);
         assertEq(remoteCbBTC.balanceOf(_holder), 1e18);
-        assertEq(remoteCbBTC.balanceOf(spender), 0);
-        assertEq(remoteCbBTC.allowance(_holder, spender), 1e18);
+        assertEq(remoteCbBTC.balanceOf(spender()), 0);
+        assertEq(remoteCbBTC.allowance(_holder, spender()), 1e18);
 
         // Claim these fudns
         vm.stopPrank();
@@ -82,12 +84,12 @@ contract RemoteSuperchainERC20Test is StdUtils, Test, Relayer {
         vm.selectFork(chainB);
 
         // Claim approval
-        vm.startPrank(spender);
-        remoteCbBTC.transferFrom(_holder, spender, 1e18);
+        vm.startPrank(spender());
+        remoteCbBTC.transferFrom(_holder, spender(), 1e18);
 
         assertEq(remoteCbBTC.balanceOf(_holder), 0);
-        assertEq(remoteCbBTC.balanceOf(spender), 1e18);
-        assertEq(remoteCbBTC.allowance(_holder, spender), 0);
+        assertEq(remoteCbBTC.balanceOf(spender()), 1e18);
+        assertEq(remoteCbBTC.allowance(_holder, spender()), 0);
 
         vm.stopPrank();
     }
@@ -98,9 +100,9 @@ contract RemoteSuperchainERC20Test is StdUtils, Test, Relayer {
         vm.selectFork(chainB);
 
         // Transfer back to the holder (remote tokens burned)
-        vm.startPrank(spender);
+        vm.startPrank(spender());
         remoteCbBTC.transfer(_holder, 1e18);
-        assertEq(remoteCbBTC.balanceOf(spender), 0);
+        assertEq(remoteCbBTC.balanceOf(spender()), 0);
         assertEq(remoteCbBTC.balanceOf(_holder), 0);
         vm.stopPrank();
 
