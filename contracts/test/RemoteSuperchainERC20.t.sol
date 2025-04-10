@@ -33,7 +33,7 @@ contract RemoteSuperchainERC20Test is StdUtils, Test, Relayer {
     function setUp() public virtual {
         // home chain is base, remotely controlled by the spender on OPM
         bytes memory remoteERC20CreationCode =
-            abi.encodePacked(type(RemoteSuperchainERC20).creationCode, abi.encode(8453, address(cbBTC), 10));
+            abi.encodePacked(type(RemoteSuperchainERC20).creationCode, abi.encode(8453, address(cbBTC), 10, spender));
 
         remoteCbBTC = RemoteSuperchainERC20(deployer.computeAddress(salt, keccak256(remoteERC20CreationCode)));
 

@@ -18,12 +18,11 @@ contract RemoteSuperchainERC20 is ERC20 {
     /// @notice the chain the ERC20 lives on
     uint256 public homeChainId;
 
-    /// @notice We include the remote chain in the constructor for simplicity. This allows us to
-    ///         retain the same ERC20 api for approve. Otherwise the remote chain id would need to be
-    ///         enshrined in the API -- approve(destinationChainId, spender, ammount). It's fine for the
-    ///         RemoteSuperchainERC20 address to be unique per remote chain since two different remote
-    ///         representations of the same ERC20 across chains do not need to communicate with each other.
+    /// @notice the remote chain that can hold a lock on this ERC20
     uint256 public remoteChainId;
+
+    /// @notice the account allowed to acquire this lock from the user via `transferFrom()`
+    address public spender;
 
     /// @dev The messenger predeploy to handle message passing
     IL2ToL2CrossDomainMessenger internal _messenger =
@@ -33,7 +32,8 @@ contract RemoteSuperchainERC20 is ERC20 {
     /// @param _homeChainId The chain the ERC20 lives on
     /// @param _erc20 The ERC20 token this remote representation is based on
     /// @param _remoteChainId The chain this erc20 is controlled by
-    constructor(uint256 _homeChainId, IERC20 _erc20, uint256 _remoteChainId) ERC20("", "") {
+    /// @param _spender The account allowed to acquire this lock from the user via `transferFrom()`
+    constructor(uint256 _homeChainId, IERC20 _erc20, uint256 _remoteChainId, address _spender) ERC20("", "") {
         // By asserting the deployer is used, we obtain good safety that
         //  1. This contract was deterministically created based on the constructor args
         //  2. `approve()` & `transfer()` only works on the correctly erc20 address.
@@ -42,6 +42,7 @@ contract RemoteSuperchainERC20 is ERC20 {
         homeChainId = _homeChainId;
         erc20 = _erc20;
         remoteChainId = _remoteChainId;
+        spender = _spender;
     }
 
     /// @notice Approve a spender on the remote to pull an amout of RemoteSuperchainERC20
@@ -49,31 +50,36 @@ contract RemoteSuperchainERC20 is ERC20 {
     /// @param _amount The amount to approve
     /// @return success True if the approval was successful
     function approve(address _spender, uint256 _amount) public override returns (bool) {
-        require(block.chainid == homeChainId);
+        if (block.chainid == homeChainId) {
+            // Resource lock the erc20 on the remote chain
+            require(_spender == spender);
 
-        // (1) Escrow the ERC20
-        erc20.transferFrom(msg.sender, address(this), _amount);
+            // (1) Escrow the ERC20
+            erc20.transferFrom(msg.sender, address(this), _amount);
 
-        // (2) Send a message to approve the spender (we reuse the first argument to propogate the holder)
-        bytes memory call = abi.encodeCall(this.handleApproval, (msg.sender, _spender, _amount));
-        _messenger.sendMessage(remoteChainId, address(this), call);
-        return true;
-    }
+            // (2) Send a message to approve the spender over the lock (we reuse the first argument to propogate the owner)
+            bytes memory call = abi.encodeCall(this.approve, (msg.sender, _amount));
+            _messenger.sendMessage(remoteChainId, address(this), call);
+            return true;
+        } else {
+            // Minting the RemoteERC20 to be acquirable by the spender.
+            require(block.chainid == remoteChainId);
+            require(msg.sender == address(_messenger));
 
-    /// @notice handle the approval that was made on the home chain
-    function handleApproval(address _owner, address _spender, uint256 _amount) external {
-        require(block.chainid == remoteChainId);
-        require(msg.sender == address(_messenger));
+            // In this context we're reusing the _sender argument to propogate the owner of the asset.
+            address owner = _spender;
 
-        // (1) Call must have come from the this RemoteERC20
-        address sender = _messenger.crossDomainMessageSender();
-        require(sender == address(this));
+            // (1) Call must have come from the this RemoteERC20
+            address sender = _messenger.crossDomainMessageSender();
+            require(sender == address(this));
 
-        // (2) Mint the ERC20 to the original owner
-        super._mint(_owner, _amount);
+            // (2) Mint the ERC20 to the original owner (re-used _sender argument)
+            super._mint(owner, _amount);
 
-        // (3) Manually set the allowance over the minted tokens for the spender
-        super._approve(_owner, _spender, _amount);
+            // (3) Manually set the allowance over the lock for the spender
+            super._approve(owner, spender, _amount);
+            return true;
+        }
     }
 
     /// @notice Transfer the approved RemoteSuperchainERC20 to the spender.
@@ -105,7 +111,7 @@ contract RemoteSuperchainERC20 is ERC20 {
             // Remotely transfer the ERC20
             require(block.chainid == remoteChainId);
 
-            // (2) Burn the Remotely Held RemoteERC20
+            // (2) Burn the Remotely Held RemoteERC20 (either the original owner or the spender)
             //     @note: If this is the original owner and not the spender, they will still have the allowance set
             //            on the sender. However, the user would have to manually approve again for there to be any
             //            tokens for the spender to pull so it is fine for this allowance to remain.
