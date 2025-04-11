@@ -241,6 +241,13 @@ func (o *Orchestrator) Endpoint(chainId uint64) string {
 	return o.l2OpSims[chainId].Endpoint()
 }
 
+func (o *Orchestrator) WSEndpoint(chainId uint64) string {
+	if o.l1Chain.Config().ChainID == chainId {
+		return o.l1Chain.WSEndpoint()
+	}
+	return o.l2OpSims[chainId].WSEndpoint()
+}
+
 func (o *Orchestrator) ConfigAsString() string {
 	var b strings.Builder
 	l1Cfg := o.l1Chain.Config()

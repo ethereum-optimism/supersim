@@ -234,7 +234,7 @@ func (a *Anvil) Start(ctx context.Context) error {
 		return ctx.Err()
 	}
 
-	rpcClient, err := rpc.Dial(a.wsEndpoint())
+	rpcClient, err := rpc.Dial(a.WSEndpoint())
 	if err != nil {
 		return fmt.Errorf("failed to create RPC client: %w", err)
 	}
@@ -266,7 +266,7 @@ func (a *Anvil) Endpoint() string {
 	return fmt.Sprintf("http://%s:%d", a.cfg.Host, a.cfg.Port)
 }
 
-func (a *Anvil) wsEndpoint() string {
+func (a *Anvil) WSEndpoint() string {
 	return fmt.Sprintf("ws://%s:%d", a.cfg.Host, a.cfg.Port)
 }
 
