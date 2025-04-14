@@ -187,7 +187,6 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			name    string
 			address common.Address
 		}{
-			{"SuperchainWETH", predeploys.SuperchainWETHAddr},
 			{"L2NativeSuperchainERC20", common.HexToAddress(l2NativeSuperchainERC20Addr)},
 		}
 
@@ -259,31 +258,31 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 		}
 	})
 
-	// Log SuperchainWETH events
+	// Log SuperchainETHBridge events
 	opSim.bgTasks.Go(func() error {
-		superchainWeth, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, opSim.Chain.EthClient())
+		superchainETHBridge, err := bindings.NewSuperchainETHBridge(predeploys.SuperchainETHBridgeAddr, opSim.Chain.EthClient())
 		if err != nil {
-			return fmt.Errorf("failed to create SuperchainWETH contract: %w", err)
+			return fmt.Errorf("failed to create SuperchainETHBridge contract: %w", err)
 		}
 
-		sendEventChan := make(chan *bindings.SuperchainWETHSendETH)
-		sendSub, err := superchainWeth.WatchSendETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, sendEventChan, nil, nil)
+		sendEventChan := make(chan *bindings.SuperchainETHBridgeSendETH)
+		sendSub, err := superchainETHBridge.WatchSendETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, sendEventChan, nil, nil)
 		if err != nil {
-			return fmt.Errorf("failed to subscribe to SuperchainWETH#SendETH: %w", err)
+			return fmt.Errorf("failed to subscribe to SuperchainETHBridge#SendETH: %w", err)
 		}
 
-		relayEventChan := make(chan *bindings.SuperchainWETHRelayETH)
-		relaySub, err := superchainWeth.WatchRelayETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, relayEventChan, nil, nil)
+		relayEventChan := make(chan *bindings.SuperchainETHBridgeRelayETH)
+		relaySub, err := superchainETHBridge.WatchRelayETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, relayEventChan, nil, nil)
 		if err != nil {
-			return fmt.Errorf("failed to subscribe to SuperchainWETH#RelayETH: %w", err)
+			return fmt.Errorf("failed to subscribe to SuperchainETHBridge#RelayETH: %w", err)
 		}
 
 		for {
 			select {
 			case event := <-sendEventChan:
-				opSim.log.Info("SuperchainWETH#SendETH", "from", event.From, "to", event.To, "amount", event.Amount, "destination", event.Destination)
+				opSim.log.Info("SuperchainETHBridge#SendETH", "from", event.From, "to", event.To, "amount", event.Amount, "destination", event.Destination)
 			case event := <-relayEventChan:
-				opSim.log.Info("SuperchainWETH#RelayETH", "from", event.From, "to", event.To, "amount", event.Amount, "source", event.Source)
+				opSim.log.Info("SuperchainETHBridge#RelayETH", "from", event.From, "to", event.To, "amount", event.Amount, "source", event.Source)
 			case <-opSim.bgTasksCtx.Done():
 				sendSub.Unsubscribe()
 				relaySub.Unsubscribe()
