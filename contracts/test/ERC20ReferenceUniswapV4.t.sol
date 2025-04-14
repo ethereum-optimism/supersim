@@ -38,7 +38,7 @@ contract ERC20ReferenceUniswapV4Test is Test, ERC20ReferenceTest, UniswapFixture
     PoolKey poolKey;
     PoolId poolId;
 
-    // Chain A (Base), Chain B (OPM)
+    // Chain A (Remote), Chain B (Home)
     constructor() ERC20ReferenceTest() {}
 
     function spender() public view override returns (address) {
