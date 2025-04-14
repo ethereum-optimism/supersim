@@ -239,7 +239,7 @@ The sequencer and smart contracts (CrossL2Inbox) use the identifier to perform <
 <pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000028 "sendERC20(address _token, address _to, uint256 _amount, uint256 _chainId)" 0x420beeF000000000000000000000000000000001 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
 <h3 id="4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger"><a class="header" href="#4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger">4. Get the log emitted by the <code>L2ToL2CrossDomainMessenger</code></a></h3>
-<p>The token contract calls the <a href="https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol">L2ToL2CrossDomainMessenger</a>, which emits a message (log) that can be relayed on the destination chain.</p>
+<p>The token contract calls the <a href="https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol">L2ToL2CrossDomainMessenger</a>, which emits a message (log) that can be relayed on the destination chain.</p>
 <pre><code class="language-sh">cast logs --address 0x4200000000000000000000000000000000000023 --rpc-url http://127.0.0.1:9545
 </code></pre>
 <p>Sample output:</p>

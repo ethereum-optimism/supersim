@@ -484,7 +484,7 @@ OPTIONS:
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><!-- omit in toc -->
 <h1 id="included-contracts"><a class="header" href="#included-contracts">Included contracts</a></h1>
-<p>The chain environment includes contracts already deployed to help replicate the Superchain environment. You can see an example of contract addresses for a L2 system <a href="chain-environment/contracts//docs/src/chain-environment/network-details/op-chain-a.html">here</a>.</p>
+<p>The chain environment includes contracts already deployed to help replicate the Superchain environment.</p>
 <ul>
 <li><a href="chain-environment/contracts/index.html#op-stack-system-contracts-l1">OP Stack system contracts (L1)</a></li>
 <li><a href="chain-environment/contracts/index.html#op-stack-l2-contracts-l2">OP Stack L2 contracts (L2)</a></li>
@@ -524,170 +524,6 @@ OPTIONS:
 <li>OPChainB (chainID 902)</li>
 </ul>
 <p>Both "roll up" into a single L1 chain (chainID 900).</p>
-<div style="break-before: page; page-break-before: always;"></div><!-- omit in toc -->
-<h1 id="opchaina"><a class="header" href="#opchaina">OPChainA</a></h1>
-<ul>
-<li><a href="chain-environment/network-details/op-chain-a.html#network-details">Network details</a></li>
-<li><a href="chain-environment/network-details/op-chain-a.html#contract-addresses">Contract addresses</a>
-<ul>
-<li><a href="chain-environment/network-details/op-chain-a.html#l1-contracts">L1 contracts</a></li>
-<li><a href="chain-environment/network-details/op-chain-a.html#l2-contracts">L2 contracts</a></li>
-</ul>
-</li>
-</ul>
-<h2 id="network-details-1"><a class="header" href="#network-details-1">Network details</a></h2>
-<div class="table-wrapper"><table><thead><tr><th><strong>Parameter</strong></th><th><strong>Value</strong></th></tr></thead><tbody>
-<tr><td><strong>Name</strong></td><td>OPChainA</td></tr>
-<tr><td><strong>Chain ID</strong></td><td>901</td></tr>
-<tr><td><strong>RPC URL</strong></td><td><a href="http://127.0.0.1:9545">http://127.0.0.1:9545</a></td></tr>
-</tbody></table>
-</div>
-<h2 id="contract-addresses"><a class="header" href="#contract-addresses">Contract addresses</a></h2>
-<h3 id="l1-contracts"><a class="header" href="#l1-contracts">L1 contracts</a></h3>
-<pre><code class="language-json">{
-  "AddressManager": "0x78d21C9820A9135215202A9a8D6521483D4b75cD",
-  "AnchorStateRegistry": "0x21799f09394c50220CCD95E7dAc1cdD774FC871a",
-  "AnchorStateRegistryProxy": "0xa6F40d5770b3509aB40B2effa5cb544D29743ec7",
-  "DelayedWETH": "0x49BBFf1629824A1e7993Ab5c17AFa45D24AB28c9",
-  "DelayedWETHProxy": "0x309DA6B9a8fE16afD7D067528d358E55314bEa6b",
-  "DisputeGameFactory": "0x20B168142354Cee65a32f6D8cf3033E592299765",
-  "DisputeGameFactoryProxy": "0x444689B81D485bc58AB81aC02A95a937fAa152D7",
-  "L1CrossDomainMessenger": "0x094e6508ba9d9bf1ce421fff3dE06aE56e67901b",
-  "L1CrossDomainMessengerProxy": "0xe5bda89cd85cE0DfB80E053281cA070D65B738e6",
-  "L1ERC721Bridge": "0x5C4F5e749A61a9503c4AAE8a9393e89609a0e804",
-  "L1ERC721BridgeProxy": "0x018dC24a6617c47cAa00C3fA25097214B2D4F447",
-  "L1StandardBridge": "0xb7900B27Be8f0E0fF65d1C3A4671e1220437dd2b",
-  "L1StandardBridgeProxy": "0xa01ae68902e205B420FD164435F299E07b0C778b",
-  "L2OutputOracle": "0x19652082F846171168Daf378C4fD3ee85a0D4A60",
-  "L2OutputOracleProxy": "0x6cE0530E823e23be85D8e151FB023605eB4F6d43",
-  "Mips": "0xB3A0348310a0ff78E5FbDB7f14BB7d3e02d40773",
-  "OptimismMintableERC20Factory": "0x39Aea2Dd53f2d01c15877aCc2791af6BDD7aD567",
-  "OptimismMintableERC20FactoryProxy": "0x15c855966C196Be3a8ca747E8A8Bf40928d4741f",
-  "OptimismPortal": "0xb7461Fb347f68f9717e6fD12C8407dEcee063bdc",
-  "OptimismPortal2": "0xfcbb237388CaF5b08175C9927a37aB6450acd535",
-  "OptimismPortalProxy": "0xF5fe61a258CeBb54CCe428F76cdeD04Cbc12F53d",
-  "PreimageOracle": "0x3bd7E801E51d48c5d94Ea68e8B801DFFC275De75",
-  "ProtocolVersions": "0xfbfD64a6C0257F613feFCe050Aa30ecC3E3d7C3F",
-  "ProtocolVersionsProxy": "0x6dA4f6489039d9f4F3144954DDF5bb2F4986e90b",
-  "ProxyAdmin": "0xe32a4D31ffD5596542DAc8239a1DE3Fff9d63475",
-  "SafeProxyFactory": "0x4a05c09875DE2DD5B81Bc01dd46eD4699b181bfA",
-  "SafeSingleton": "0x99A395CE6d6b37CaaCBad64fB42d556b6CA73a48",
-  "SuperchainConfig": "0x068E44eB31e111028c41598E4535be7468674D0A",
-  "SuperchainConfigProxy": "0x7E6c6ebCF109fa23277b86bdA39738035C21BB86",
-  "SystemConfig": "0x6167B477F8d9138aa509f54b2800443857e28c0f",
-  "SystemConfigProxy": "0xf32919Ed2490b56EaD65E72749894aE4C9523320",
-  "SystemOwnerSafe": "0xc052b7316C87390E555aF97D42bCd5FB6d5eEFDa"
-}
-</code></pre>
-<h3 id="l2-contracts"><a class="header" href="#l2-contracts">L2 contracts</a></h3>
-<pre><code class="language-json">{
-  // OP Stack predeploys
-  "L2ToL1MessagePasser": "0x4200000000000000000000000000000000000016",
-  "L2CrossDomainMessenger": "0x4200000000000000000000000000000000000007",
-  "L2StandardBridge": "0x4200000000000000000000000000000000000010",
-  "L2ERC721Bridge": "0x4200000000000000000000000000000000000014",
-  "SequencerFeeVault": "0x4200000000000000000000000000000000000011",
-  "OptimismMintableERC20Factory": "0x4200000000000000000000000000000000000012",
-  "OptimismMintableERC721Factory": "0x4200000000000000000000000000000000000017",
-  "L1BlockInterop": "0x4200000000000000000000000000000000000015",
-  "GasPriceOracle": "0x420000000000000000000000000000000000000F",
-  "ProxyAdmin": "0x4200000000000000000000000000000000000018",
-  "BaseFeeVault": "0x4200000000000000000000000000000000000019",
-  "L1FeeVault": "0x420000000000000000000000000000000000001A",
-  "GovernanceToken": "0x4200000000000000000000000000000000000042",
-  "SchemaRegistry": "0x4200000000000000000000000000000000000020",
-  "EAS": "0x4200000000000000000000000000000000000021",
-  "CrossL2Inbox": "0x4200000000000000000000000000000000000022",
-  "L2ToL2CrossDomainMessenger": "0x4200000000000000000000000000000000000023",
-  "SuperchainWETH": "0x4200000000000000000000000000000000000024",
-  "SuperchainTokenBridge": "0x4200000000000000000000000000000000000028",
-
-  // Periphery
-  "L2NativeSuperchainERC20": "0x420beeF000000000000000000000000000000001"
-}
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div><!-- omit in toc -->
-<h1 id="opchainb"><a class="header" href="#opchainb">OPChainB</a></h1>
-<ul>
-<li><a href="chain-environment/network-details/op-chain-b.html#network-details">Network details</a></li>
-<li><a href="chain-environment/network-details/op-chain-b.html#contract-addresses">Contract addresses</a>
-<ul>
-<li><a href="chain-environment/network-details/op-chain-b.html#l1-contracts">L1 contracts</a></li>
-<li><a href="chain-environment/network-details/op-chain-b.html#l2-contracts">L2 contracts</a></li>
-</ul>
-</li>
-</ul>
-<h2 id="network-details-2"><a class="header" href="#network-details-2">Network details</a></h2>
-<div class="table-wrapper"><table><thead><tr><th><strong>Parameter</strong></th><th><strong>Value</strong></th></tr></thead><tbody>
-<tr><td><strong>Name</strong></td><td>OPChainB</td></tr>
-<tr><td><strong>Chain ID</strong></td><td>902</td></tr>
-<tr><td><strong>RPC URL</strong></td><td><a href="http://127.0.0.1:9546">http://127.0.0.1:9546</a></td></tr>
-</tbody></table>
-</div>
-<h2 id="contract-addresses-1"><a class="header" href="#contract-addresses-1">Contract addresses</a></h2>
-<h3 id="l1-contracts-1"><a class="header" href="#l1-contracts-1">L1 contracts</a></h3>
-<pre><code class="language-json">{
-  "AddressManager": "0xafB51A0f73C8409AeA1207DF7f39885c927BeA46",
-  "AnchorStateRegistry": "0x05493149c84A71063f7948127bb931f8377F779C",
-  "AnchorStateRegistryProxy": "0xfd0269a716A59fF125Bd7eb65Cd3427C8555bab7",
-  "DelayedWETH": "0x49BBFf1629824A1e7993Ab5c17AFa45D24AB28c9",
-  "DelayedWETHProxy": "0xA63353128502269b4A4A4c2677fE316cd9ad4397",
-  "DisputeGameFactory": "0x20B168142354Cee65a32f6D8cf3033E592299765",
-  "DisputeGameFactoryProxy": "0x5F416fEb15c8B382d338FDBDb7D44967ca2b59BC",
-  "L1CrossDomainMessenger": "0x094e6508ba9d9bf1ce421fff3dE06aE56e67901b",
-  "L1CrossDomainMessengerProxy": "0xCB9768921831677Ae15cE4B64A10B94F49cD88E2",
-  "L1ERC721Bridge": "0x5C4F5e749A61a9503c4AAE8a9393e89609a0e804",
-  "L1ERC721BridgeProxy": "0xDCE41E6C0901586EE27Eac329EBD4b5fe5A7170d",
-  "L1StandardBridge": "0xb7900B27Be8f0E0fF65d1C3A4671e1220437dd2b",
-  "L1StandardBridgeProxy": "0x2D8543c236a4d626f54B51Fa8bc229a257C5143E",
-  "L2OutputOracle": "0x19652082F846171168Daf378C4fD3ee85a0D4A60",
-  "L2OutputOracleProxy": "0x006Af3fB62c4BE4fB0393995d364BbFe6b0F3CB2",
-  "Mips": "0xB3A0348310a0ff78E5FbDB7f14BB7d3e02d40773",
-  "OptimismMintableERC20Factory": "0x39Aea2Dd53f2d01c15877aCc2791af6BDD7aD567",
-  "OptimismMintableERC20FactoryProxy": "0x1A2A942d891e525D1Ab192578a378980729fD585",
-  "OptimismPortal": "0xb7461Fb347f68f9717e6fD12C8407dEcee063bdc",
-  "OptimismPortal2": "0xfcbb237388CaF5b08175C9927a37aB6450acd535",
-  "OptimismPortalProxy": "0xdfC9DEAbEEbDaa7620C71e2E76AEda32919DE5f2",
-  "PreimageOracle": "0x3bd7E801E51d48c5d94Ea68e8B801DFFC275De75",
-  "ProtocolVersions": "0xfbfD64a6C0257F613feFCe050Aa30ecC3E3d7C3F",
-  "ProtocolVersionsProxy": "0xE139cB0CDa5EF722870068ea331d0989776A7aDf",
-  "ProxyAdmin": "0xff5E6C2Af859f70B875BA59B958BEde60E36bf69",
-  "SafeProxyFactory": "0xb68f3B057fE3c6CdDF9DB35837Ea769FCc81978a",
-  "SafeSingleton": "0xeeB44D84d505AbD958d032e90704c56443eB3ED0",
-  "SuperchainConfig": "0x068E44eB31e111028c41598E4535be7468674D0A",
-  "SuperchainConfigProxy": "0x2ED4AA34573c36bF3856e597501aEf9d9Dc1687C",
-  "SystemConfig": "0x6167B477F8d9138aa509f54b2800443857e28c0f",
-  "SystemConfigProxy": "0x2Db03FE998D7c20E4B65afD1f50f04Ec4BfAb694",
-  "SystemOwnerSafe": "0xBF3830711B7c559042453B7546dB4736eFB4245e"
-}
-</code></pre>
-<h3 id="l2-contracts-1"><a class="header" href="#l2-contracts-1">L2 contracts</a></h3>
-<pre><code class="language-json">{
-  // OP Stack predeploys
-  "L2ToL1MessagePasser": "0x4200000000000000000000000000000000000016",
-  "L2CrossDomainMessenger": "0x4200000000000000000000000000000000000007",
-  "L2StandardBridge": "0x4200000000000000000000000000000000000010",
-  "L2ERC721Bridge": "0x4200000000000000000000000000000000000014",
-  "SequencerFeeVault": "0x4200000000000000000000000000000000000011",
-  "OptimismMintableERC20Factory": "0x4200000000000000000000000000000000000012",
-  "OptimismMintableERC721Factory": "0x4200000000000000000000000000000000000017",
-  "L1BlockInterop": "0x4200000000000000000000000000000000000015",
-  "GasPriceOracle": "0x420000000000000000000000000000000000000F",
-  "ProxyAdmin": "0x4200000000000000000000000000000000000018",
-  "BaseFeeVault": "0x4200000000000000000000000000000000000019",
-  "L1FeeVault": "0x420000000000000000000000000000000000001A",
-  "GovernanceToken": "0x4200000000000000000000000000000000000042",
-  "SchemaRegistry": "0x4200000000000000000000000000000000000020",
-  "EAS": "0x4200000000000000000000000000000000000021",
-  "CrossL2Inbox": "0x4200000000000000000000000000000000000022",
-  "L2ToL2CrossDomainMessenger": "0x4200000000000000000000000000000000000023",
-  "SuperchainWETH": "0x4200000000000000000000000000000000000024",
-  "SuperchainTokenBridge": "0x4200000000000000000000000000000000000028",
-
-  // Periphery
-  "L2NativeSuperchainERC20": "0x420beeF000000000000000000000000000000001"
-}
-</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="deposit-transactions"><a class="header" href="#deposit-transactions">Deposit transactions</a></h1>
 <p>Supersim supports deposits transactions as described in the <a href="https://docs.optimism.io/stack/transactions/deposit-flow">explainer</a>. However in a very lightweight manner without the op-node derivation pipeline by listening directly to the <code>TransactionDeposited</code> events on the OptimsimPortal contract and simply forwarding the transaction to the applicable L2.</p>
 <p>This implies the execution engine used with Supersim must support the optimism <a href="https://specs.optimism.io/protocol/deposits.html#the-deposited-transaction-type">Deposit Transaction Type</a>.</p>
@@ -1269,21 +1105,20 @@ contract BlockHashResolver is IContestResolver {
 <p>Leveraging superchain interop, contracts in the superchain can compose with each other in a similar fashion to how they would on a single chain. No restrictions are placed on the kinds of events a contract can consume via the <code>CrossL2Inbox</code>.</p>
 <p>In this example, the <code>BlockHashContestFactory</code> and <code>TicTacToeContestFactory</code> can be seen as just starting points for the <code>Contests</code> app chain. As more contracts and apps are created in the superchain, this developer can compose with them in a similar fashion without needing to change the <code>Contests</code> contract at all!</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="bridging-eth"><a class="header" href="#bridging-eth">Bridging ETH</a></h1>
-<p>Crosschain ETH transfers in the Superchain are facilitated through the <a href="https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/SuperchainWETH.sol">SuperchainWETH</a> contract. For more information on this checkout the spec for SuperchainWETH: https://specs.optimism.io/interop/superchain-weth.html.</p>
+<p>Crosschain ETH transfers in the Superchain are facilitated through the <a href="https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/SuperchainETHBridge.sol">SuperchainETHBridge</a> contract. For more information on this checkout the spec for SuperchainETHBridge: https://specs.optimism.io/interop/superchain-eth-bridge.html.</p>
 <h2 id="cross-chain-eth-transfer-from-chain-901-to-902"><a class="header" href="#cross-chain-eth-transfer-from-chain-901-to-902">Cross-chain ETH transfer from chain 901 to 902</a></h2>
 <p>This outlines how to send native ETH from chain 901 to 902. To simplify these steps supersim will be run with the <code>--interop.autorelay</code> flag. The <code>--interop.autorelay</code> flag automatically triggers the relay message transaction once the initial send transaction is completed on the source chain, improving the developer experience by removing the need to manually send the relay message.</p>
-<p><strong>Note</strong>: If the source chain uses native ETH as their gas token, but the destination chain uses a custom gas token, then the recipient will receive <code>SuperchainWETH</code> on the destination chain.</p>
 <h3 id="1-start-supersim-with-the-autorelayer-enabled-1"><a class="header" href="#1-start-supersim-with-the-autorelayer-enabled-1">1. Start <code>supersim</code> with the autorelayer enabled</a></h3>
 <pre><code class="language-sh">supersim --interop.autorelay 
 </code></pre>
-<h3 id="2-initiate-the-send-transaction-on-chain-901-through-superchainweth-contract-deployed-at-0x4200000000000000000000000000000000000024"><a class="header" href="#2-initiate-the-send-transaction-on-chain-901-through-superchainweth-contract-deployed-at-0x4200000000000000000000000000000000000024">2. Initiate the send transaction on chain 901 through <code>SuperchainWETH</code> contract deployed at <code>0x4200000000000000000000000000000000000024</code></a></h3>
+<h3 id="2-initiate-the-send-transaction-on-chain-901-through-superchainethbridge-contract-deployed-at-0x4200000000000000000000000000000000000024"><a class="header" href="#2-initiate-the-send-transaction-on-chain-901-through-superchainethbridge-contract-deployed-at-0x4200000000000000000000000000000000000024">2. Initiate the send transaction on chain 901 through <code>SuperchainETHBridge</code> contract deployed at <code>0x4200000000000000000000000000000000000024</code></a></h3>
 <p>Send ETH from Chain 901 to Chain 902 using the following command:</p>
 <pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000024 "sendETH(address _to, uint256 _chainId)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 902 --value 10ether --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
 <h3 id="3-wait-for-the-relayed-message-to-appear-on-chain-902"><a class="header" href="#3-wait-for-the-relayed-message-to-appear-on-chain-902">3. Wait for the relayed message to appear on chain 902</a></h3>
 <p>In a few seconds, you should see the relayed message on chain 902:</p>
 <pre><code class="language-sh"># example
-INFO [12-02|14:53:02.434] SuperchainWETH#RelayETH chain.id=902 from=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 to=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 amount=10,000,000,000,000,000,000 source=901
+INFO [12-02|14:53:02.434] SuperchainETHBridge#RelayETH chain.id=902 from=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 to=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 amount=10,000,000,000,000,000,000 source=901
 </code></pre>
 <h3 id="4-check-the-balance-on-chain-902"><a class="header" href="#4-check-the-balance-on-chain-902">4. Check the balance on chain 902</a></h3>
 <p>Verify that the balance of the ETH on chain 902 has increased:</p>
@@ -1628,7 +1463,7 @@ The sequencer and smart contracts (CrossL2Inbox) use the identifier to perform <
 <pre><code class="language-sh">cast send 0x4200000000000000000000000000000000000028 "sendERC20(address _token, address _to, uint256 _amount, uint256 _chainId)" 0x420beeF000000000000000000000000000000001 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 1000 902 --rpc-url http://127.0.0.1:9545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 </code></pre>
 <h3 id="4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger"><a class="header" href="#4-get-the-log-emitted-by-the-l2tol2crossdomainmessenger">4. Get the log emitted by the <code>L2ToL2CrossDomainMessenger</code></a></h3>
-<p>The token contract calls the <a href="https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol">L2ToL2CrossDomainMessenger</a>, which emits a message (log) that can be relayed on the destination chain.</p>
+<p>The token contract calls the <a href="https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol">L2ToL2CrossDomainMessenger</a>, which emits a message (log) that can be relayed on the destination chain.</p>
 <pre><code class="language-sh">cast logs --address 0x4200000000000000000000000000000000000023 --rpc-url http://127.0.0.1:9545
 </code></pre>
 <p>Sample output:</p>
