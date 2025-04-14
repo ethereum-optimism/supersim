@@ -7,3 +7,6 @@
 [submodule "contracts/lib/interop-lib"]
 	path = contracts/lib/interop-lib
 	url = https://github.com/ethereum-optimism/interop-lib
+[submodule "contracts/lib/v4-template"]
+	path = contracts/lib/v4-template
+	url = https://github.com/uniswapfoundation/v4-template
