@@ -24,12 +24,12 @@ import {LiquidityAmounts} from "@uniswap-v4-core/test/utils/LiquidityAmounts.sol
 import {StateLibrary} from "@uniswap-v4-core/src/libraries/StateLibrary.sol";
 import {EasyPosm} from "@uniswap-v4-template/test/utils/EasyPosm.sol";
 
-import {RemoteSuperchainERC20} from "../src/RemoteSuperchainERC20.sol";
+import {ERC20Reference} from "../src/ERC20Reference.sol";
 
 import {UniswapFixtures} from "./UniswapFixtures.t.sol";
-import {RemoteSuperchainERC20Test} from "./RemoteSuperchainERC20.t.sol";
+import {ERC20ReferenceTest} from "./ERC20Reference.t.sol";
 
-contract RemoteSuperchainERC20UniswapTest is Test, RemoteSuperchainERC20Test, UniswapFixtures {
+contract ERC20ReferenceUniswapV4Test is Test, ERC20ReferenceTest, UniswapFixtures {
     using EasyPosm for IPositionManager;
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
@@ -39,23 +39,23 @@ contract RemoteSuperchainERC20UniswapTest is Test, RemoteSuperchainERC20Test, Un
     PoolId poolId;
 
     // Chain A (Base), Chain B (OPM)
-    constructor() RemoteSuperchainERC20Test() {}
+    constructor() ERC20ReferenceTest() {}
 
     function spender() public view override returns (address) {
-        return address(permit2);
+        return address(posm);
     }
 
     function setUp() public override {
-        // Setup RemoteSuperchainERC20 for the erc20 token on chain A & B
-        super.setUp();
-
         // The v4 pool only exists on the remote chain with no erc20 (B)
         vm.selectFork(chainB);
 
         // creates the pool manager, utility routers, and test tokens
         deployFreshManagerAndRouters();
-        deployMintAndApprove2Currencies();
-        deployAndApprovePosm(manager);
+        deployPosm(manager);
+
+        // Setup ERC20Reference. Setup after v4 deployment since
+        // the POSM (uniswap v4) is going to be the approved spender
+        super.setUp();
 
         // setup the create eth/erc20 pool
         poolKey = PoolKey(Currency.wrap(address(0)), Currency.wrap(address(remoteERC20)), 3000, 60, IHooks(address(0)));
@@ -76,21 +76,17 @@ contract RemoteSuperchainERC20UniswapTest is Test, RemoteSuperchainERC20Test, Un
             liquidityAmount
         );
 
-        // Deal erc20 on the home chain
+        // Deal erc20 on the home chain & Approve Uniswap
         vm.selectFork(chainA);
         deal(address(erc20), address(this), amount1Expected + 1);
         erc20.approve(address(remoteERC20), amount1Expected + 1);
-
-        // Approve Permit2 with the remote token to be pulled
-        remoteERC20.approve(address(permit2), amount1Expected + 1);
+        remoteERC20.approve(address(posm), amount1Expected + 1);
         relayAllMessages();
 
         // On remote, approve permit2 for the posm (could also just be a signature)
         vm.selectFork(chainB);
-        permit2.approve(address(remoteERC20), address(posm), type(uint160).max, type(uint48).max);
-
-        // Mint Pool Liquidity (add the expected eth)
         vm.deal(address(this), amount0Expected + 1);
+        permit2.approve(address(remoteERC20), address(posm), type(uint160).max, type(uint48).max);
         posm.mint(
             poolKey,
             tickLower,
@@ -107,17 +103,17 @@ contract RemoteSuperchainERC20UniswapTest is Test, RemoteSuperchainERC20Test, Un
     function test_swap() public {
         test_poolSetup();
 
-        // No Balance on the home chain
+        // No Balance on the chain with the native ERC20
         vm.selectFork(chainA);
         assertEq(erc20.balanceOf(address(this)), 0);
 
-        // Swap in ETH on the remote chain
+        // Swap in ETH on chain with the v4 Pool
         vm.selectFork(chainB);
         vm.deal(address(this), 1 ether);
         swap(poolKey, true, -1 ether, ZERO_BYTES);
         relayAllMessages();
 
-        // THERE IS A BALANCE
+        // THERE IS A NATIVE BALANCE (output of the swap)
         vm.selectFork(chainA);
         assertGt(erc20.balanceOf(address(this)), 0);
     }

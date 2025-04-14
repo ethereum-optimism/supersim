@@ -31,7 +31,7 @@ contract UniswapFixtures is Deployers, DeployPermit2 {
         approvePosm();
     }
 
-    function deployPosm(IPoolManager poolManager) internal {
+    function deployPosm(IPoolManager poolManager) public {
         // We use vm.etch to prevent having to use via-ir in this repository.
         etchPermit2();
         posm = IPositionManager(
