@@ -567,7 +567,7 @@ func (opSim *OpSimulator) handleWebSocket(w http.ResponseWriter, r *http.Request
 
 		response, err := opSim.processWSRequest(message, conn)
 		if err != nil {
-			opSim.log.Error("Failed to process RPC request", "error", err)
+			opSim.log.Error("Failed to process WS RPC request", "error", err)
 			continue
 		}
 
