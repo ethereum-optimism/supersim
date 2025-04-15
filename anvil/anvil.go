@@ -290,6 +290,10 @@ func (a *Anvil) EthClient() *ethclient.Client {
 	return a.ethClient
 }
 
+func (a *Anvil) RpcClient() *rpc.Client {
+	return a.rpcClient
+}
+
 func (a *Anvil) SetCode(ctx context.Context, result interface{}, address common.Address, code string) error {
 	return a.rpcClient.CallContext(ctx, result, "anvil_setCode", address.Hex(), code)
 }

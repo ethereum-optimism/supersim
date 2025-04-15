@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/superchain"
 )
 
@@ -110,6 +111,7 @@ type Chain interface {
 	LogPath() string
 	Config() *ChainConfig
 	EthClient() *ethclient.Client
+	RpcClient() *rpc.Client
 
 	// Additional methods
 	DebugTraceCall(ctx context.Context, tx *types.Transaction) (*TraceCallResult, error)

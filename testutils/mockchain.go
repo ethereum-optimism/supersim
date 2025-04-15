@@ -3,6 +3,7 @@ package testutils
 import (
 	"context"
 	"math/big"
+	"net/rpc"
 
 	"github.com/ethereum-optimism/supersim/config"
 
@@ -61,6 +62,10 @@ func (c *MockChain) Stop(_ context.Context) error {
 }
 
 func (c *MockChain) EthClient() *ethclient.Client {
+	return nil
+}
+
+func (c *MockChain) RpcClient() *rpc.Client {
 	return nil
 }
 

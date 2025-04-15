@@ -64,10 +64,6 @@ type OpSimulator struct {
 	// WebSocket configuration
 	upgrader websocket.Upgrader
 
-	// WebSocket client for subscriptions
-	wsClient   *rpc.Client
-	wsClientMu sync.Mutex
-
 	subscriptions map[string]*rpc.ClientSubscription
 	subsMutex     sync.Mutex
 }
@@ -573,7 +569,7 @@ func (opSim *OpSimulator) handleWebSocket(w http.ResponseWriter, r *http.Request
 
 		// Send the response back to the client
 		if err := conn.WriteMessage(messageType, response); err != nil {
-			opSim.log.Error("Failed to write message", "error", err)
+			opSim.log.Error("Failed to write WS Message", "error", err)
 			break
 		}
 	}
@@ -603,13 +599,8 @@ func (opSim *OpSimulator) processWSRequest(message []byte, conn *websocket.Conn)
 				continue
 			}
 
-			if err := opSim.connectWSClient(); err != nil {
-				batchRes[i] = msg.errorResponse(err)
-				continue
-			}
-
 			var subscriptionID string
-			if err := opSim.wsClient.Call(&subscriptionID, msg.Method, params...); err != nil {
+			if err := opSim.Chain.RpcClient().Call(&subscriptionID, msg.Method, params...); err != nil {
 				batchRes[i] = msg.errorResponse(err)
 				continue
 			}
@@ -641,13 +632,8 @@ func (opSim *OpSimulator) processWSRequest(message []byte, conn *websocket.Conn)
 				continue
 			}
 
-			if err := opSim.connectWSClient(); err != nil {
-				batchRes[i] = msg.errorResponse(err)
-				continue
-			}
-
 			var success bool
-			if err := opSim.wsClient.Call(&success, msg.Method, params...); err != nil {
+			if err := opSim.Chain.RpcClient().Call(&success, msg.Method, params...); err != nil {
 				batchRes[i] = msg.errorResponse(err)
 				continue
 			}
@@ -686,22 +672,20 @@ func (opSim *OpSimulator) processWSRequest(message []byte, conn *websocket.Conn)
 
 func (opSim *OpSimulator) forwardSubscriptionNotifications(conn *websocket.Conn, subscriptionID string, params ...interface{}) {
 	defer func() {
-		opSim.wsClientMu.Lock()
-		if opSim.wsClient != nil {
-			err := opSim.wsClient.Call(nil, "eth_unsubscribe", subscriptionID)
+		opSim.subsMutex.Lock()
+		defer opSim.subsMutex.Unlock()
+
+		if opSim.Chain.RpcClient() != nil {
+			err := opSim.Chain.RpcClient().Call(nil, "eth_unsubscribe", subscriptionID)
 			if err != nil {
 				opSim.log.Error("Failed to unsubscribe from websocket", "subscriptionID", subscriptionID, "error", err)
 			}
 		}
-		opSim.wsClientMu.Unlock()
-
-		opSim.subsMutex.Lock()
 		delete(opSim.subscriptions, subscriptionID)
-		opSim.subsMutex.Unlock()
 	}()
 
 	notifications := make(chan json.RawMessage)
-	sub, err := opSim.wsClient.Subscribe(context.Background(), "eth", notifications, params...)
+	sub, err := opSim.Chain.RpcClient().EthSubscribe(context.Background(), notifications, params...)
 	if err != nil {
 		opSim.log.Error("Failed to subscribe to notifications", "error", err)
 		return
@@ -733,22 +717,4 @@ func (opSim *OpSimulator) forwardSubscriptionNotifications(conn *websocket.Conn,
 			return
 		}
 	}
-}
-
-func (opSim *OpSimulator) connectWSClient() error {
-	opSim.wsClientMu.Lock()
-	defer opSim.wsClientMu.Unlock()
-
-	if opSim.wsClient != nil {
-		// Already connected
-		return nil
-	}
-
-	client, err := rpc.DialWebsocket(context.Background(), opSim.Chain.WSEndpoint(), "")
-	if err != nil {
-		return fmt.Errorf("failed to connect to RPC WebSocket: %w", err)
-	}
-
-	opSim.wsClient = client
-	return nil
 }
