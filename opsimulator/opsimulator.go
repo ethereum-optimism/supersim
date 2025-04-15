@@ -573,7 +573,7 @@ func (opSim *OpSimulator) handleWebSocket(w http.ResponseWriter, r *http.Request
 
 		// Send the response back to the client
 		if err := conn.WriteMessage(messageType, response); err != nil {
-			opSim.log.Error("Failed to write message", "error", err)
+			opSim.log.Error("Failed to write WS Message", "error", err)
 			break
 		}
 	}
