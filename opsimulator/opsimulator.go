@@ -64,8 +64,13 @@ type OpSimulator struct {
 	// WebSocket configuration
 	upgrader websocket.Upgrader
 
-	subscriptions map[string]*rpc.ClientSubscription
+	subscriptions map[string]*websocket.Conn
 	subsMutex     sync.Mutex
+}
+
+type WSResponse struct {
+	messageType int
+	message     []byte
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
@@ -552,169 +557,195 @@ func (opSim *OpSimulator) handleWebSocket(w http.ResponseWriter, r *http.Request
 	}
 	defer conn.Close()
 
-	for {
-		messageType, message, err := conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				opSim.log.Error("WebSocket error", "error", err)
+	// Create a context for managing the connection lifecycle
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Channel to signal when we're done
+	done := make(chan struct{})
+
+	// Start a goroutine to handle messages from the client
+	go func() {
+		defer close(done)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				messageType, message, err := conn.ReadMessage()
+				if err != nil {
+					if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+						opSim.log.Error("WebSocket error", "error", err)
+					}
+					return
+				}
+
+				// Process the message in a separate goroutine to avoid blocking
+				go func(msgType int, msg []byte) {
+					if err := opSim.processWSRequest(msgType, msg, conn); err != nil {
+						opSim.log.Error("Failed to process WS RPC request", "error", err)
+					}
+				}(messageType, message)
 			}
-			break
 		}
+	}()
 
-		response, err := opSim.processWSRequest(message, conn)
-		if err != nil {
-			opSim.log.Error("Failed to process WS RPC request", "error", err)
-			continue
-		}
-
-		// Send the response back to the client
-		if err := conn.WriteMessage(messageType, response); err != nil {
-			opSim.log.Error("Failed to write WS Message", "error", err)
-			break
-		}
-	}
+	// Wait for the connection to be closed
+	<-done
 }
 
-func (opSim *OpSimulator) processWSRequest(message []byte, conn *websocket.Conn) ([]byte, error) {
+func (opSim *OpSimulator) processWSRequest(initialMessageType int, initialMessage []byte, conn *websocket.Conn) error {
 	var msgs []*jsonRpcMessage
 	var isBatchRequest bool
-
+	// Parse the message to check if it's a subscribe/unsubscribe request
 	var singleMsg jsonRpcMessage
-	if err := json.Unmarshal(message, &singleMsg); err == nil {
+	if err := json.Unmarshal(initialMessage, &singleMsg); err == nil {
 		msgs = []*jsonRpcMessage{&singleMsg}
 	} else {
 		// If that fails, try parsing as a batch
-		if err := json.Unmarshal(message, &msgs); err != nil {
-			return nil, fmt.Errorf("failed to parse JSON-RPC request: %w", err)
+		if err := json.Unmarshal(initialMessage, &msgs); err != nil {
+			return fmt.Errorf("failed to parse JSON-RPC request: %w", err)
 		}
 		isBatchRequest = true
 	}
 
 	batchRes := make([]*jsonRpcMessage, len(msgs))
 	for i, msg := range msgs {
+		// Handle subscribe request
 		if msg.Method == "eth_subscribe" {
-			var params []interface{}
-			if err := json.Unmarshal(msg.Params, &params); err != nil {
-				batchRes[i] = msg.errorResponse(err)
-				continue
+			// Connect to WebSocket server
+			c, _, err := websocket.DefaultDialer.Dial(opSim.Chain.WSEndpoint(), nil)
+			if err != nil {
+				return fmt.Errorf("Dial error: %w", err)
 			}
 
-			var subscriptionID string
-			if err := opSim.Chain.RpcClient().Call(&subscriptionID, msg.Method, params...); err != nil {
-				batchRes[i] = msg.errorResponse(err)
-				continue
+			// Send the subscribe request
+			//marshal msg back to []bytes
+			msgBytes, err := json.Marshal(msg)
+			if err != nil {
+				c.Close()
+				return fmt.Errorf("Write error: %w", err)
+			}
+			if err := c.WriteMessage(initialMessageType, msgBytes); err != nil {
+				c.Close()
+				return fmt.Errorf("Write error: %w", err)
 			}
 
-			go opSim.forwardSubscriptionNotifications(conn, subscriptionID, params...)
-
-			batchRes[i] = &jsonRpcMessage{
-				Version: vsn,
-				Result:  json.RawMessage(fmt.Sprintf(`"%s"`, subscriptionID)),
-				ID:      msg.ID,
-			}
-			continue
-		}
-
-		if msg.Method == "eth_unsubscribe" {
-			var params []interface{}
-			if err := json.Unmarshal(msg.Params, &params); err != nil {
-				batchRes[i] = msg.errorResponse(err)
-				continue
+			// Read the subscription ID
+			_, responseMessage, err := c.ReadMessage()
+			if err != nil {
+				c.Close()
+				return fmt.Errorf("Read error: %w", err)
 			}
 
-			if len(params) == 0 {
-				batchRes[i] = msg.errorResponse(fmt.Errorf("missing subscription ID"))
-				continue
+			var subResponse struct {
+				ID     int    `json:"id"`
+				Result string `json:"result"`
 			}
-			subscriptionID, ok := params[0].(string)
-			if !ok {
-				batchRes[i] = msg.errorResponse(fmt.Errorf("invalid subscription ID"))
-				continue
-			}
-
-			var success bool
-			if err := opSim.Chain.RpcClient().Call(&success, msg.Method, params...); err != nil {
-				batchRes[i] = msg.errorResponse(err)
-				continue
+			if err := json.Unmarshal(responseMessage, &subResponse); err != nil {
+				c.Close()
+				return fmt.Errorf("failed to parse subscription response: %w", err)
 			}
 
+			// Store the connection
 			opSim.subsMutex.Lock()
-			if sub, exists := opSim.subscriptions[subscriptionID]; exists {
-				sub.Unsubscribe()
-				delete(opSim.subscriptions, subscriptionID)
+			if opSim.subscriptions == nil {
+				opSim.subscriptions = make(map[string]*websocket.Conn)
 			}
+			opSim.subscriptions[subResponse.Result] = c
 			opSim.subsMutex.Unlock()
 
-			batchRes[i] = &jsonRpcMessage{
-				Version: vsn,
-				Result:  json.RawMessage(fmt.Sprintf(`%v`, success)),
-				ID:      msg.ID,
+			var jsonRpcResponse *jsonRpcMessage
+			if err := json.Unmarshal(responseMessage, &jsonRpcResponse); err != nil {
+				return fmt.Errorf("failed to parse subscription response: %w", err)
 			}
-			continue
+			batchRes[i] = jsonRpcResponse
+
+			// Start a goroutine to forward messages from the subscription
+			go func() {
+				defer func() {
+					opSim.subsMutex.Lock()
+					delete(opSim.subscriptions, subResponse.Result)
+					opSim.subsMutex.Unlock()
+					c.Close()
+				}()
+
+				for {
+					messageType, message, err := c.ReadMessage()
+					if err != nil {
+						if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+							opSim.log.Error("Read error:", "error", err)
+						}
+						return
+					}
+					if err := conn.WriteMessage(messageType, message); err != nil {
+						opSim.log.Error("Failed to write WS Message", "error", err)
+						return
+					}
+				}
+			}()
 		}
 
-		batchRes[i] = opSim.superviseEthRequest(context.Background(), msg)
-	}
+		// Handle unsubscribe request
+		if msg.Method == "eth_unsubscribe" {
+			var params []string
+			if err := json.Unmarshal(msg.Params, &params); err != nil {
+				return fmt.Errorf("failed to parse unsubscribe params: %w", err)
+			}
+			if len(params) == 0 {
+				return fmt.Errorf("missing subscription ID")
+			}
+			subscriptionID := params[0]
 
-	var encdata []byte
-	var err error
-	if isBatchRequest {
-		encdata, err = json.Marshal(batchRes)
-	} else {
-		encdata, err = json.Marshal(batchRes[0])
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal response: %w", err)
-	}
+			opSim.subsMutex.Lock()
+			subConn, exists := opSim.subscriptions[subscriptionID]
+			if !exists {
+				opSim.subsMutex.Unlock()
+				return fmt.Errorf("subscription not found")
+			}
+			delete(opSim.subscriptions, subscriptionID)
+			opSim.subsMutex.Unlock()
 
-	return encdata, nil
-}
+			// Send unsubscribe request
+			if err := subConn.WriteMessage(initialMessageType, initialMessage); err != nil {
+				subConn.Close()
+				return fmt.Errorf("Write error: %w", err)
+			}
 
-func (opSim *OpSimulator) forwardSubscriptionNotifications(conn *websocket.Conn, subscriptionID string, params ...interface{}) {
-	defer func() {
-		opSim.subsMutex.Lock()
-		defer opSim.subsMutex.Unlock()
-
-		if opSim.Chain.RpcClient() != nil {
-			err := opSim.Chain.RpcClient().Call(nil, "eth_unsubscribe", subscriptionID)
+			// Read the response
+			_, response, err := subConn.ReadMessage()
 			if err != nil {
-				opSim.log.Error("Failed to unsubscribe from websocket", "subscriptionID", subscriptionID, "error", err)
+				subConn.Close()
+				return fmt.Errorf("Read error: %w", err)
 			}
+			var jsonRpcResponse *jsonRpcMessage
+			if err := json.Unmarshal(response, &jsonRpcResponse); err != nil {
+				return fmt.Errorf("failed to parse subscription response: %w", err)
+			}
+			batchRes[i] = jsonRpcResponse
+
+			subConn.Close()
 		}
-		delete(opSim.subscriptions, subscriptionID)
-	}()
 
-	notifications := make(chan json.RawMessage)
-	sub, err := opSim.Chain.RpcClient().EthSubscribe(context.Background(), notifications, params...)
-	if err != nil {
-		opSim.log.Error("Failed to subscribe to notifications", "error", err)
-		return
+		// TODO: For non subscription requests, figure out how to handle them
 	}
-	defer sub.Unsubscribe()
 
-	opSim.subsMutex.Lock()
-	if opSim.subscriptions == nil {
-		opSim.subscriptions = make(map[string]*rpc.ClientSubscription)
-	}
-	opSim.subscriptions[subscriptionID] = sub
-	opSim.subsMutex.Unlock()
-
-	// Forward notifications to the client
-	for {
-		select {
-		case notification := <-notifications:
-			response := &jsonRpcMessage{
-				Version: vsn,
-				Method:  "eth_subscription",
-				Params:  json.RawMessage(fmt.Sprintf(`{"subscription":"%s","result":%s}`, subscriptionID, notification)),
-			}
-			responseBytes, _ := json.Marshal(response)
-			if err := conn.WriteMessage(websocket.TextMessage, responseBytes); err != nil {
-				opSim.log.Error("Failed to forward notification", "error", err)
-				return
-			}
-		case <-sub.Err():
-			return
+	opSim.log.Info("Batch response length", "length", len(batchRes))
+	if isBatchRequest {
+		opSim.log.Info("Responding with batch response")
+		// Marshal the batch responses into a single JSON array
+		batchResponseJSON, err := json.Marshal(batchRes)
+		if err != nil {
+			return fmt.Errorf("failed to marshal batch response: %w", err)
 		}
+		return conn.WriteMessage(initialMessageType, batchResponseJSON)
+	} else {
+		opSim.log.Info("Responding with single response")
+		// For single requests, marshal the single response
+		responseJSON, err := json.Marshal(batchRes[0])
+		if err != nil {
+			return fmt.Errorf("failed to marshal response: %w", err)
+		}
+		return conn.WriteMessage(initialMessageType, responseJSON)
 	}
 }
