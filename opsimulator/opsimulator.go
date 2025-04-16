@@ -616,7 +616,6 @@ func (opSim *OpSimulator) processWSRequest(ctx context.Context, clientRequestMes
 				continue
 			}
 
-			// Send the subscribe request
 			msgBytes, err := json.Marshal(msg)
 			if err != nil {
 				batchRes[i] = msg.errorResponse(err)
@@ -643,7 +642,6 @@ func (opSim *OpSimulator) processWSRequest(ctx context.Context, clientRequestMes
 				continue
 			}
 
-			// Store the connection
 			opSim.subsMutex.Lock()
 			if opSim.subscriptions == nil {
 				opSim.subscriptions = make(map[string]*websocket.Conn)
@@ -685,7 +683,6 @@ func (opSim *OpSimulator) processWSRequest(ctx context.Context, clientRequestMes
 			continue
 		}
 
-		// Handle unsubscribe request
 		if msg.Method == "eth_unsubscribe" {
 			var params []string
 			if err := json.Unmarshal(msg.Params, &params); err != nil {
