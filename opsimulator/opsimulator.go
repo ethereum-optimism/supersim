@@ -68,11 +68,6 @@ type OpSimulator struct {
 	clientConnMu  sync.Mutex
 }
 
-type WSResponse struct {
-	messageType int
-	message     []byte
-}
-
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
 func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host string, l1Chain, l2Chain config.Chain, peers map[uint64]config.Chain, interopDelay uint64) *OpSimulator {
 	bgTasksCtx, bgTasksCancel := context.WithCancel(context.Background())
@@ -610,10 +605,13 @@ func (opSim *OpSimulator) processWSRequest(ctx context.Context, clientRequestMes
 	batchRes := make([]*jsonRpcMessage, len(msgs))
 	for i, msg := range msgs {
 		if msg.Method == "eth_subscribe" {
-			chainConn, _, err := websocket.DefaultDialer.Dial(opSim.Chain.WSEndpoint(), nil)
+			chainConn, resp, err := websocket.DefaultDialer.Dial(opSim.Chain.WSEndpoint(), nil)
 			if err != nil {
 				batchRes[i] = msg.errorResponse(err)
 				continue
+			}
+			if resp != nil {
+				defer resp.Body.Close()
 			}
 
 			msgBytes, err := json.Marshal(msg)
