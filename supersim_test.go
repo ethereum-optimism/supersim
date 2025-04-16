@@ -2,7 +2,6 @@ package supersim
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -1253,9 +1252,7 @@ func TestEthSubscribeNewHeads(t *testing.T) {
 	testSuite := createTestSuite(t)
 
 	// Connect to the WebSocket endpoint
-	wsURL := strings.Replace(testSuite.Supersim.Orchestrator.Endpoint(testSuite.Supersim.NetworkConfig.L2Configs[0].ChainID), "http", "ws", 1)
-	fmt.Println("wsURL", wsURL)
-	conn, err := websocket.Dial(wsURL, "", "http://localhost")
+	conn, err := websocket.Dial(testSuite.Supersim.Orchestrator.WSEndpoint(testSuite.Supersim.NetworkConfig.L2Configs[0].ChainID), "", "http://localhost")
 	require.NoError(t, err)
 	defer conn.Close()
 
