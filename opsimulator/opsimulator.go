@@ -66,7 +66,7 @@ type OpSimulator struct {
 
 	subscriptions map[string]*websocket.Conn
 	subsMutex     sync.Mutex
-	clientConnMu  sync.Mutex // Add mutex to protect client connection writes
+	clientConnMu  sync.Mutex
 }
 
 type WSResponse struct {
