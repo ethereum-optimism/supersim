@@ -66,6 +66,7 @@ type OpSimulator struct {
 
 	subscriptions map[string]*websocket.Conn
 	subsMutex     sync.Mutex
+	clientConnMu  sync.Mutex // Add mutex to protect client connection writes
 }
 
 type WSResponse struct {
@@ -673,10 +674,13 @@ func (opSim *OpSimulator) processWSRequest(ctx context.Context, clientRequestMes
 						}
 						return
 					}
+					opSim.clientConnMu.Lock()
 					if err := clientConn.WriteMessage(messageType, message); err != nil {
+						opSim.clientConnMu.Unlock()
 						opSim.log.Error("Failed to write WS Message", "error", err)
 						return
 					}
+					opSim.clientConnMu.Unlock()
 				}
 			}()
 
@@ -727,6 +731,8 @@ func (opSim *OpSimulator) processWSRequest(ctx context.Context, clientRequestMes
 		batchRes[i] = opSim.superviseEthRequest(ctx, msg)
 	}
 
+	opSim.clientConnMu.Lock()
+	defer opSim.clientConnMu.Unlock()
 	if isBatchRequest {
 		batchResponseJSON, err := json.Marshal(batchRes)
 		if err != nil {
