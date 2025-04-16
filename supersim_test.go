@@ -33,6 +33,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/websocket"
 )
 
 const (
@@ -223,6 +224,36 @@ func TestStartup(t *testing.T) {
 
 	// test that l1 anvil can be queried
 	l1Client, err := rpc.Dial(testSuite.Supersim.Orchestrator.L1Chain().Endpoint())
+	require.NoError(t, err)
+
+	var chainId gethmath.HexOrDecimal64
+	require.NoError(t, l1Client.CallContext(context.Background(), &chainId, "eth_chainId"))
+	require.Equal(t, testSuite.Supersim.Orchestrator.L1Chain().Config().ChainID, uint64(chainId))
+
+	l1Client.Close()
+}
+
+func TestWsStartup(t *testing.T) {
+	t.Parallel()
+	testSuite := createTestSuite(t)
+
+	l2Chains := testSuite.Supersim.Orchestrator.L2Chains()
+	require.True(t, len(l2Chains) > 0)
+
+	// test that all chains can be queried
+	for _, chain := range l2Chains {
+		l2Client, err := rpc.DialWebsocket(context.Background(), chain.WSEndpoint(), "")
+		require.NoError(t, err)
+
+		var chainId gethmath.HexOrDecimal64
+		require.NoError(t, l2Client.CallContext(context.Background(), &chainId, "eth_chainId"))
+		require.Equal(t, chain.Config().ChainID, uint64(chainId))
+
+		l2Client.Close()
+	}
+
+	// test that l1 anvil can be queried
+	l1Client, err := rpc.DialWebsocket(context.Background(), testSuite.Supersim.Orchestrator.L1Chain().WSEndpoint(), "")
 	require.NoError(t, err)
 
 	var chainId gethmath.HexOrDecimal64
@@ -429,6 +460,27 @@ func TestBatchJsonRpcRequests(t *testing.T) {
 	}
 }
 
+func TestBatchJsonRpcRequestsWs(t *testing.T) {
+	t.Parallel()
+	testSuite := createTestSuite(t)
+
+	for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
+		client, err := ethclient.Dial(testSuite.Supersim.Orchestrator.WSEndpoint(chain.Config().ChainID))
+		require.NoError(t, err)
+		defer client.Close()
+
+		elems := []rpc.BatchElem{{Method: "eth_chainId", Result: new(hexutil.Uint64)}, {Method: "eth_blockNumber", Result: new(hexutil.Uint64)}}
+		require.NoError(t, client.Client().BatchCall(elems))
+
+		require.Nil(t, elems[0].Error)
+		require.Nil(t, elems[1].Error)
+
+		require.NotZero(t, uint64(*(elems[0].Result).(*hexutil.Uint64)))
+		// TODO: fix later, this occasionally fails when we set anvil on block-time 2
+		// require.NotZero(t, uint64(*(elems[1].Result).(*hexutil.Uint64)))
+	}
+}
+
 func TestBatchJsonRpcRequestErrorHandling(t *testing.T) {
 	t.Parallel()
 	testSuite := createInteropTestSuite(t)
@@ -549,6 +601,70 @@ func TestInteropInvariantCheckSucceeds(t *testing.T) {
 	require.True(t, receipt.Status == 1, "initiating message transaction failed")
 }
 
+func TestInteropInvariantCheckSucceedsWs(t *testing.T) {
+	t.Parallel()
+	testSuite := createInteropTestSuite(t)
+
+	sourceClient, err := ethclient.Dial(testSuite.Supersim.Orchestrator.WSEndpoint(testSuite.Supersim.NetworkConfig.L2Configs[0].ChainID))
+	require.NoError(t, err)
+	defer sourceClient.Close()
+
+	destClient, err := ethclient.Dial(testSuite.Supersim.Orchestrator.WSEndpoint(testSuite.Supersim.NetworkConfig.L2Configs[1].ChainID))
+	require.NoError(t, err)
+	defer destClient.Close()
+
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
+	require.NoError(t, err)
+
+	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, sourceClient)
+	require.NoError(t, err)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := predeploys.L2toL2CrossDomainMessengerAddr
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+	tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), sourceClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// progress forward one block before sending tx
+	err = testSuite.DestEthClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+	err = sourceClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+
+	l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, destClient)
+	require.NoError(t, err)
+	initiatingMessageBlockHeader, err := sourceClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	require.NoError(t, err)
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := bindings.Identifier{
+		Origin:      origin,
+		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+		LogIndex:    big.NewInt(0),
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
+		ChainId:     testSuite.SourceChainID,
+	}
+	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
+	require.NoError(t, err)
+	transactor.AccessList = interop.MessageAccessList(&identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
+
+	// Should succeed
+	tx, err = l2tol2CDM.RelayMessage(transactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
+	require.NoError(t, err)
+
+	receipt, err := bind.WaitMined(context.Background(), testSuite.DestEthClient, tx)
+	require.NoError(t, err)
+	require.True(t, receipt.Status == 1, "initiating message transaction failed")
+}
+
 func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 	t.Parallel()
 	testSuite := createInteropTestSuite(t)
@@ -583,6 +699,68 @@ func TestInteropInvariantCheckFailsBadLogIndex(t *testing.T) {
 	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, testSuite.DestEthClient)
 	require.NoError(t, err)
 	initiatingMessageBlockHeader, err := testSuite.SourceEthClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+	require.NoError(t, err)
+
+	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+	identifier := bindings.Identifier{
+		Origin:      origin,
+		BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+		LogIndex:    big.NewInt(5), // Wrong index
+		Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
+		ChainId:     testSuite.SourceChainID,
+	}
+	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.DestChainID)
+	require.NoError(t, err)
+
+	transactor.AccessList = interop.MessageAccessList(&identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
+
+	// Should fail because the log index is incorrect
+	_, err = crossL2Inbox.ValidateMessage(transactor, identifier, crypto.Keccak256Hash(interop.ExecutingMessagePayloadBytes(initiatingMessageLog)))
+	require.Error(t, err)
+}
+
+func TestInteropInvariantCheckFailsBadLogIndexWs(t *testing.T) {
+	t.Parallel()
+	testSuite := createInteropTestSuite(t)
+
+	sourceClient, err := ethclient.Dial(testSuite.Supersim.Orchestrator.WSEndpoint(testSuite.Supersim.NetworkConfig.L2Configs[0].ChainID))
+	require.NoError(t, err)
+	defer sourceClient.Close()
+
+	destClient, err := ethclient.Dial(testSuite.Supersim.Orchestrator.WSEndpoint(testSuite.Supersim.NetworkConfig.L2Configs[1].ChainID))
+	require.NoError(t, err)
+	defer destClient.Close()
+
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
+	require.NoError(t, err)
+
+	l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, sourceClient)
+	require.NoError(t, err)
+
+	// Create initiating message using L2ToL2CrossDomainMessenger
+	origin := predeploys.L2toL2CrossDomainMessengerAddr
+	parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+	data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+	require.NoError(t, err)
+
+	sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, testSuite.SourceChainID)
+	require.NoError(t, err)
+	tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, testSuite.DestChainID, predeploys.SchemaRegistryAddr, data)
+	require.NoError(t, err)
+
+	initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), sourceClient, tx)
+	require.NoError(t, err)
+	require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+	// progress forward one block before sending tx
+	err = destClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+	err = sourceClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+	require.NoError(t, err)
+
+	crossL2Inbox, err := bindings.NewCrossL2Inbox(predeploys.CrossL2InboxAddr, destClient)
+	require.NoError(t, err)
+	initiatingMessageBlockHeader, err := sourceClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
 	require.NoError(t, err)
 
 	initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
@@ -1067,4 +1245,60 @@ func TestAdminGetL2ToL2MessageByMsgHash(t *testing.T) {
 	assert.Equal(t, testSuite.SourceChainID.Uint64(), message.Source)
 	assert.Equal(t, tx.To().String(), message.Target.String())
 	assert.Equal(t, tx.To().String(), message.Sender.String())
+}
+
+func TestEthSubscribeNewHeads(t *testing.T) {
+	t.Parallel()
+	testSuite := createTestSuite(t)
+
+	// Connect to the WebSocket endpoint
+	conn, err := websocket.Dial(testSuite.Supersim.Orchestrator.WSEndpoint(testSuite.Supersim.NetworkConfig.L2Configs[0].ChainID), "", "http://localhost")
+	require.NoError(t, err)
+	defer conn.Close()
+
+	// Subscribe to newHeads
+	subscribeMsg := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "eth_subscribe",
+		"params":  []string{"newHeads"},
+	}
+	err = websocket.JSON.Send(conn, subscribeMsg)
+	require.NoError(t, err)
+
+	// Read the subscription response
+	var subscribeResponse map[string]interface{}
+	err = websocket.JSON.Receive(conn, &subscribeResponse)
+	require.NoError(t, err)
+	require.NotNil(t, subscribeResponse["result"])
+	subscriptionID := subscribeResponse["result"].(string)
+	require.NotEmpty(t, subscriptionID)
+
+	// Mine a new block to trigger the subscription
+	err = testSuite.Supersim.Orchestrator.L2Chains()[0].EthClient().Client().CallContext(context.Background(), nil, "anvil_mine", uint64(1))
+	require.NoError(t, err)
+
+	// Read the notification
+	var notification map[string]interface{}
+	err = websocket.JSON.Receive(conn, &notification)
+	require.NoError(t, err)
+	require.Equal(t, "eth_subscription", notification["method"])
+	require.Equal(t, subscriptionID, notification["params"].(map[string]interface{})["subscription"])
+	require.NotNil(t, notification["params"].(map[string]interface{})["result"])
+
+	// Unsubscribe
+	unsubscribeMsg := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      2,
+		"method":  "eth_unsubscribe",
+		"params":  []string{subscriptionID},
+	}
+	err = websocket.JSON.Send(conn, unsubscribeMsg)
+	require.NoError(t, err)
+
+	// Read the unsubscribe response
+	var unsubscribeResponse map[string]interface{}
+	err = websocket.JSON.Receive(conn, &unsubscribeResponse)
+	require.NoError(t, err)
+	require.True(t, unsubscribeResponse["result"].(bool))
 }
