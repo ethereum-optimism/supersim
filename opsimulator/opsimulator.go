@@ -596,7 +596,6 @@ func (opSim *OpSimulator) handleWebSocket(w http.ResponseWriter, r *http.Request
 func (opSim *OpSimulator) processWSRequest(ctx context.Context, clientRequestMessageType int, clientRequestMessage []byte, clientConn *websocket.Conn) error {
 	var msgs []*jsonRpcMessage
 	var isBatchRequest bool
-	// Parse the message to check if it's a subscribe/unsubscribe request
 	var singleMsg jsonRpcMessage
 	if err := json.Unmarshal(clientRequestMessage, &singleMsg); err == nil {
 		msgs = []*jsonRpcMessage{&singleMsg}
@@ -610,9 +609,7 @@ func (opSim *OpSimulator) processWSRequest(ctx context.Context, clientRequestMes
 
 	batchRes := make([]*jsonRpcMessage, len(msgs))
 	for i, msg := range msgs {
-		// Handle subscribe request
 		if msg.Method == "eth_subscribe" {
-			// Connect to WebSocket server
 			chainConn, _, err := websocket.DefaultDialer.Dial(opSim.Chain.WSEndpoint(), nil)
 			if err != nil {
 				batchRes[i] = msg.errorResponse(err)
@@ -727,21 +724,19 @@ func (opSim *OpSimulator) processWSRequest(ctx context.Context, clientRequestMes
 
 				continue
 			}
-			// if it does not exist, then pass through the request
+			// if subscription does not exist, then pass through the request
 		}
 
 		batchRes[i] = opSim.superviseEthRequest(ctx, msg)
 	}
 
 	if isBatchRequest {
-		// Marshal the batch responses into a single JSON array
 		batchResponseJSON, err := json.Marshal(batchRes)
 		if err != nil {
 			return fmt.Errorf("failed to marshal batch response: %w", err)
 		}
 		return clientConn.WriteMessage(clientRequestMessageType, batchResponseJSON)
 	} else {
-		// For single requests, marshal the single response
 		responseJSON, err := json.Marshal(batchRes[0])
 		if err != nil {
 			return fmt.Errorf("failed to marshal response: %w", err)
