@@ -1303,6 +1303,5 @@ func TestEthSubscribeNewHeads(t *testing.T) {
 	var unsubscribeResponse map[string]interface{}
 	err = websocket.JSON.Receive(conn, &unsubscribeResponse)
 	require.NoError(t, err)
-	fmt.Println("unsubscribeResponse", unsubscribeResponse)
 	require.True(t, unsubscribeResponse["result"].(bool))
 }
