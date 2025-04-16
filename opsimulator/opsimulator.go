@@ -62,8 +62,7 @@ type OpSimulator struct {
 	stopped atomic.Bool
 
 	// WebSocket configuration
-	upgrader websocket.Upgrader
-
+	upgrader      websocket.Upgrader
 	subscriptions map[string]*websocket.Conn
 	subsMutex     sync.Mutex
 	clientConnMu  sync.Mutex
