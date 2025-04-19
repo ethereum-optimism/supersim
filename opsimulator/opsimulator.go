@@ -695,7 +695,11 @@ func (opSim *OpSimulator) processWSRequest(ctx context.Context, clientRequestMes
 				continue
 			}
 			subscriptionID := params[0]
+
+			opSim.subsMutex.Lock()
 			subConn, exists := opSim.subscriptions[subscriptionID]
+			opSim.subsMutex.Unlock()
+
 			if exists {
 				defer subConn.Close()
 				// Send unsubscribe request
