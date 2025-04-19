@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
 	gethmath "github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -1141,7 +1140,7 @@ func TestInteropInvariantSucceedsWithDelay(t *testing.T) {
 func TestInteropInvariantFailsWhenDelayTimeNotPassed(t *testing.T) {
 	t.Parallel()
 	testSuite := createInteropTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
-		cfg.InteropDelay = math.MaxBig256.Uint64() / 2 // added to block time so provide leeway to not overflow
+		cfg.InteropDelay = gethmath.MaxBig256.Uint64() / 2 // added to block time so provide leeway to not overflow
 		return cfg
 	})
 
