@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"sync"
 	"sync/atomic"
 
 	ophttp "github.com/ethereum-optimism/optimism/op-service/httputil"
@@ -29,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -58,6 +60,12 @@ type OpSimulator struct {
 	ethClient *ethclient.Client
 
 	stopped atomic.Bool
+
+	// WebSocket configuration
+	upgrader      websocket.Upgrader
+	subscriptions map[string]*websocket.Conn
+	subsMutex     sync.Mutex
+	clientConnMu  sync.Mutex
 }
 
 // OpSimulator wraps around the l2 chain. By embedding `Chain`, it also implements the same inteface
@@ -83,12 +91,32 @@ func New(log log.Logger, closeApp context.CancelCauseFunc, port uint64, host str
 		},
 
 		peers: peers,
+
+		upgrader: websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+			CheckOrigin: func(r *http.Request) bool {
+				// Allow all origins for development
+				return true
+			},
+		},
 	}
 }
 
 func (opSim *OpSimulator) Start(ctx context.Context) error {
 	mux := http.NewServeMux()
-	mux.Handle("/", corsHandler(opSim.handler(ctx)))
+
+	// Use a single handler for both HTTP and WebSocket
+	mux.Handle("/", corsHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if this is a WebSocket request
+		if websocket.IsWebSocketUpgrade(r) {
+			opSim.handleWebSocket(w, r)
+			return
+		}
+
+		// Otherwise handle as HTTP request
+		opSim.handler(ctx)(w, r)
+	})))
 
 	hs, err := ophttp.StartHTTPServer(net.JoinHostPort(opSim.host, fmt.Sprintf("%d", opSim.port)), mux)
 	if err != nil {
@@ -187,7 +215,6 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			name    string
 			address common.Address
 		}{
-			{"SuperchainWETH", predeploys.SuperchainWETHAddr},
 			{"L2NativeSuperchainERC20", common.HexToAddress(l2NativeSuperchainERC20Addr)},
 		}
 
@@ -259,31 +286,31 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 		}
 	})
 
-	// Log SuperchainWETH events
+	// Log SuperchainETHBridge events
 	opSim.bgTasks.Go(func() error {
-		superchainWeth, err := bindings.NewSuperchainWETH(predeploys.SuperchainWETHAddr, opSim.Chain.EthClient())
+		superchainETHBridge, err := bindings.NewSuperchainETHBridge(predeploys.SuperchainETHBridgeAddr, opSim.Chain.EthClient())
 		if err != nil {
-			return fmt.Errorf("failed to create SuperchainWETH contract: %w", err)
+			return fmt.Errorf("failed to create SuperchainETHBridge contract: %w", err)
 		}
 
-		sendEventChan := make(chan *bindings.SuperchainWETHSendETH)
-		sendSub, err := superchainWeth.WatchSendETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, sendEventChan, nil, nil)
+		sendEventChan := make(chan *bindings.SuperchainETHBridgeSendETH)
+		sendSub, err := superchainETHBridge.WatchSendETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, sendEventChan, nil, nil)
 		if err != nil {
-			return fmt.Errorf("failed to subscribe to SuperchainWETH#SendETH: %w", err)
+			return fmt.Errorf("failed to subscribe to SuperchainETHBridge#SendETH: %w", err)
 		}
 
-		relayEventChan := make(chan *bindings.SuperchainWETHRelayETH)
-		relaySub, err := superchainWeth.WatchRelayETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, relayEventChan, nil, nil)
+		relayEventChan := make(chan *bindings.SuperchainETHBridgeRelayETH)
+		relaySub, err := superchainETHBridge.WatchRelayETH(&bind.WatchOpts{Context: opSim.bgTasksCtx}, relayEventChan, nil, nil)
 		if err != nil {
-			return fmt.Errorf("failed to subscribe to SuperchainWETH#RelayETH: %w", err)
+			return fmt.Errorf("failed to subscribe to SuperchainETHBridge#RelayETH: %w", err)
 		}
 
 		for {
 			select {
 			case event := <-sendEventChan:
-				opSim.log.Info("SuperchainWETH#SendETH", "from", event.From, "to", event.To, "amount", event.Amount, "destination", event.Destination)
+				opSim.log.Info("SuperchainETHBridge#SendETH", "from", event.From, "to", event.To, "amount", event.Amount, "destination", event.Destination)
 			case event := <-relayEventChan:
-				opSim.log.Info("SuperchainWETH#RelayETH", "from", event.From, "to", event.To, "amount", event.Amount, "source", event.Source)
+				opSim.log.Info("SuperchainETHBridge#RelayETH", "from", event.From, "to", event.To, "amount", event.Amount, "source", event.Source)
 			case <-opSim.bgTasksCtx.Done():
 				sendSub.Unsubscribe()
 				relaySub.Unsubscribe()
@@ -291,6 +318,55 @@ func (opSim *OpSimulator) startBackgroundTasks() {
 			}
 		}
 	})
+}
+
+func (opSim *OpSimulator) superviseEthRequest(ctx context.Context, msg *jsonRpcMessage) *jsonRpcMessage {
+	if msg.Method == "eth_sendRawTransaction" {
+		var params []hexutil.Bytes
+		if err := json.Unmarshal(msg.Params, &params); err != nil {
+			opSim.log.Error("bad params sent to eth_sendRawTransaction", "err", err)
+			return msg.errorResponse(err)
+		}
+		if len(params) != 1 {
+			opSim.log.Error("eth_sendRawTransaction request has invalid number of params")
+			return msg.errorResponse(&jsonError{Code: InvalidParams, Message: "invalid request params"})
+		}
+
+		tx := new(types.Transaction)
+		if err := tx.UnmarshalBinary(params[0]); err != nil {
+			opSim.log.Error("failed to decode transaction data", "err", err)
+			return msg.errorResponse(err)
+		}
+
+		txHash := tx.Hash()
+
+		// Deposits should not be directly sendable to the L2
+		if tx.IsDepositTx() {
+			opSim.log.Error("rejecting deposit tx", "hash", txHash.String())
+			return msg.errorResponse(&jsonError{Code: InvalidParams, Message: "cannot process deposit tx"})
+		}
+
+		// Simulate the tx.
+		logs, err := opSim.SimulatedLogs(ctx, tx)
+		if err != nil {
+			opSim.log.Warn("failed to simulate transaction!!!", "err", err, "hash", txHash)
+			return msg.errorResponse(&jsonError{Code: InvalidParams, Message: "failed tx simulation"})
+		} else {
+			if err := opSim.checkInteropInvariants(ctx, logs); err != nil {
+				opSim.log.Error("unable to statisfy interop invariants within transaction", "err", err, "hash", txHash)
+				return msg.errorResponse(&jsonError{Code: InvalidParams, Message: err.Error()})
+			}
+		}
+	}
+
+	// NOTE: This fans out the batch request into individual requests. To match expected behavior, this
+	// should filter out messages that are invalid and reconstruct a single batch request to forward
+	response, jsonErr := forwardRPCRequest(ctx, opSim.Chain.EthClient().Client(), msg)
+	if jsonErr != nil {
+		return msg.errorResponse(jsonErr)
+	}
+
+	return response
 }
 
 func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
@@ -308,60 +384,9 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 			return
 		}
 
-		rpcClient := opSim.Chain.EthClient().Client()
 		batchRes := make([]*jsonRpcMessage, len(msgs))
 		for i, msg := range msgs {
-			if msg.Method == "eth_sendRawTransaction" {
-				var params []hexutil.Bytes
-				if err := json.Unmarshal(msg.Params, &params); err != nil {
-					opSim.log.Error("bad params sent to eth_sendRawTransaction", "err", err)
-					batchRes[i] = msg.errorResponse(err)
-					continue
-				}
-				if len(params) != 1 {
-					opSim.log.Error("eth_sendRawTransaction request has invalid number of params")
-					batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: "invalid request params"})
-					continue
-				}
-
-				tx := new(types.Transaction)
-				if err := tx.UnmarshalBinary(params[0]); err != nil {
-					opSim.log.Error("failed to decode transaction data", "err", err)
-					batchRes[i] = msg.errorResponse(err)
-					continue
-				}
-
-				txHash := tx.Hash()
-
-				// Deposits should not be directly sendable to the L2
-				if tx.IsDepositTx() {
-					opSim.log.Error("rejecting deposit tx", "hash", txHash.String())
-					batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: "cannot process deposit tx"})
-					continue
-				}
-
-				// Simulate the tx.
-				logs, err := opSim.SimulatedLogs(ctx, tx)
-				if err != nil {
-					opSim.log.Warn("failed to simulate transaction!!!", "err", err, "hash", txHash)
-					batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: "failed tx simulation"})
-					continue
-				} else {
-					if err := opSim.checkInteropInvariants(ctx, logs); err != nil {
-						opSim.log.Error("unable to statisfy interop invariants within transaction", "err", err, "hash", txHash)
-						batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: err.Error()})
-						continue
-					}
-				}
-			}
-
-			// NOTE: This fans out the batch request into individual requests. To match expected behavior, this
-			// should filter out messages that are invalid and reconstruct a single batch request to forward
-			var jsonErr *jsonError
-			batchRes[i], jsonErr = forwardRPCRequest(ctx, rpcClient, msg)
-			if jsonErr != nil {
-				batchRes[i] = msg.errorResponse(jsonErr)
-			}
+			batchRes[i] = opSim.superviseEthRequest(ctx, msg)
 		}
 
 		var encdata []byte
@@ -499,6 +524,11 @@ func (opSim *OpSimulator) Endpoint() string {
 	return fmt.Sprintf("http://%s:%d", opSim.host, opSim.port)
 }
 
+// Overridden such that the correct port is used
+func (opSim *OpSimulator) WSEndpoint() string {
+	return fmt.Sprintf("ws://%s:%d", opSim.host, opSim.port)
+}
+
 func corsHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -512,4 +542,205 @@ func corsHandler(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (opSim *OpSimulator) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	conn, err := opSim.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		opSim.log.Error("Failed to upgrade connection to WebSocket", "error", err)
+		return
+	}
+	defer conn.Close()
+
+	// Create a context for managing the connection lifecycle
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Channel to signal when we're done
+	done := make(chan struct{})
+
+	// Start a goroutine to handle messages from the client
+	go func() {
+		defer close(done)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				messageType, message, err := conn.ReadMessage()
+				if err != nil {
+					if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+						opSim.log.Error("WebSocket error", "error", err)
+					}
+					return
+				}
+				// Process the message in a separate goroutine to avoid blocking
+				go func(msgType int, msg []byte) {
+					if err := opSim.processWSRequest(ctx, msgType, msg, conn); err != nil {
+						opSim.log.Error("Failed to process WS RPC request", "error", err)
+					}
+				}(messageType, message)
+			}
+		}
+	}()
+
+	// Wait for the connection to be closed
+	<-done
+}
+
+func (opSim *OpSimulator) processWSRequest(ctx context.Context, clientRequestMessageType int, clientRequestMessage []byte, clientConn *websocket.Conn) error {
+	var msgs []*jsonRpcMessage
+	var isBatchRequest bool
+	var singleMsg jsonRpcMessage
+	if err := json.Unmarshal(clientRequestMessage, &singleMsg); err == nil {
+		msgs = []*jsonRpcMessage{&singleMsg}
+	} else {
+		// If that fails, try parsing as a batch
+		if err := json.Unmarshal(clientRequestMessage, &msgs); err != nil {
+			return fmt.Errorf("failed to parse JSON-RPC request: %w", err)
+		}
+		isBatchRequest = true
+	}
+
+	batchRes := make([]*jsonRpcMessage, len(msgs))
+	for i, msg := range msgs {
+		if msg.Method == "eth_subscribe" {
+			chainConn, resp, err := websocket.DefaultDialer.Dial(opSim.Chain.WSEndpoint(), nil)
+			if err != nil {
+				batchRes[i] = msg.errorResponse(err)
+				continue
+			}
+			if resp != nil {
+				defer resp.Body.Close()
+			}
+
+			msgBytes, err := json.Marshal(msg)
+			if err != nil {
+				batchRes[i] = msg.errorResponse(err)
+				continue
+			}
+			if err := chainConn.WriteMessage(clientRequestMessageType, msgBytes); err != nil {
+				batchRes[i] = msg.errorResponse(err)
+				continue
+			}
+
+			// Read the subscription ID
+			_, responseMessage, err := chainConn.ReadMessage()
+			if err != nil {
+				batchRes[i] = msg.errorResponse(err)
+				continue
+			}
+
+			var subResponse struct {
+				ID     int    `json:"id"`
+				Result string `json:"result"`
+			}
+			if err := json.Unmarshal(responseMessage, &subResponse); err != nil {
+				batchRes[i] = msg.errorResponse(err)
+				continue
+			}
+
+			opSim.subsMutex.Lock()
+			if opSim.subscriptions == nil {
+				opSim.subscriptions = make(map[string]*websocket.Conn)
+			}
+			opSim.subscriptions[subResponse.Result] = chainConn
+			opSim.subsMutex.Unlock()
+
+			var jsonRpcResponse *jsonRpcMessage
+			if err := json.Unmarshal(responseMessage, &jsonRpcResponse); err != nil {
+				batchRes[i] = msg.errorResponse(err)
+				continue
+			}
+			batchRes[i] = jsonRpcResponse
+
+			// Start a goroutine to forward messages from the subscription
+			go func() {
+				defer func() {
+					opSim.subsMutex.Lock()
+					delete(opSim.subscriptions, subResponse.Result)
+					opSim.subsMutex.Unlock()
+					chainConn.Close()
+				}()
+
+				for {
+					messageType, message, err := chainConn.ReadMessage()
+					if err != nil {
+						if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+							opSim.log.Error("WS connection closed unexpectedly", "error", err)
+						}
+						return
+					}
+					opSim.clientConnMu.Lock()
+					if err := clientConn.WriteMessage(messageType, message); err != nil {
+						opSim.clientConnMu.Unlock()
+						opSim.log.Error("Failed to write WS Message", "error", err)
+						return
+					}
+					opSim.clientConnMu.Unlock()
+				}
+			}()
+
+			continue
+		}
+
+		if msg.Method == "eth_unsubscribe" {
+			var params []string
+			if err := json.Unmarshal(msg.Params, &params); err != nil {
+				batchRes[i] = msg.errorResponse(err)
+				continue
+			}
+			if len(params) != 1 {
+				batchRes[i] = msg.errorResponse(&jsonError{Code: InvalidParams, Message: "invalid request params"})
+				continue
+			}
+			subscriptionID := params[0]
+			subConn, exists := opSim.subscriptions[subscriptionID]
+			if exists {
+				defer subConn.Close()
+				// Send unsubscribe request
+				if err := subConn.WriteMessage(clientRequestMessageType, clientRequestMessage); err != nil {
+					batchRes[i] = msg.errorResponse(err)
+					continue
+				}
+				opSim.subsMutex.Lock()
+				delete(opSim.subscriptions, subscriptionID)
+				opSim.subsMutex.Unlock()
+
+				// Read the response
+				_, response, err := subConn.ReadMessage()
+				if err != nil {
+					batchRes[i] = msg.errorResponse(err)
+					continue
+				}
+				var jsonRpcResponse *jsonRpcMessage
+				if err := json.Unmarshal(response, &jsonRpcResponse); err != nil {
+					batchRes[i] = msg.errorResponse(err)
+					continue
+				}
+				batchRes[i] = jsonRpcResponse
+
+				continue
+			}
+			// if subscription does not exist, then pass through the request
+		}
+
+		batchRes[i] = opSim.superviseEthRequest(ctx, msg)
+	}
+
+	opSim.clientConnMu.Lock()
+	defer opSim.clientConnMu.Unlock()
+	if isBatchRequest {
+		batchResponseJSON, err := json.Marshal(batchRes)
+		if err != nil {
+			return fmt.Errorf("failed to marshal batch response: %w", err)
+		}
+		return clientConn.WriteMessage(clientRequestMessageType, batchResponseJSON)
+	} else {
+		responseJSON, err := json.Marshal(batchRes[0])
+		if err != nil {
+			return fmt.Errorf("failed to marshal response: %w", err)
+		}
+		return clientConn.WriteMessage(clientRequestMessageType, responseJSON)
+	}
 }

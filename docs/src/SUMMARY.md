@@ -16,8 +16,6 @@
 
 - [Included contracts](./chain-environment/contracts/README.md)
 - [Network details & contract addresses](./chain-environment/network-details/README.md)
-  - [OPChainA](./chain-environment/network-details/op-chain-a.md)
-  - [OPChainB](./chain-environment/network-details/op-chain-b.md)
 
 # Guides
 

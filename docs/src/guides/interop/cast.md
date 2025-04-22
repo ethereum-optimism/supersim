@@ -85,7 +85,7 @@ cast send 0x4200000000000000000000000000000000000028 "sendERC20(address _token, 
 
 ### 4. Get the log emitted by the `L2ToL2CrossDomainMessenger`
 
-The token contract calls the [L2ToL2CrossDomainMessenger](https://github.com/ethereum-optimism/optimism/blob/92ed64e171c6eb9c6a080c626640e8836f0653cc/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol), which emits a message (log) that can be relayed on the destination chain.
+The token contract calls the [L2ToL2CrossDomainMessenger](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/L2ToL2CrossDomainMessenger.sol), which emits a message (log) that can be relayed on the destination chain.
 
 ```sh
 cast logs --address 0x4200000000000000000000000000000000000023 --rpc-url http://127.0.0.1:9545
