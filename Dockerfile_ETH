@@ -1,6 +1,6 @@
 # The base image for the supersim image can be modified
 # by specifying BASE_IMAGE build argument
-ARG BASE_IMAGE=golang:1.22
+ARG ETH_IMAGE=golang:1.37
 
 #   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-
 #  / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \
@@ -11,7 +11,7 @@ ARG BASE_IMAGE=golang:1.22
 #   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-
 #  / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \
 # `-'   `-`-'   `-`-'   `-`-'   `-`-'   `-`-'   `-`-'   `-`-'
-FROM $BASE_IMAGE AS foundry
+FROM $ETH_IMAGE AS foundry
 
 # Make sure foundryup is available
 ENV PATH="/root/.foundry/bin:${PATH}"
@@ -34,7 +34,7 @@ RUN foundryup
 #   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-
 #  / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \
 # `-'   `-`-'   `-`-'   `-`-'   `-`-'   `-`-'   `-`-'   `-`-'
-FROM $BASE_IMAGE AS builder
+FROM $ETH_IMAGE AS builder
 
 WORKDIR /app
 
@@ -52,7 +52,7 @@ RUN go build -o supersim cmd/main.go
 #   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-.   .-.-
 #  / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \ \ / / \
 # `-'   `-`-'   `-`-'   `-`-'   `-`-'   `-`-'   `-`-'   `-`-'
-FROM $BASE_IMAGE AS runner
+FROM $ETH_IMAGE AS runner
 
 # Add foundry & supersim directories to the system PATH
 ENV PATH="/root/.foundry/bin:/root/.supersim/bin:${PATH}"
