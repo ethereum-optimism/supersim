@@ -61,7 +61,23 @@ func deployPeripheryContracts(logger log.Logger, l2Host *script.Host, peripheryA
 		return fmt.Errorf("failed to dump state after deploying periphery contracts: %w", err)
 	}
 
+	deployL2AuxilliaryContractsScript, cleanup, err := script.WithScript[DeployL2PeripheryContractsScript](l2PeripheryHost, "DeployL2AuxilliaryContracts.s.sol", "DeployL2AuxilliaryContracts")
+	if err != nil {
+		return fmt.Errorf("failed to load DeployL2AuxilliaryContracts script: %w", err)
+	}
+	defer cleanup()
+
+	if err := deployL2AuxilliaryContractsScript.Run(); err != nil {
+		return fmt.Errorf("failed to run DeployL2AuxilliaryContracts script: %w", err)
+	}
+
+	auxilliaryStateDump, err := l2PeripheryHost.StateDump()
+	if err != nil {
+		return fmt.Errorf("failed to dump state after deploying auxilliary contracts: %w", err)
+	}
+
 	l2Host.ImportState(peripheryStateDump)
+	l2Host.ImportState(auxilliaryStateDump)
 
 	return nil
 }
