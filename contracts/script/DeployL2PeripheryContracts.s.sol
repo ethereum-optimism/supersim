@@ -7,7 +7,6 @@ import {Promise} from "@interop-lib/Promise.sol";
 import {PredeployAddresses} from "@interop-lib/libraries/PredeployAddresses.sol";
 
 import {L2NativeSuperchainERC20} from "../src/L2NativeSuperchainERC20.sol";
-import {PromiseExample} from "../src/PromiseExample.sol";
 
 contract DeployL2PeripheryContracts is Script {
     /// @notice Used for tracking the next address to deploy a periphery contract at.
