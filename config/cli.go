@@ -32,9 +32,10 @@ const (
 
 	LogsDirectoryFlagName = "logs.directory"
 
-	InteropEnabledFlagName   = "interop.enabled"
-	InteropAutoRelayFlagName = "interop.autorelay"
-	InteropDelayFlagName     = "interop.delay"
+	InteropEnabledFlagName               = "interop.enabled"
+	InteropAutoRelayFlagName             = "interop.autorelay"
+	InteropDelayFlagName                 = "interop.delay"
+	InteropL2ToL2CDMOverrideArtifactPath = "interop.l2tol2cdm.override"
 
 	OdysseyEnabledFlagName = "odyssey.enabled"
 
@@ -57,6 +58,12 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "Listening port for the admin server",
 			Value:   8420,
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "ADMIN_PORT"),
+		},
+		&cli.StringFlag{
+			Name:    InteropL2ToL2CDMOverrideArtifactPath,
+			Usage:   "Path to the L2ToL2CrossDomainMessenger build artifact that overrides the default implementation",
+			Value:   "",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_L2TO2CDM_OVERRIDE"),
 		},
 		&cli.Uint64Flag{
 			Name:    L1PortFlagName,
@@ -163,8 +170,9 @@ type CLIConfig struct {
 	L2StartingPort uint64
 	L2Count        uint64
 
-	InteropAutoRelay bool
-	InteropDelay     uint64
+	InteropAutoRelay                     bool
+	InteropDelay                         uint64
+	InteropL2ToL2CDMOverrideArtifactPath string
 
 	OdysseyEnabled bool
 
@@ -187,8 +195,9 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		L2Count:        ctx.Uint64(L2CountFlagName),
 		L2Host:         ctx.String(L2HostFlagName),
 
-		InteropAutoRelay: ctx.Bool(InteropAutoRelayFlagName),
-		InteropDelay:     ctx.Uint64(InteropDelayFlagName),
+		InteropAutoRelay:                     ctx.Bool(InteropAutoRelayFlagName),
+		InteropDelay:                         ctx.Uint64(InteropDelayFlagName),
+		InteropL2ToL2CDMOverrideArtifactPath: ctx.String(InteropL2ToL2CDMOverrideArtifactPath),
 
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 
