@@ -74,6 +74,9 @@ type ChainConfig struct {
 
 	// Optional
 	OdysseyEnabled bool
+
+	// Optional
+	InteropL2ToL2CDMOverrideArtifactPath string
 }
 
 type NetworkConfig struct {
@@ -160,6 +163,7 @@ func GetNetworkConfig(cliConfig *CLIConfig) NetworkConfig {
 				L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[i].RegistryAddressList(),
 				DependencySet: []uint64{},
 			},
+			InteropL2ToL2CDMOverrideArtifactPath: cliConfig.InteropL2ToL2CDMOverrideArtifactPath,
 		}
 
 		// populate dep set

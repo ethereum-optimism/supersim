@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
+	"github.com/ethereum-optimism/supersim/artifact"
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/genesis"
@@ -64,6 +65,24 @@ func Configure(ctx context.Context, chain config.Chain) error {
 		}
 		if err := applyAllocToAddress(ctx, chain, &promiseAlloc, bindings.PromiseAddr); err != nil {
 			return fmt.Errorf("failed to apply alloc for %s: %w", bindings.PromiseAddr, err)
+		}
+	}
+
+	// Apply L2toL2CDM bytecode override if specified
+	if cfg.InteropL2ToL2CDMOverrideArtifactPath != "" {
+		artifact, err := artifact.NewArtifact(cfg.InteropL2ToL2CDMOverrideArtifactPath)
+		if err != nil {
+			return fmt.Errorf("failed to load L2toL2CDM artifact: %w", err)
+		}
+
+		bytecode := artifact.GetBytecode()
+		if bytecode == nil {
+			return fmt.Errorf("invalid bytecode in L2toL2CDM artifact")
+		}
+
+		implAddr := predeployToCodeNamespace(predeploys.L2toL2CrossDomainMessengerAddr)
+		if err := chain.SetCode(ctx, nil, implAddr, *bytecode); err != nil {
+			return fmt.Errorf("failed to set L2toL2CDM bytecode: %w", err)
 		}
 	}
 
