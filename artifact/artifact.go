@@ -15,7 +15,7 @@ type Bytecode struct {
 }
 
 type artifactMarshaling struct {
-	Bytecode Bytecode `json:"bytecode"`
+	Bytecode Bytecode `json:"deployedBytecode"`
 }
 
 func NewArtifact(artifactPath string) (*Artifact, error) {
