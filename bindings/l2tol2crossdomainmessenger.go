@@ -31,7 +31,7 @@ var (
 
 // L2ToL2CrossDomainMessengerMetaData contains all meta data concerning the L2ToL2CrossDomainMessenger contract.
 var L2ToL2CrossDomainMessengerMetaData = &bind.MetaData{
-	ABI: "[{\"type\":\"function\",\"name\":\"crossDomainMessageContext\",\"inputs\":[],\"outputs\":[{\"name\":\"sender_\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"source_\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"crossDomainMessageSender\",\"inputs\":[],\"outputs\":[{\"name\":\"sender_\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"crossDomainMessageSource\",\"inputs\":[],\"outputs\":[{\"name\":\"source_\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"messageNonce\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"messageVersion\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint16\",\"internalType\":\"uint16\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"relayMessage\",\"inputs\":[{\"name\":\"_id\",\"type\":\"tuple\",\"internalType\":\"structIdentifier\",\"components\":[{\"name\":\"origin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"logIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"chainId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"_sentMessage\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"returnData_\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"sendMessage\",\"inputs\":[{\"name\":\"_destination\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_target\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_message\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"successfulMessages\",\"inputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"version\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"RelayedMessage\",\"inputs\":[{\"name\":\"source\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"messageNonce\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"messageHash\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"SentMessage\",\"inputs\":[{\"name\":\"destination\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"target\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"messageNonce\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"sender\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"message\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"EventPayloadNotSentMessage\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"IdOriginNotL2ToL2CrossDomainMessenger\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"MessageAlreadyRelayed\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"MessageDestinationNotRelayChain\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"MessageDestinationSameChain\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"MessageTargetL2ToL2CrossDomainMessenger\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotEntered\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ReentrantCall\",\"inputs\":[]}]",
+	ABI: "[{\"type\":\"function\",\"name\":\"crossDomainMessageContext\",\"inputs\":[],\"outputs\":[{\"name\":\"sender_\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"source_\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"crossDomainMessageSender\",\"inputs\":[],\"outputs\":[{\"name\":\"sender_\",\"type\":\"address\",\"internalType\":\"address\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"crossDomainMessageSource\",\"inputs\":[],\"outputs\":[{\"name\":\"source_\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"messageNonce\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint256\",\"internalType\":\"uint256\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"messageVersion\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"uint16\",\"internalType\":\"uint16\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"relayMessage\",\"inputs\":[{\"name\":\"_id\",\"type\":\"tuple\",\"internalType\":\"structIdentifier\",\"components\":[{\"name\":\"origin\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"blockNumber\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"logIndex\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"timestamp\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"chainId\",\"type\":\"uint256\",\"internalType\":\"uint256\"}]},{\"name\":\"_sentMessage\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"returnData_\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"stateMutability\":\"payable\"},{\"type\":\"function\",\"name\":\"resendMessage\",\"inputs\":[{\"name\":\"_destination\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_nonce\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_sender\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_target\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_message\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"messageHash_\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"sendMessage\",\"inputs\":[{\"name\":\"_destination\",\"type\":\"uint256\",\"internalType\":\"uint256\"},{\"name\":\"_target\",\"type\":\"address\",\"internalType\":\"address\"},{\"name\":\"_message\",\"type\":\"bytes\",\"internalType\":\"bytes\"}],\"outputs\":[{\"name\":\"messageHash_\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"stateMutability\":\"nonpayable\"},{\"type\":\"function\",\"name\":\"sentMessages\",\"inputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"successfulMessages\",\"inputs\":[{\"name\":\"\",\"type\":\"bytes32\",\"internalType\":\"bytes32\"}],\"outputs\":[{\"name\":\"\",\"type\":\"bool\",\"internalType\":\"bool\"}],\"stateMutability\":\"view\"},{\"type\":\"function\",\"name\":\"version\",\"inputs\":[],\"outputs\":[{\"name\":\"\",\"type\":\"string\",\"internalType\":\"string\"}],\"stateMutability\":\"view\"},{\"type\":\"event\",\"name\":\"RelayedMessage\",\"inputs\":[{\"name\":\"source\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"messageNonce\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"messageHash\",\"type\":\"bytes32\",\"indexed\":true,\"internalType\":\"bytes32\"},{\"name\":\"returnDataHash\",\"type\":\"bytes32\",\"indexed\":false,\"internalType\":\"bytes32\"}],\"anonymous\":false},{\"type\":\"event\",\"name\":\"SentMessage\",\"inputs\":[{\"name\":\"destination\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"target\",\"type\":\"address\",\"indexed\":true,\"internalType\":\"address\"},{\"name\":\"messageNonce\",\"type\":\"uint256\",\"indexed\":true,\"internalType\":\"uint256\"},{\"name\":\"sender\",\"type\":\"address\",\"indexed\":false,\"internalType\":\"address\"},{\"name\":\"message\",\"type\":\"bytes\",\"indexed\":false,\"internalType\":\"bytes\"}],\"anonymous\":false},{\"type\":\"error\",\"name\":\"EventPayloadNotSentMessage\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"IdOriginNotL2ToL2CrossDomainMessenger\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"InvalidMessage\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"MessageAlreadyRelayed\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"MessageDestinationNotRelayChain\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"MessageDestinationSameChain\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"MessageTargetL2ToL2CrossDomainMessenger\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"NotEntered\",\"inputs\":[]},{\"type\":\"error\",\"name\":\"ReentrantCall\",\"inputs\":[]}]",
 }
 
 // L2ToL2CrossDomainMessengerABI is the input ABI used to generate the binding from.
@@ -349,6 +349,37 @@ func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerCallerSession) Mess
 	return _L2ToL2CrossDomainMessenger.Contract.MessageVersion(&_L2ToL2CrossDomainMessenger.CallOpts)
 }
 
+// SentMessages is a free data retrieval call binding the contract method 0x82e3702d.
+//
+// Solidity: function sentMessages(bytes32 ) view returns(bool)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerCaller) SentMessages(opts *bind.CallOpts, arg0 [32]byte) (bool, error) {
+	var out []interface{}
+	err := _L2ToL2CrossDomainMessenger.contract.Call(opts, &out, "sentMessages", arg0)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// SentMessages is a free data retrieval call binding the contract method 0x82e3702d.
+//
+// Solidity: function sentMessages(bytes32 ) view returns(bool)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerSession) SentMessages(arg0 [32]byte) (bool, error) {
+	return _L2ToL2CrossDomainMessenger.Contract.SentMessages(&_L2ToL2CrossDomainMessenger.CallOpts, arg0)
+}
+
+// SentMessages is a free data retrieval call binding the contract method 0x82e3702d.
+//
+// Solidity: function sentMessages(bytes32 ) view returns(bool)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerCallerSession) SentMessages(arg0 [32]byte) (bool, error) {
+	return _L2ToL2CrossDomainMessenger.Contract.SentMessages(&_L2ToL2CrossDomainMessenger.CallOpts, arg0)
+}
+
 // SuccessfulMessages is a free data retrieval call binding the contract method 0xb1b1b209.
 //
 // Solidity: function successfulMessages(bytes32 ) view returns(bool)
@@ -432,23 +463,44 @@ func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerTransactorSession) 
 	return _L2ToL2CrossDomainMessenger.Contract.RelayMessage(&_L2ToL2CrossDomainMessenger.TransactOpts, _id, _sentMessage)
 }
 
+// ResendMessage is a paid mutator transaction binding the contract method 0x6b0c3c5e.
+//
+// Solidity: function resendMessage(uint256 _destination, uint256 _nonce, address _sender, address _target, bytes _message) returns(bytes32 messageHash_)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerTransactor) ResendMessage(opts *bind.TransactOpts, _destination *big.Int, _nonce *big.Int, _sender common.Address, _target common.Address, _message []byte) (*types.Transaction, error) {
+	return _L2ToL2CrossDomainMessenger.contract.Transact(opts, "resendMessage", _destination, _nonce, _sender, _target, _message)
+}
+
+// ResendMessage is a paid mutator transaction binding the contract method 0x6b0c3c5e.
+//
+// Solidity: function resendMessage(uint256 _destination, uint256 _nonce, address _sender, address _target, bytes _message) returns(bytes32 messageHash_)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerSession) ResendMessage(_destination *big.Int, _nonce *big.Int, _sender common.Address, _target common.Address, _message []byte) (*types.Transaction, error) {
+	return _L2ToL2CrossDomainMessenger.Contract.ResendMessage(&_L2ToL2CrossDomainMessenger.TransactOpts, _destination, _nonce, _sender, _target, _message)
+}
+
+// ResendMessage is a paid mutator transaction binding the contract method 0x6b0c3c5e.
+//
+// Solidity: function resendMessage(uint256 _destination, uint256 _nonce, address _sender, address _target, bytes _message) returns(bytes32 messageHash_)
+func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerTransactorSession) ResendMessage(_destination *big.Int, _nonce *big.Int, _sender common.Address, _target common.Address, _message []byte) (*types.Transaction, error) {
+	return _L2ToL2CrossDomainMessenger.Contract.ResendMessage(&_L2ToL2CrossDomainMessenger.TransactOpts, _destination, _nonce, _sender, _target, _message)
+}
+
 // SendMessage is a paid mutator transaction binding the contract method 0x7056f41f.
 //
-// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32)
+// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32 messageHash_)
 func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerTransactor) SendMessage(opts *bind.TransactOpts, _destination *big.Int, _target common.Address, _message []byte) (*types.Transaction, error) {
 	return _L2ToL2CrossDomainMessenger.contract.Transact(opts, "sendMessage", _destination, _target, _message)
 }
 
 // SendMessage is a paid mutator transaction binding the contract method 0x7056f41f.
 //
-// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32)
+// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32 messageHash_)
 func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerSession) SendMessage(_destination *big.Int, _target common.Address, _message []byte) (*types.Transaction, error) {
 	return _L2ToL2CrossDomainMessenger.Contract.SendMessage(&_L2ToL2CrossDomainMessenger.TransactOpts, _destination, _target, _message)
 }
 
 // SendMessage is a paid mutator transaction binding the contract method 0x7056f41f.
 //
-// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32)
+// Solidity: function sendMessage(uint256 _destination, address _target, bytes _message) returns(bytes32 messageHash_)
 func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerTransactorSession) SendMessage(_destination *big.Int, _target common.Address, _message []byte) (*types.Transaction, error) {
 	return _L2ToL2CrossDomainMessenger.Contract.SendMessage(&_L2ToL2CrossDomainMessenger.TransactOpts, _destination, _target, _message)
 }
@@ -522,15 +574,16 @@ func (it *L2ToL2CrossDomainMessengerRelayedMessageIterator) Close() error {
 
 // L2ToL2CrossDomainMessengerRelayedMessage represents a RelayedMessage event raised by the L2ToL2CrossDomainMessenger contract.
 type L2ToL2CrossDomainMessengerRelayedMessage struct {
-	Source       *big.Int
-	MessageNonce *big.Int
-	MessageHash  [32]byte
-	Raw          types.Log // Blockchain specific contextual infos
+	Source         *big.Int
+	MessageNonce   *big.Int
+	MessageHash    [32]byte
+	ReturnDataHash [32]byte
+	Raw            types.Log // Blockchain specific contextual infos
 }
 
-// FilterRelayedMessage is a free log retrieval operation binding the contract event 0x5948076590932b9d173029c7df03fe386e755a61c86c7fe2671011a2faa2a379.
+// FilterRelayedMessage is a free log retrieval operation binding the contract event 0xc270d73e26d2d39dee7ef92093555927e344e243415547ecc350b2b5385b68a2.
 //
-// Solidity: event RelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash)
+// Solidity: event RelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash, bytes32 returnDataHash)
 func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) FilterRelayedMessage(opts *bind.FilterOpts, source []*big.Int, messageNonce []*big.Int, messageHash [][32]byte) (*L2ToL2CrossDomainMessengerRelayedMessageIterator, error) {
 
 	var sourceRule []interface{}
@@ -553,9 +606,9 @@ func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) FilterRel
 	return &L2ToL2CrossDomainMessengerRelayedMessageIterator{contract: _L2ToL2CrossDomainMessenger.contract, event: "RelayedMessage", logs: logs, sub: sub}, nil
 }
 
-// WatchRelayedMessage is a free log subscription operation binding the contract event 0x5948076590932b9d173029c7df03fe386e755a61c86c7fe2671011a2faa2a379.
+// WatchRelayedMessage is a free log subscription operation binding the contract event 0xc270d73e26d2d39dee7ef92093555927e344e243415547ecc350b2b5385b68a2.
 //
-// Solidity: event RelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash)
+// Solidity: event RelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash, bytes32 returnDataHash)
 func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) WatchRelayedMessage(opts *bind.WatchOpts, sink chan<- *L2ToL2CrossDomainMessengerRelayedMessage, source []*big.Int, messageNonce []*big.Int, messageHash [][32]byte) (event.Subscription, error) {
 
 	var sourceRule []interface{}
@@ -603,9 +656,9 @@ func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) WatchRela
 	}), nil
 }
 
-// ParseRelayedMessage is a log parse operation binding the contract event 0x5948076590932b9d173029c7df03fe386e755a61c86c7fe2671011a2faa2a379.
+// ParseRelayedMessage is a log parse operation binding the contract event 0xc270d73e26d2d39dee7ef92093555927e344e243415547ecc350b2b5385b68a2.
 //
-// Solidity: event RelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash)
+// Solidity: event RelayedMessage(uint256 indexed source, uint256 indexed messageNonce, bytes32 indexed messageHash, bytes32 returnDataHash)
 func (_L2ToL2CrossDomainMessenger *L2ToL2CrossDomainMessengerFilterer) ParseRelayedMessage(log types.Log) (*L2ToL2CrossDomainMessengerRelayedMessage, error) {
 	event := new(L2ToL2CrossDomainMessengerRelayedMessage)
 	if err := _L2ToL2CrossDomainMessenger.contract.UnpackLog(event, "RelayedMessage", log); err != nil {
