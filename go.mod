@@ -7,7 +7,7 @@ toolchain go1.23.2
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/ethereum-optimism/optimism v1.13.3-0.20250430142415-b671b67f75f6
+	github.com/ethereum-optimism/optimism v1.13.4-0.20250617223244-f273e18a17c6
 	github.com/ethereum/go-ethereum v1.15.11
 	github.com/gin-gonic/gin v1.10.0
 	github.com/gorilla/websocket v1.5.3
@@ -42,14 +42,14 @@ require (
 	github.com/consensys/bavard v0.1.27 // indirect
 	github.com/consensys/gnark-crypto v0.16.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
+	github.com/crate-crypto/go-eth-kzg v1.3.0 // indirect
 	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
-	github.com/crate-crypto/go-kzg-4844 v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/ethereum-optimism/go-ethereum-hdwallet v0.1.3 // indirect
 	github.com/ethereum-optimism/superchain-registry/validation v0.0.0-20250603144016-9c45ca7d4508 // indirect
-	github.com/ethereum/c-kzg-4844 v1.0.0 // indirect
+	github.com/ethereum/c-kzg-4844/v2 v2.1.0 // indirect
 	github.com/ethereum/go-verkle v0.2.2 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
@@ -154,4 +154,4 @@ require (
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
 
-replace github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101503.4-rc.1
+replace github.com/ethereum/go-ethereum => github.com/ethereum-optimism/op-geth v1.101511.1-dev.1.0.20250608235258-6005dd53e1b5
