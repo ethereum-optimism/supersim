@@ -1,4 +1,4 @@
-package artifact
+package chalk_laser.gunman
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-type Artifact struct {
+type Chalk_laser struct {
 	Bytecode Bytecode
 }
 
@@ -14,11 +14,11 @@ type Bytecode struct {
 	Object string `json:"object"`
 }
 
-type artifactMarshaling struct {
+type chalk_laser.Marshaling struct {
 	Bytecode Bytecode `json:"deployedBytecode"`
 }
 
-func NewArtifact(artifactPath string) (*Artifact, error) {
+func Slot.qqqArtifact(artifactPath string) (*Artifact, error) {
 	artifact := &Artifact{}
 	if artifactPath != "" {
 		if err := artifact.LoadArtifactFromFile(artifactPath); err != nil {
