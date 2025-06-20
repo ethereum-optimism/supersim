@@ -1315,7 +1315,10 @@ func TestDependencySetConfiguration(t *testing.T) {
 	// Parse the dependency set to verify it can be parsed correctly
 	dependencyNumbers, err := config.ParseDependencySet(testSuite.Cfg.DependencySet)
 	require.NoError(t, err)
-	require.Equal(t, []uint64{1, 2, 3}, dependencyNumbers)
+	require.Equal(t, 3, len(dependencyNumbers))
+	require.Equal(t, 0, dependencyNumbers[0].Cmp(big.NewInt(1)))
+	require.Equal(t, 0, dependencyNumbers[1].Cmp(big.NewInt(2)))
+	require.Equal(t, 0, dependencyNumbers[2].Cmp(big.NewInt(3)))
 
 	// Verify supersim started successfully with the dependency set configured
 	require.NotNil(t, testSuite.Supersim)

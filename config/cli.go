@@ -3,8 +3,8 @@ package config
 import (
 	"fmt"
 	"strings"
-	"strconv"
 	"regexp"
+	"math/big"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 
@@ -124,7 +124,7 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    DependencySetFlagName,
-			Usage:   "Array of chain ids injected into the dependency set (format: [1,2,3])",
+			Usage:   "Array of chain ids injected into the dependency set (format: [1,2,3] or 1,2,3)",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "DEPENDENCY_SET"),
 		},
 	}
@@ -296,9 +296,9 @@ func validateHost(host string) error {
 	return nil
 }
 
-func ParseDependencySet(dependencySet string) ([]uint64, error) {
+func ParseDependencySet(dependencySet string) ([]*big.Int, error) {
 	if dependencySet == "" {
-		return []uint64{}, nil
+		return []*big.Int{}, nil
 	}
 
 	dependencySet = strings.TrimSpace(dependencySet)
@@ -318,11 +318,12 @@ func ParseDependencySet(dependencySet string) ([]uint64, error) {
 	re := regexp.MustCompile(`\d+`)
 	matches := re.FindAllString(dependencySet, -1)
 
-	result := make([]uint64, 0, len(matches))
+	result := make([]*big.Int, 0, len(matches))
 	for _, match := range matches {
-		// ParseUint only accepts positive numbers - base 10, 64 bit
-		num, err := strconv.ParseUint(match, 10, 64)
-		if err != nil {
+		// Use big.Int to support uint256 chain IDs as per OP Stack spec:https://specs.optimism.io/interop/dependency-set.html#chain-id
+		num := new(big.Int)
+		_, ok := num.SetString(match, 10)
+		if !ok {
 			return nil, fmt.Errorf("invalid positive number in dependency set: %s", match)
 		}
 		result = append(result, num)
