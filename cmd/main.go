@@ -95,16 +95,6 @@ func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Li
 		return nil, fmt.Errorf("invalid cli config: %w", err)
 	}
 
-	// Log dependency set if provided
-	if len(cfg.DependencySet) > 0 {
-		log.Info("Dependency set specified")
-		chainIDs := make([]string, len(cfg.DependencySet))
-		for i, chainID := range cfg.DependencySet {
-			chainIDs[i] = fmt.Sprintf("%d", chainID)
-		}
-		log.Info("Dependency set chain IDs", "chain_ids", strings.Join(chainIDs, ", "))
-	}
-
 	if ctx.Command.Name == config.DocsCommandName {
 		config.PrintDocLinks()
 		closeApp(nil)

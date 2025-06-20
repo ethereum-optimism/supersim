@@ -270,7 +270,12 @@ func (o *Orchestrator) ConfigAsString() string {
 	for _, opSim := range opSims {
 		cfg := opSim.Config()
 		fmt.Fprintf(&b, "\n")
-		fmt.Fprintf(&b, "  * Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", cfg.Name, cfg.ChainID, opSim.Endpoint(), opSim.LogPath())
+				fmt.Fprintf(&b, "  * Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", cfg.Name, cfg.ChainID, opSim.Endpoint(), opSim.LogPath())
+
+		if len(cfg.L2Config.DependencySet) > 0 {
+			fmt.Fprintf(&b, "    Dependency Set: %v\n", cfg.L2Config.DependencySet)
+		}
+
 		fmt.Fprintf(&b, "    L1 Contracts:\n")
 		fmt.Fprintf(&b, "     - OptimismPortal:         %s\n", cfg.L2Config.L1Addresses.OptimismPortalProxy)
 		fmt.Fprintf(&b, "     - L1CrossDomainMessenger: %s\n", cfg.L2Config.L1Addresses.L1CrossDomainMessengerProxy)
