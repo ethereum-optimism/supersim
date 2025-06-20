@@ -100,9 +100,9 @@ func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Li
 		log.Info("Dependency set specified")
 		chainIDs := make([]string, len(cfg.DependencySet))
 		for i, chainID := range cfg.DependencySet {
-			chainIDs[i] = chainID.String()
+			chainIDs[i] = fmt.Sprintf("%d", chainID)
 		}
-		log.Info("Chains added to dependency set: ", "chain_ids", strings.Join(chainIDs, ", "))
+		log.Info("Dependency set chain IDs", "chain_ids", strings.Join(chainIDs, ", "))
 	}
 
 	if ctx.Command.Name == config.DocsCommandName {

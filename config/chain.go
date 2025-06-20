@@ -166,12 +166,11 @@ func GetNetworkConfig(cliConfig *CLIConfig) NetworkConfig {
 			InteropL2ToL2CDMOverrideArtifactPath: cliConfig.InteropL2ToL2CDMOverrideArtifactPath,
 		}
 
-		// populate dep set
+		// populate dep set with local chains (default behavior)
 		for j := uint64(0); j < cliConfig.L2Count; j++ {
 			if i == j {
 				continue
 			}
-
 			peerChainID := genesis.GeneratedGenesisDeployment.L2s[j].ChainID
 			l2Cfg.L2Config.DependencySet = append(l2Cfg.L2Config.DependencySet, peerChainID)
 		}

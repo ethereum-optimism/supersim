@@ -2,7 +2,6 @@ package config
 
 import (
 	"testing"
-	"math/big"
 
 	"github.com/stretchr/testify/require"
 )
@@ -11,31 +10,31 @@ func TestParseDependencySet(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       string
-		expected    []*big.Int
+		expected    []uint64
 		shouldError bool
 	}{
 		{
 			name:        "bracket format",
 			input:       "[1,2,3]",
-			expected:    []*big.Int{big.NewInt(1), big.NewInt(2), big.NewInt(3)},
+			expected:    []uint64{1, 2, 3},
 			shouldError: false,
 		},
 		{
 			name:        "simple format",
-			input:       "4,5,6",
-			expected:    []*big.Int{big.NewInt(4), big.NewInt(5), big.NewInt(6)},
+			input:       "1,2,3",
+			expected:    []uint64{1, 2, 3},
 			shouldError: false,
 		},
 		{
 			name:        "bracket format with spaces",
-			input:       "[ 7, 8, 9 ]",
-			expected:    []*big.Int{big.NewInt(7), big.NewInt(8), big.NewInt(9)},
+			input:       "[1, 2, 3]",
+			expected:    []uint64{1, 2, 3},
 			shouldError: false,
 		},
 		{
 			name:        "single number",
 			input:       "42",
-			expected:    []*big.Int{big.NewInt(42)},
+			expected:    []uint64{42},
 			shouldError: false,
 		},
 		{
@@ -47,18 +46,18 @@ func TestParseDependencySet(t *testing.T) {
 		{
 			name:        "empty string fails",
 			input:       "",
-			expected:    []*big.Int{},
+			expected:    []uint64{},
 			shouldError: false,
 		},
 		{
 			name:        "invalid single fails",
-			input:       "invalid",
+			input:       "abc",
 			expected:    nil,
 			shouldError: true,
 		},
 		{
 			name:        "invalid in multiple fails",
-			input:       "1,invalid,3",
+			input:       "1,abc,3",
 			expected:    nil,
 			shouldError: true,
 		},
@@ -69,14 +68,16 @@ func TestParseDependencySet(t *testing.T) {
 			shouldError: true,
 		},
 		{
-			name:        "large uint256 chain ID",
-			input:       "[340282366920938463463374607431768211456]", // 2^128 - exceeds uint64
-			expected:    func() []*big.Int {
-				val := new(big.Int)
-				val.SetString("340282366920938463463374607431768211456", 10)
-				return []*big.Int{val}
-			}(),
+			name:        "max uint64 chain ID",
+			input:       "18446744073709551615", // 2^64 - 1
+			expected:    []uint64{18446744073709551615},
 			shouldError: false,
+		},
+		{
+			name:        "exceeds uint64 range",
+			input:       "18446744073709551616", // 2^64
+			expected:    nil,
+			shouldError: true,
 		},
 	}
 
@@ -89,13 +90,7 @@ func TestParseDependencySet(t *testing.T) {
 				require.Nil(t, result)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, len(test.expected), len(result))
-
-				// Compare each big.Int individually since require.Equal doesn't work well with []*big.Int
-				for i, expectedVal := range test.expected {
-					require.Equal(t, 0, expectedVal.Cmp(result[i]),
-						"expected %s, got %s at index %d", expectedVal.String(), result[i].String(), i)
-				}
+				require.Equal(t, test.expected, result)
 			}
 		})
 	}

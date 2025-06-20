@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
-	"strings"
 	"regexp"
-	"math/big"
+	"strconv"
+	"strings"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 
@@ -191,7 +191,7 @@ type CLIConfig struct {
 	L1Host string
 	L2Host string
 
-	DependencySet []*big.Int
+	DependencySet []uint64
 }
 
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
@@ -213,7 +213,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 
 		OdysseyEnabled: ctx.Bool(OdysseyEnabledFlagName),
 
-		DependencySet: make([]*big.Int, 0),
+		DependencySet: make([]uint64, 0),
 	}
 
 	if ctx.Command.Name == ForkCommandName {
@@ -305,9 +305,9 @@ func validateHost(host string) error {
 	return nil
 }
 
-func ParseDependencySet(dependencySet string) ([]*big.Int, error) {
+func ParseDependencySet(dependencySet string) ([]uint64, error) {
 	if dependencySet == "" {
-		return []*big.Int{}, nil
+		return []uint64{}, nil
 	}
 
 	dependencySet = strings.TrimSpace(dependencySet)
@@ -327,14 +327,13 @@ func ParseDependencySet(dependencySet string) ([]*big.Int, error) {
 	re := regexp.MustCompile(`\d+`)
 	matches := re.FindAllString(dependencySet, -1)
 
-	result := make([]*big.Int, 0, len(matches))
+	result := make([]uint64, 0, len(matches))
 	for _, match := range matches {
-		// Use big.Int to support uint256 chain IDs as per OP Stack spec:https://specs.optimism.io/interop/dependency-set.html#chain-id
-		num := new(big.Int)
-		_, ok := num.SetString(match, 10)
-		if !ok {
+		num, err := strconv.ParseUint(match, 10, 64)
+		if err != nil {
 			return nil, fmt.Errorf("invalid positive number in dependency set: %s", match)
 		}
+
 		result = append(result, num)
 	}
 
