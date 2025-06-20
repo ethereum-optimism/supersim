@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/foundry"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/interopgen"
+	"github.com/ethereum-optimism/optimism/op-deployer/pkg/deployer/opcm"
 )
 
 const defaultBlockTime = 2
@@ -58,13 +59,18 @@ func GenerateWorld(ctx context.Context, logger log.Logger, monorepoArtifacts *fo
 		return nil, nil, fmt.Errorf("failed to enable cheats in L1 state: %w", err)
 	}
 
+	opcmScripts, err := opcm.NewScripts(l1Host)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load OPCM script: %w", err)
+	}
+
 	l1Deployment, err := interopgen.PrepareInitialL1(l1Host, cfg.L1)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to deploy initial L1 content: %w", err)
 	}
 	deployments.L1 = l1Deployment
 
-	superDeployment, err := interopgen.DeploySuperchainToL1(l1Host, cfg.Superchain)
+	superDeployment, err := interopgen.DeploySuperchainToL1(l1Host, opcmScripts, cfg.Superchain)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to deploy superchain to L1: %w", err)
 	}
@@ -101,12 +107,16 @@ func GenerateWorld(ctx context.Context, logger log.Logger, monorepoArtifacts *fo
 		if err := l2Host.EnableCheats(); err != nil {
 			return nil, nil, fmt.Errorf("failed to enable cheats in L2 state %s: %w", l2ChainID, err)
 		}
-		if err := interopgen.GenesisL2(l2Host, l2Cfg, deployments.L2s[l2ChainID]); err != nil {
+		if err := interopgen.GenesisL2(l2Host, l2Cfg, deployments.L2s[l2ChainID], len(cfg.L2s) > 1); err != nil {
 			return nil, nil, fmt.Errorf("failed to apply genesis data to L2 %s: %w", l2ChainID, err)
 		}
 
 		if err := deployPeripheryContracts(logger, l2Host, peripheryArtifacts, l2Cfg, genesisTimestamp); err != nil {
 			return nil, nil, fmt.Errorf("failed to deploy periphery contracts to L2 %s: %w", l2ChainID, err)
+		}
+
+		if err := deployValueTransferInteropContracts(logger, l2Host, peripheryArtifacts, l2Cfg, genesisTimestamp); err != nil {
+			return nil, nil, fmt.Errorf("failed to deploy value transfer interop contracts to L2 %s: %w", l2ChainID, err)
 		}
 
 		l2Out, err := interopgen.CompleteL2(l2Host, l2Cfg, l1GenesisBlock, deployments.L2s[l2ChainID])
