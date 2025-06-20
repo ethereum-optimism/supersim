@@ -1301,3 +1301,88 @@ func TestEthSubscribeNewHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, unsubscribeResponse["result"].(bool))
 }
+
+func TestDependencySetConfiguration(t *testing.T) {
+	t.Parallel()
+	testSuite := createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.DependencySet = "[1,2,3]"
+		return cfg
+	})
+
+	// Test that the dependency set is properly parsed and stored in the config
+	require.Equal(t, "[1,2,3]", testSuite.Cfg.DependencySet)
+
+	// Parse the dependency set to verify it can be parsed correctly
+	dependencyNumbers, err := config.ParseDependencySet(testSuite.Cfg.DependencySet)
+	require.NoError(t, err)
+	require.Equal(t, []uint64{1, 2, 3}, dependencyNumbers)
+
+	// Verify supersim started successfully with the dependency set configured
+	require.NotNil(t, testSuite.Supersim)
+	require.True(t, len(testSuite.Supersim.Orchestrator.L2Chains()) > 0)
+}
+
+func TestDependencySetParsing(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []uint64
+		hasError bool
+	}{
+		{
+			name:     "bracket format",
+			input:    "[1,2,3]",
+			expected: []uint64{1, 2, 3},
+			hasError: false,
+		},
+		{
+			name:     "simple format",
+			input:    "4,5,6",
+			expected: []uint64{4, 5, 6},
+			hasError: false,
+		},
+		{
+			name:     "bracket format with spaces",
+			input:    "[ 7, 8, 9 ]",
+			expected: []uint64{7, 8, 9},
+			hasError: false,
+		},
+		{
+			name:     "single number",
+			input:    "42",
+			expected: []uint64{42},
+			hasError: false,
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: []uint64{},
+			hasError: false,
+		},
+		{
+			name:     "invalid format",
+			input:    "invalid",
+			expected: nil,
+			hasError: true,
+		},
+		{
+			name:     "mixed valid and invalid",
+			input:    "1,invalid,3",
+			expected: nil,
+			hasError: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := config.ParseDependencySet(test.input)
+
+			if test.hasError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, result)
+			}
+		})
+	}
+}
