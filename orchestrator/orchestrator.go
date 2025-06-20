@@ -273,7 +273,11 @@ func (o *Orchestrator) ConfigAsString() string {
 				fmt.Fprintf(&b, "  * Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", cfg.Name, cfg.ChainID, opSim.Endpoint(), opSim.LogPath())
 
 		if len(cfg.L2Config.DependencySet) > 0 {
-			fmt.Fprintf(&b, "    Dependency Set: %v\n", cfg.L2Config.DependencySet)
+			depSetStrs := make([]string, len(cfg.L2Config.DependencySet))
+			for i, chainID := range cfg.L2Config.DependencySet {
+				depSetStrs[i] = fmt.Sprintf("%d", chainID)
+			}
+			fmt.Fprintf(&b, "    Dependency Set: [%s]\n", strings.Join(depSetStrs, ", "))
 		}
 
 		fmt.Fprintf(&b, "    L1 Contracts:\n")
