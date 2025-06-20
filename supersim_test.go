@@ -1306,7 +1306,7 @@ func TestDependencySetConfiguration(t *testing.T) {
 	t.Parallel()
 	testSuite := createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
 		// Parse the dependency set and store the parsed values
-		parsedDeps, err := config.ParseDependencySet("[1,2,3]")
+		parsedDeps, err := config.ParseDependencySet("[8453]") // base-sepolia chain ID
 		if err != nil {
 			t.Fatalf("Failed to parse dependency set: %v", err)
 		}
@@ -1315,14 +1315,34 @@ func TestDependencySetConfiguration(t *testing.T) {
 	})
 
 	// Test that the dependency set is properly parsed and stored in the config
-	require.Equal(t, 3, len(testSuite.Cfg.DependencySet))
-	require.Equal(t, uint64(1), testSuite.Cfg.DependencySet[0])
-	require.Equal(t, uint64(2), testSuite.Cfg.DependencySet[1])
-	require.Equal(t, uint64(3), testSuite.Cfg.DependencySet[2])
+	require.Equal(t, 1, len(testSuite.Cfg.DependencySet))
+	require.Equal(t, uint64(8453), testSuite.Cfg.DependencySet[0])
 
 	// Verify supersim started successfully with the dependency set configured
 	require.NotNil(t, testSuite.Supersim)
 	require.True(t, len(testSuite.Supersim.Orchestrator.L2Chains()) > 0)
+
+	// Verify that each local chain's dependency set includes other local chains + user-provided chain ID
+	networkConfig := testSuite.Supersim.NetworkConfig
+	require.Equal(t, 2, len(networkConfig.L2Configs)) // Default is 2 L2 chains
+
+	for i, l2Config := range networkConfig.L2Configs {
+		require.NotNil(t, l2Config.L2Config)
+		depSet := l2Config.L2Config.DependencySet
+
+		// Should contain the user-provided chain ID (8453)
+		require.Contains(t, depSet, uint64(8453), "Chain %d should include user-provided chain 8453", l2Config.ChainID)
+
+		// Should contain all other local chain IDs
+		for j, otherL2Config := range networkConfig.L2Configs {
+			if i != j { // Skip self
+				require.Contains(t, depSet, otherL2Config.ChainID, "Chain %d should include other local chain %d", l2Config.ChainID, otherL2Config.ChainID)
+			}
+		}
+
+		// Should NOT contain itself
+		require.NotContains(t, depSet, l2Config.ChainID, "Chain %d should not include itself in dependency set", l2Config.ChainID)
+	}
 }
 
 
