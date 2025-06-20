@@ -112,11 +112,11 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, cliConfig 
 		}
 
 		if forkConfig.InteropEnabled {
-			var dependencySet []uint64
+			var dependencySet []*big.Int
 			for _, chain := range forkConfig.Chains {
 				chainCfg := config.OPChainConfigByName(superchain, chain)
 				if chainCfg.ChainID != l2ChainConfig.ChainID {
-					dependencySet = append(dependencySet, chainCfg.ChainID)
+					dependencySet = append(dependencySet, big.NewInt(int64(chainCfg.ChainID)))
 				}
 			}
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/ethereum-optimism/supersim"
@@ -96,14 +97,12 @@ func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Li
 
 	// Log dependency set if provided
 	if len(cfg.DependencySet) > 0 {
-		dependencyNumbers, err := config.ParseDependencySet(cfg.DependencySet)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse dependency set: %w", err)
+		log.Info("Dependency set specified")
+		chainIDs := make([]string, len(cfg.DependencySet))
+		for i, chainID := range cfg.DependencySet {
+			chainIDs[i] = chainID.String()
 		}
-		if len(dependencyNumbers) > 0 {
-			log.Info("Dependency set provided", "numbers", dependencyNumbers)
-			// TODO: inject dependencies
-		}
+		log.Info("Chains added to dependency set: ", "chain_ids", strings.Join(chainIDs, ", "))
 	}
 
 	if ctx.Command.Name == config.DocsCommandName {

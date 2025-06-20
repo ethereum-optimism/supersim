@@ -1305,20 +1305,20 @@ func TestEthSubscribeNewHeads(t *testing.T) {
 func TestDependencySetConfiguration(t *testing.T) {
 	t.Parallel()
 	testSuite := createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
-		cfg.DependencySet = "[1,2,3]"
+		// Parse the dependency set and store the parsed values
+		parsedDeps, err := config.ParseDependencySet("[1,2,3]")
+		if err != nil {
+			t.Fatalf("Failed to parse dependency set: %v", err)
+		}
+		cfg.DependencySet = parsedDeps
 		return cfg
 	})
 
 	// Test that the dependency set is properly parsed and stored in the config
-	require.Equal(t, "[1,2,3]", testSuite.Cfg.DependencySet)
-
-	// Parse the dependency set to verify it can be parsed correctly
-	dependencyNumbers, err := config.ParseDependencySet(testSuite.Cfg.DependencySet)
-	require.NoError(t, err)
-	require.Equal(t, 3, len(dependencyNumbers))
-	require.Equal(t, 0, dependencyNumbers[0].Cmp(big.NewInt(1)))
-	require.Equal(t, 0, dependencyNumbers[1].Cmp(big.NewInt(2)))
-	require.Equal(t, 0, dependencyNumbers[2].Cmp(big.NewInt(3)))
+	require.Equal(t, 3, len(testSuite.Cfg.DependencySet))
+	require.Equal(t, 0, testSuite.Cfg.DependencySet[0].Cmp(big.NewInt(1)))
+	require.Equal(t, 0, testSuite.Cfg.DependencySet[1].Cmp(big.NewInt(2)))
+	require.Equal(t, 0, testSuite.Cfg.DependencySet[2].Cmp(big.NewInt(3)))
 
 	// Verify supersim started successfully with the dependency set configured
 	require.NotNil(t, testSuite.Supersim)

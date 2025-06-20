@@ -124,7 +124,7 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    DependencySetFlagName,
-			Usage:   "Array of chain ids injected into the dependency set (format: [1,2,3] or 1,2,3)",
+			Usage:   "Additional chain ids injected into the dependency set (format: [1,2,3] or 1,2,3)",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "DEPENDENCY_SET"),
 		},
 	}
@@ -191,7 +191,7 @@ type CLIConfig struct {
 	L1Host string
 	L2Host string
 
-	DependencySet string
+	DependencySet []*big.Int
 }
 
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
@@ -213,7 +213,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 
 		OdysseyEnabled: ctx.Bool(OdysseyEnabledFlagName),
 
-		DependencySet: ctx.String(DependencySetFlagName),
+		DependencySet: make([]*big.Int, 0),
 	}
 
 	if ctx.Command.Name == ForkCommandName {
@@ -225,6 +225,15 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
 			OdysseyEnabled: ctx.Bool(OdysseyEnabledFlagName),
 		}
+	}
+
+	// Parse dependency set once during config reading
+	if len(ctx.String(DependencySetFlagName)) > 0 {
+		parsedDeps, err := ParseDependencySet(ctx.String(DependencySetFlagName))
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse dependency set: %w", err)
+		}
+		cfg.DependencySet = parsedDeps
 	}
 
 	return cfg, cfg.Check()
