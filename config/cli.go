@@ -3,11 +3,12 @@ package config
 import (
 	"fmt"
 	"strings"
+	"strconv"
+	"regexp"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 
 	"net"
-	"regexp"
 
 	"github.com/ethereum-optimism/supersim/registry"
 
@@ -38,6 +39,8 @@ const (
 	InteropL2ToL2CDMOverrideArtifactPath = "interop.l2tol2cdm.override"
 
 	OdysseyEnabledFlagName = "odyssey.enabled"
+
+	DependencySetFlagName = "dependency.set"
 
 	MaxL2Count = 5
 )
@@ -119,6 +122,11 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "Enable odyssey experimental features",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "ODYSSEY_ENABLED"),
 		},
+		&cli.StringFlag{
+			Name:    DependencySetFlagName,
+			Usage:   "Array of chain ids injected into the dependency set (format: [1,2,3])",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "DEPENDENCY_SET"),
+		},
 	}
 }
 
@@ -182,6 +190,8 @@ type CLIConfig struct {
 
 	L1Host string
 	L2Host string
+
+	DependencySet string
 }
 
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
@@ -202,6 +212,8 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 
 		OdysseyEnabled: ctx.Bool(OdysseyEnabledFlagName),
+
+		DependencySet: ctx.String(DependencySetFlagName),
 	}
 
 	if ctx.Command.Name == ForkCommandName {
@@ -282,4 +294,39 @@ func validateHost(host string) error {
 	}
 
 	return nil
+}
+
+func ParseDependencySet(dependencySet string) ([]uint64, error) {
+	if dependencySet == "" {
+		return []uint64{}, nil
+	}
+
+	dependencySet = strings.TrimSpace(dependencySet)
+
+	// Validate format: must be either [1,2,3] or 1,2,3
+	bracketPattern := `^\[\s*\d+(\s*,\s*\d+)*\s*\]$`
+	simplePattern := `^\d+(\s*,\s*\d+)*$`
+
+	bracketMatch, _ := regexp.MatchString(bracketPattern, dependencySet)
+	simpleMatch, _ := regexp.MatchString(simplePattern, dependencySet)
+
+	if !bracketMatch && !simpleMatch {
+		return nil, fmt.Errorf("invalid dependency set format: expected '[1,2,3]' or '1,2,3', got '%s'", dependencySet)
+	}
+
+	// Extract numbers - regex \d+ only matches positive integers
+	re := regexp.MustCompile(`\d+`)
+	matches := re.FindAllString(dependencySet, -1)
+
+	result := make([]uint64, 0, len(matches))
+	for _, match := range matches {
+		// ParseUint only accepts positive numbers - base 10, 64 bit
+		num, err := strconv.ParseUint(match, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid positive number in dependency set: %s", match)
+		}
+		result = append(result, num)
+	}
+
+	return result, nil
 }

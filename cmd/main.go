@@ -94,6 +94,18 @@ func SupersimMain(ctx *cli.Context, closeApp context.CancelCauseFunc) (cliapp.Li
 		return nil, fmt.Errorf("invalid cli config: %w", err)
 	}
 
+	// Log dependency set if provided
+	if len(cfg.DependencySet) > 0 {
+		dependencyNumbers, err := config.ParseDependencySet(cfg.DependencySet)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse dependency set: %w", err)
+		}
+		if len(dependencyNumbers) > 0 {
+			log.Info("Dependency set provided", "numbers", dependencyNumbers)
+			// TODO: inject dependencies
+		}
+	}
+
 	if ctx.Command.Name == config.DocsCommandName {
 		config.PrintDocLinks()
 		closeApp(nil)
