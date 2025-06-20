@@ -122,6 +122,7 @@ func (s *Supersim) ConfigAsString() string {
 		fmt.Fprintf(&b, " - Promise:                    %s\n", bindings.PromiseAddr)
 		fmt.Fprintf(&b, " - SuperchainTokenBridge:      %s\n", predeploys.SuperchainTokenBridge)
 		fmt.Fprintf(&b, " - SuperchainETHBridge:        %s\n", predeploys.SuperchainETHBridge)
+		fmt.Fprintf(&b, " - GasTank:                    %s\n", "0x420bEEF000000000000000000000000000000002")
 	}
 
 	return b.String()
