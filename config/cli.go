@@ -308,7 +308,7 @@ func validateHost(host string) error {
 
 func ParseDependencySet(dependencySet string) ([]uint64, error) {
 	if dependencySet == "" {
-		return []uint64{}, nil
+		return nil, fmt.Errorf("dependency set cannot be empty string: use '[]' for empty dependency set")
 	}
 
 	dependencySet = strings.TrimSpace(dependencySet)

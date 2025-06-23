@@ -14,13 +14,13 @@ func TestParseDependencySet(t *testing.T) {
 		shouldError bool
 	}{
 		{
-			name:        "bracket format",
+			name:        "multiple chains",
 			input:       "[1,2,3]",
 			expected:    []uint64{1, 2, 3},
 			shouldError: false,
 		},
 		{
-			name:        "bracket format with spaces",
+			name:        "multiple chains with spaces",
 			input:       "[1, 2, 3]",
 			expected:    []uint64{1, 2, 3},
 			shouldError: false,
@@ -44,13 +44,13 @@ func TestParseDependencySet(t *testing.T) {
 			shouldError: false,
 		},
 		{
-			name:        "empty string",
+			name:        "empty string fails",
 			input:       "",
-			expected:    []uint64{},
-			shouldError: false,
+			expected:    nil,
+			shouldError: true,
 		},
 		{
-			name:        "simple format without brackets fails",
+			name:        "without brackets fails",
 			input:       "1,2,3",
 			expected:    nil,
 			shouldError: true,
@@ -98,7 +98,7 @@ func TestParseDependencySet(t *testing.T) {
 			shouldError: false,
 		},
 		{
-			name:        "exceeds uint64 range",
+			name:        "exceeds uint64 range fails",
 			input:       "[18446744073709551616]", // 2^64
 			expected:    nil,
 			shouldError: true,
