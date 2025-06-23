@@ -124,7 +124,7 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    DependencySetFlagName,
-			Usage:   "Additional chain ids injected into the dependency set (format: [1,2,3] or 1,2,3)",
+			Usage:   "Override chain IDs in the dependency set (format: [901,902] or [])",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "DEPENDENCY_SET"),
 		},
 	}
@@ -312,15 +312,20 @@ func ParseDependencySet(dependencySet string) ([]uint64, error) {
 
 	dependencySet = strings.TrimSpace(dependencySet)
 
-	// Validate format: must be either [1,2,3] or 1,2,3
+	// Validate format: must be in square brackets [1,2,3] or empty []
+	emptyPattern := `^\[\s*\]$`
 	bracketPattern := `^\[\s*\d+(\s*,\s*\d+)*\s*\]$`
-	simplePattern := `^\d+(\s*,\s*\d+)*$`
 
+	emptyMatch, _ := regexp.MatchString(emptyPattern, dependencySet)
 	bracketMatch, _ := regexp.MatchString(bracketPattern, dependencySet)
-	simpleMatch, _ := regexp.MatchString(simplePattern, dependencySet)
 
-	if !bracketMatch && !simpleMatch {
-		return nil, fmt.Errorf("invalid dependency set format: expected '[1,2,3]' or '1,2,3', got '%s'", dependencySet)
+	if !emptyMatch && !bracketMatch {
+		return nil, fmt.Errorf("invalid dependency set format: expected '[1,2,3]' or '[]', got '%s'", dependencySet)
+	}
+
+	// Handle empty array case
+	if emptyMatch {
+		return []uint64{}, nil
 	}
 
 	// Extract numbers - regex \d+ only matches positive integers
