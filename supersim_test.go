@@ -1311,6 +1311,7 @@ func TestDependencySetConfiguration(t *testing.T) {
 			t.Fatalf("Failed to parse dependency set: %v", err)
 		}
 		cfg.DependencySet = parsedDeps
+
 		return cfg
 	})
 
@@ -1322,21 +1323,22 @@ func TestDependencySetConfiguration(t *testing.T) {
 	require.NotNil(t, testSuite.Supersim)
 	require.True(t, len(testSuite.Supersim.Orchestrator.L2Chains()) > 0)
 
-	// Verify that each local chain's dependency set includes other local chains + user-provided chain ID
+	// Verify that each local chain's dependency set is overridden to only contain user-provided chain ID
 	networkConfig := testSuite.Supersim.NetworkConfig
 	require.Equal(t, 2, len(networkConfig.L2Configs)) // Default is 2 L2 chains
 
-	for i, l2Config := range networkConfig.L2Configs {
+	for _, l2Config := range networkConfig.L2Configs {
 		require.NotNil(t, l2Config.L2Config)
 		depSet := l2Config.L2Config.DependencySet
 
-		// Should contain the user-provided chain ID (8453)
+		// Should only contain the user-provided chain ID (8453), not other local chains
+		require.Equal(t, 1, len(depSet), "Chain %d should have exactly 1 dependency (override behavior)", l2Config.ChainID)
 		require.Contains(t, depSet, uint64(8453), "Chain %d should include user-provided chain 8453", l2Config.ChainID)
 
-		// Should contain all other local chain IDs
-		for j, otherL2Config := range networkConfig.L2Configs {
-			if i != j { // Skip self
-				require.Contains(t, depSet, otherL2Config.ChainID, "Chain %d should include other local chain %d", l2Config.ChainID, otherL2Config.ChainID)
+		// Should NOT contain other local chains (override behavior)
+		for _, otherL2Config := range networkConfig.L2Configs {
+			if otherL2Config.ChainID != l2Config.ChainID {
+				require.NotContains(t, depSet, otherL2Config.ChainID, "Chain %d should NOT include other local chain %d (override behavior)", l2Config.ChainID, otherL2Config.ChainID)
 			}
 		}
 

@@ -213,7 +213,7 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 
 		OdysseyEnabled: ctx.Bool(OdysseyEnabledFlagName),
 
-		DependencySet: make([]uint64, 0),
+		DependencySet: nil, // nil means no flag provided
 	}
 
 	if ctx.Command.Name == ForkCommandName {
@@ -228,8 +228,9 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 	}
 
 	// Parse dependency set once during config reading
-	if len(ctx.String(DependencySetFlagName)) > 0 {
-		parsedDeps, err := ParseDependencySet(ctx.String(DependencySetFlagName))
+	dependencySetString := ctx.String(DependencySetFlagName)
+	if len(dependencySetString) > 0 {
+		parsedDeps, err := ParseDependencySet(dependencySetString)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse dependency set: %w", err)
 		}

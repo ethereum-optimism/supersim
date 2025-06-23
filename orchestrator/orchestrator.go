@@ -278,6 +278,8 @@ func (o *Orchestrator) ConfigAsString() string {
 				depSetStrs[i] = fmt.Sprintf("%d", chainID)
 			}
 			fmt.Fprintf(&b, "    Dependency Set: [%s]\n", strings.Join(depSetStrs, ", "))
+		} else {
+			fmt.Fprintf(&b, "    Dependency Set: []\n")
 		}
 
 		fmt.Fprintf(&b, "    L1 Contracts:\n")

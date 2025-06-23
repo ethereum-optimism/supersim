@@ -166,20 +166,22 @@ func GetNetworkConfig(cliConfig *CLIConfig) NetworkConfig {
 			InteropL2ToL2CDMOverrideArtifactPath: cliConfig.InteropL2ToL2CDMOverrideArtifactPath,
 		}
 
-		// populate dep set with local chains
-		for j := uint64(0); j < cliConfig.L2Count; j++ {
-			if i == j {
-				continue
+		// If user provided dependency set, use it; otherwise use default (other local chains)
+		if cliConfig.DependencySet != nil {
+			// Use user-provided dependency set (exclude self)
+			for _, userChainID := range cliConfig.DependencySet {
+				if userChainID != l2Cfg.ChainID {
+					l2Cfg.L2Config.DependencySet = append(l2Cfg.L2Config.DependencySet, userChainID)
+				}
 			}
-			peerChainID := genesis.GeneratedGenesisDeployment.L2s[j].ChainID
-			l2Cfg.L2Config.DependencySet = append(l2Cfg.L2Config.DependencySet, peerChainID)
-		}
-
-		// append any user-provided chain IDs to dependency set
-		for _, userChainID := range cliConfig.DependencySet {
-			// Don't include self in dependency set
-			if userChainID != l2Cfg.ChainID {
-				l2Cfg.L2Config.DependencySet = append(l2Cfg.L2Config.DependencySet, userChainID)
+		} else {
+			// Default behavior: populate dep set with other local chains
+			for j := uint64(0); j < cliConfig.L2Count; j++ {
+				if i == j {
+					continue
+				}
+				peerChainID := genesis.GeneratedGenesisDeployment.L2s[j].ChainID
+				l2Cfg.L2Config.DependencySet = append(l2Cfg.L2Config.DependencySet, peerChainID)
 			}
 		}
 
