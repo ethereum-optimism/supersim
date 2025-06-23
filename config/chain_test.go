@@ -2,34 +2,35 @@ package config
 
 import (
 	"testing"
-
 	"github.com/stretchr/testify/require"
 )
 
+type dependencySetTestCase struct {
+	name          string
+	dependencySet []uint64
+}
+
 func TestGetNetworkConfig_DependencySetLogic(t *testing.T) {
-	tests := []struct {
-		name              string
-		userDependencySet []uint64
-	}{
+	tests := []dependencySetTestCase{
 		{
-			name:              "no flag passed",
-			userDependencySet: nil,
+			name:          "no flag passed",
+			dependencySet: nil,
 		},
 		{
-			name:              "flag passed with []",
-			userDependencySet: []uint64{},
+			name:          "flag passed with []",
+			dependencySet: []uint64{},
 		},
 		{
-			name:              "flag passed with 1 of the two local chain ids",
-			userDependencySet: []uint64{901}, // 901 is first local chain
+			name:          "flag passed with 1 of the two local chain ids",
+			dependencySet: []uint64{901}, // 901 is first local chain
 		},
 		{
-			name:              "flag passed with both of the two local chain ids",
-			userDependencySet: []uint64{901, 902}, // both local chains
+			name:          "flag passed with both of the two local chain ids",
+			dependencySet: []uint64{901, 902}, // both local chains
 		},
 		{
-			name:              "flag passed with an external id",
-			userDependencySet: []uint64{8453}, // external chain
+			name:          "flag passed with an external id",
+			dependencySet: []uint64{8453}, // external chain
 		},
 	}
 
@@ -37,7 +38,7 @@ func TestGetNetworkConfig_DependencySetLogic(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cliConfig := &CLIConfig{
 				L2Count:       2,
-				DependencySet: tt.userDependencySet,
+				DependencySet: tt.dependencySet,
 			}
 
 			networkConfig := GetNetworkConfig(cliConfig)
