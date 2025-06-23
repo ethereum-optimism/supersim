@@ -10,6 +10,7 @@ import (
 
 	"net"
 
+	"github.com/ethereum-optimism/supersim/genesis"
 	"github.com/ethereum-optimism/supersim/registry"
 
 	"github.com/urfave/cli/v2"
@@ -253,6 +254,13 @@ func (c *CLIConfig) Check() error {
 		return fmt.Errorf("min 1, max %d L2 chains", MaxL2Count)
 	}
 
+	// Validate bidirectional dependency set requirements
+	if c.DependencySet != nil {
+		if err := c.validateBidirectionalDependencySet(); err != nil {
+			return err
+		}
+	}
+
 	if c.ForkConfig != nil {
 		forkCfg := c.ForkConfig
 
@@ -276,6 +284,47 @@ func (c *CLIConfig) Check() error {
 	}
 
 	return nil
+}
+
+func (c *CLIConfig) validateBidirectionalDependencySet() error {
+	if len(c.DependencySet) == 0 {
+		return nil // Empty dependency set is always valid
+	}
+
+	// Dependency sets must contain at least 2 chains to be bidirectional
+	if len(c.DependencySet) < 2 {
+		return fmt.Errorf("dependency set must contain at least 2 chains to be bidirectional, got %v", c.DependencySet)
+	}
+
+	// Get the chain IDs that will actually be running locally
+	localChainIDs := make(map[uint64]bool)
+	for i := uint64(0); i < c.L2Count; i++ {
+		localChainIDs[genesis.GeneratedGenesisDeployment.L2s[i].ChainID] = true
+	}
+
+	// Count how many locally running chains are in the dependency set
+	localChainsInDepSet := 0
+	for _, chainID := range c.DependencySet {
+		if localChainIDs[chainID] {
+			localChainsInDepSet++
+		}
+	}
+
+	// If any local chains are in the dependency set, there must be at least 2 for bidirectionality
+	if localChainsInDepSet == 1 {
+		return fmt.Errorf("dependency set contains only 1 locally running chain - must contain at least 2 local chains for bidirectionality (local chains: %v)", getLocalChainIDs(c.L2Count))
+	}
+
+	return nil
+}
+
+// getLocalChainIDs returns the chain IDs that will be running locally for the given L2 count
+func getLocalChainIDs(l2Count uint64) []uint64 {
+	chainIDs := make([]uint64, l2Count)
+	for i := uint64(0); i < l2Count; i++ {
+		chainIDs[i] = genesis.GeneratedGenesisDeployment.L2s[i].ChainID
+	}
+	return chainIDs
 }
 
 func PrintDocLinks() {
@@ -338,6 +387,10 @@ func ParseDependencySet(dependencySet string) ([]uint64, error) {
 		num, err := strconv.ParseUint(match, 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("invalid positive number in dependency set: %s", match)
+		}
+
+		if num == 0 {
+			return nil, fmt.Errorf("chain ID 0 is not allowed in dependency set")
 		}
 
 		result = append(result, num)

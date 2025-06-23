@@ -166,19 +166,20 @@ func GetNetworkConfig(cliConfig *CLIConfig) NetworkConfig {
 			InteropL2ToL2CDMOverrideArtifactPath: cliConfig.InteropL2ToL2CDMOverrideArtifactPath,
 		}
 
-		// If user provided dependency set, use it; otherwise use default (other local chains)
+		// Configure bidirectional dependency sets
 		if cliConfig.DependencySet != nil {
-			// Use user-provided dependency set (exclude self)
+			// User provided dependency set - ensure bidirectionality by applying the same set to all chains
+			// Each chain gets the full dependency set minus itself (can't depend on self)
 			for _, userChainID := range cliConfig.DependencySet {
 				if userChainID != l2Cfg.ChainID {
 					l2Cfg.L2Config.DependencySet = append(l2Cfg.L2Config.DependencySet, userChainID)
 				}
 			}
 		} else {
-			// Default behavior: populate dep set with other local chains
+			// Default behavior: all chains can communicate with each other (full mesh)
 			for j := uint64(0); j < cliConfig.L2Count; j++ {
 				if i == j {
-					continue
+					continue // Skip self
 				}
 				peerChainID := genesis.GeneratedGenesisDeployment.L2s[j].ChainID
 				l2Cfg.L2Config.DependencySet = append(l2Cfg.L2Config.DependencySet, peerChainID)
