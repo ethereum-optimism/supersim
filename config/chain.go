@@ -168,13 +168,25 @@ func GetNetworkConfig(cliConfig *CLIConfig) NetworkConfig {
 
 		// Configure bidirectional dependency sets
 		if cliConfig.DependencySet != nil {
-			// User provided dependency set - ensure bidirectionality by applying the same set to all chains
-			// Each chain gets the full dependency set minus itself (can't depend on self)
+			// User provided dependency set - only chains in the dependency set can execute messages from other chains in the set
+			// Check if current chain is in the dependency set
+			chainInDependencySet := false
 			for _, userChainID := range cliConfig.DependencySet {
-				if userChainID != l2Cfg.ChainID {
-					l2Cfg.L2Config.DependencySet = append(l2Cfg.L2Config.DependencySet, userChainID)
+				if userChainID == l2Cfg.ChainID {
+					chainInDependencySet = true
+					break
 				}
 			}
+
+			// Only add dependencies if this chain is in the dependency set
+			if chainInDependencySet {
+				for _, userChainID := range cliConfig.DependencySet {
+					if userChainID != l2Cfg.ChainID {
+						l2Cfg.L2Config.DependencySet = append(l2Cfg.L2Config.DependencySet, userChainID)
+					}
+				}
+			}
+			// If chain is not in dependency set, it gets empty dependency set (already initialized as empty)
 		} else {
 			// Default behavior: all chains can communicate with each other (full mesh)
 			for j := uint64(0); j < cliConfig.L2Count; j++ {

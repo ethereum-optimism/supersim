@@ -125,7 +125,7 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    DependencySetFlagName,
-			Usage:   "Override chain IDs in the dependency set (format: [901,902] or [])",
+			Usage:   "Override local chain IDs in the dependency set.(format: [901,902] or [])",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "DEPENDENCY_SET"),
 		},
 	}
@@ -302,17 +302,11 @@ func (c *CLIConfig) validateBidirectionalDependencySet() error {
 		localChainIDs[genesis.GeneratedGenesisDeployment.L2s[i].ChainID] = true
 	}
 
-	// Count how many locally running chains are in the dependency set
-	localChainsInDepSet := 0
+	// Validate that all chain IDs in the dependency set correspond to chains being run locally
 	for _, chainID := range c.DependencySet {
-		if localChainIDs[chainID] {
-			localChainsInDepSet++
+		if !localChainIDs[chainID] {
+			return fmt.Errorf("chain ID %d in dependency set is not running locally (available chains: %v)", chainID, getLocalChainIDs(c.L2Count))
 		}
-	}
-
-	// If any local chains are in the dependency set, there must be at least 2 for bidirectionality
-	if localChainsInDepSet == 1 {
-		return fmt.Errorf("dependency set contains only 1 locally running chain - must contain at least 2 local chains for bidirectionality (local chains: %v)", getLocalChainIDs(c.L2Count))
 	}
 
 	return nil

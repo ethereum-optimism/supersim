@@ -216,30 +216,32 @@ func TestValidateBidirectionalDependencySet(t *testing.T) {
 			shouldError:   false,
 		},
 		{
-			name:          "dependency set with external chain ID and 2 local chains is valid",
+			name:          "dependency set with external chain ID should fail",
 			l2Count:       3,
-			dependencySet: []uint64{901, 902, 999}, // 999 is external, 901,902 are local
-			shouldError:   false,
+			dependencySet: []uint64{901, 902, 999}, // 999 is not a local chain ID
+			shouldError:   true,
+			expectedError: "chain ID 999 in dependency set is not running locally",
 		},
 		{
-			name:          "dependency set with only external chain IDs is valid",
+			name:          "dependency set with only external chain IDs should fail",
 			l2Count:       2,
 			dependencySet: []uint64{999, 888}, // Both are external chain IDs
-			shouldError:   false,
+			shouldError:   true,
+			expectedError: "chain ID 999 in dependency set is not running locally",
 		},
 		{
 			name:          "dependency set with 1 local and 1 external chain should fail",
 			l2Count:       2,
-			dependencySet: []uint64{901, 999}, // Only 1 local chain (901)
+			dependencySet: []uint64{901, 999}, // External chain not allowed
 			shouldError:   true,
-			expectedError: "dependency set contains only 1 locally running chain",
+			expectedError: "chain ID 999 in dependency set is not running locally",
 		},
 		{
-			name:          "dependency set with 1 local chain at different position should fail",
-			l2Count:       3,
-			dependencySet: []uint64{999, 902, 888}, // Only 1 local chain (902)
+			name:          "dependency set with chain ID outside available range should fail",
+			l2Count:       2,                  // Only chains 901, 902 available
+			dependencySet: []uint64{901, 903}, // 903 is not available with L2Count=2
 			shouldError:   true,
-			expectedError: "dependency set contains only 1 locally running chain",
+			expectedError: "chain ID 903 in dependency set is not running locally",
 		},
 		{
 			name:          "dependency set with all available local chains is valid",
@@ -248,9 +250,28 @@ func TestValidateBidirectionalDependencySet(t *testing.T) {
 			shouldError:   false,
 		},
 		{
-			name:          "dependency set with some local chains and external chains is valid",
+			name:          "valid subset of available local chains",
 			l2Count:       4,
-			dependencySet: []uint64{901, 903, 999, 888}, // 2 local, 2 external
+			dependencySet: []uint64{901, 903}, // 2 out of 4 available local chains
+			shouldError:   false,
+		},
+		{
+			name:          "user runs 901,902,903 and passes [901,902] - valid case",
+			l2Count:       3,
+			dependencySet: []uint64{901, 902}, // 2 local chains - valid
+			shouldError:   false,
+		},
+		{
+			name:          "user runs 901,902 and passes [901,999] - invalid case",
+			l2Count:       2,
+			dependencySet: []uint64{901, 999}, // External chain 999 not allowed
+			shouldError:   true,
+			expectedError: "chain ID 999 in dependency set is not running locally",
+		},
+		{
+			name:          "user runs 901,902,903 and passes [901,902,903] - valid all local case",
+			l2Count:       3,
+			dependencySet: []uint64{901, 902, 903}, // All local chains - valid
 			shouldError:   false,
 		},
 	}
@@ -309,29 +330,50 @@ func TestCLIConfig_Check_WithDependencySet(t *testing.T) {
 			expectedError: "dependency set must contain at least 2 chains to be bidirectional",
 		},
 		{
-			name:          "valid config with bidirectional local ids and external chain IDs",
+			name:          "invalid config with external chain ID in dependency set",
 			l2Count:       2,
-			dependencySet: []uint64{901, 902, 999}, // 2 local, 1 external
-			shouldError:   false,
-		},
-		{
-			name:          "invalid config with only 1 local chain and external chains",
-			l2Count:       3,
-			dependencySet: []uint64{901, 999, 888}, // Only 1 local chain
+			dependencySet: []uint64{901, 902, 999}, // External chain 999 not allowed
 			shouldError:   true,
-			expectedError: "dependency set contains only 1 locally running chain",
+			expectedError: "chain ID 999 in dependency set is not running locally",
 		},
 		{
-			name:          "valid config with only external chain IDs",
-			l2Count:       2,
-			dependencySet: []uint64{999, 888}, // Only external chains
-			shouldError:   false,
+			name:          "invalid config with only external chain IDs",
+			l2Count:       3,
+			dependencySet: []uint64{999, 888}, // External chains not allowed
+			shouldError:   true,
+			expectedError: "chain ID 999 in dependency set is not running locally",
+		},
+		{
+			name:          "invalid config with chain ID outside L2Count range",
+			l2Count:       2,                  // Only chains 901, 902 available
+			dependencySet: []uint64{901, 903}, // 903 is not available with L2Count=2
+			shouldError:   true,
+			expectedError: "chain ID 903 in dependency set is not running locally",
 		},
 		{
 			name:          "valid config with all available local chains",
 			l2Count:       4,
 			dependencySet: []uint64{901, 902, 903, 904},
 			shouldError:   false,
+		},
+		{
+			name:          "valid config with subset of local chains",
+			l2Count:       3,
+			dependencySet: []uint64{901, 902}, // 2 out of 3 available local chains
+			shouldError:   false,
+		},
+		{
+			name:          "integration test: user runs 901,902,903 and passes [901,902] - valid",
+			l2Count:       3,
+			dependencySet: []uint64{901, 902}, // Valid local chains only
+			shouldError:   false,
+		},
+		{
+			name:          "integration test: user runs 901,902 and passes [901,999] - invalid",
+			l2Count:       2,
+			dependencySet: []uint64{901, 999}, // External chain 999 not allowed
+			shouldError:   true,
+			expectedError: "chain ID 999 in dependency set is not running locally",
 		},
 	}
 
