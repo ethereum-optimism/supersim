@@ -13,10 +13,11 @@ import {IWETH9} from "@uniswap-v4-periphery/interfaces/external/IWETH9.sol";
 import {IAllowanceTransfer} from "@permit2/interfaces/IAllowanceTransfer.sol";
 
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
+import {Preinstalls} from "@contracts-bedrock/libraries/Preinstalls.sol";
 
 contract PositionManager is PositionManagerCore {
     /// @notice Permit2 address.
-    IAllowanceTransfer internal constant _permit2 = IAllowanceTransfer(0x000000000022D473030F116dDEE9F6B43aC78BA3);
+    IAllowanceTransfer internal constant _permit2 = IAllowanceTransfer(Preinstalls.Permit2);
 
     /// @notice WETH address in the superchain
     IWETH9 internal constant _weth = IWETH9(Predeploys.WETH);

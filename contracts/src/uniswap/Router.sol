@@ -12,10 +12,11 @@ import {ReentrancyLock} from "@uniswap-v4-periphery/base/ReentrancyLock.sol";
 import {IAllowanceTransfer} from "@permit2/interfaces/IAllowanceTransfer.sol";
 
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
+import {Preinstalls} from "@contracts-bedrock/libraries/Preinstalls.sol";
 
 contract Router is V4Router, ReentrancyLock {
     /// @notice Permit2 address.
-    IAllowanceTransfer internal constant _permit2 = IAllowanceTransfer(0x000000000022D473030F116dDEE9F6B43aC78BA3);
+    IAllowanceTransfer internal constant _permit2 = IAllowanceTransfer(Preinstalls.Permit2);
 
     constructor(IPoolManager _manager) V4Router(_manager) {}
 

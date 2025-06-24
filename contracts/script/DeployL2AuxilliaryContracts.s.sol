@@ -12,6 +12,7 @@ import {StateView} from "@uniswap-v4-periphery/lens/StateView.sol";
 import {V4Router} from "@uniswap-v4-periphery/V4Router.sol";
 
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
+import {Preinstall} from "@contracts-bedrock/libraries/Preinstall.sol";
 
 import {Router} from "../src/uniswap/Router.sol";
 import {PositionManager} from "../src/uniswap/PositionManager.sol";
@@ -23,10 +24,10 @@ interface ICreate2Deployer {
 
 contract DeployL2AuxilliaryContracts is Script {
     /// @notice Permit2 address.
-    address _permit2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    address _permit2 = Preinstall.Permit2;
 
     /// @notice Create2 deployer address.
-    ICreate2Deployer internal constant _deployer = ICreate2Deployer(0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2);
+    ICreate2Deployer internal constant _deployer = ICreate2Deployer(Preinstall.Create2Deployer);
 
     /// @notice Create2Deployer creationCode.
     bytes internal constant _deployerCode =
