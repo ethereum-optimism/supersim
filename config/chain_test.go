@@ -2,35 +2,46 @@ package config
 
 import (
 	"testing"
+
 	"github.com/stretchr/testify/require"
 )
 
-type dependencySetTestCase struct {
-	name          string
-	dependencySet []uint64
-}
-
 func TestGetNetworkConfig_DependencySetLogic(t *testing.T) {
-	tests := []dependencySetTestCase{
+	tests := []struct {
+		name                   string
+		dependencySet          []uint64
+		expectedChain901DepSet []uint64
+		expectedChain902DepSet []uint64
+	}{
 		{
-			name:          "no flag passed",
-			dependencySet: nil,
+			name:                   "no flag passed",
+			dependencySet:          nil,
+			expectedChain901DepSet: []uint64{902},
+			expectedChain902DepSet: []uint64{901},
 		},
 		{
-			name:          "flag passed with []",
-			dependencySet: []uint64{},
+			name:                   "flag passed with []",
+			dependencySet:          []uint64{},
+			expectedChain901DepSet: []uint64{},
+			expectedChain902DepSet: []uint64{},
 		},
 		{
-			name:          "flag passed with 1 of the two local chain ids",
-			dependencySet: []uint64{901}, // 901 is first local chain
+			name:                   "flag passed with 1 of the two local chain ids",
+			dependencySet:          []uint64{901}, // 901 is first local chain
+			expectedChain901DepSet: []uint64{},    // only 901 in set, so 901 gets empty (excluding self)
+			expectedChain902DepSet: []uint64{},    // 902 not in set, so gets empty
 		},
 		{
-			name:          "flag passed with both of the two local chain ids",
-			dependencySet: []uint64{901, 902}, // both local chains
+			name:                   "flag passed with both of the two local chain ids",
+			dependencySet:          []uint64{901, 902}, // both local chains
+			expectedChain901DepSet: []uint64{902},      // excludes self
+			expectedChain902DepSet: []uint64{901},      // excludes self
 		},
 		{
-			name:          "flag passed with an external id",
-			dependencySet: []uint64{8453}, // external chain
+			name:                   "flag passed with an external id",
+			dependencySet:          []uint64{8453}, // external chain
+			expectedChain901DepSet: []uint64{},     // 901 not in set [8453], so gets empty
+			expectedChain902DepSet: []uint64{},     // 902 not in set [8453], so gets empty
 		},
 	}
 
@@ -49,24 +60,8 @@ func TestGetNetworkConfig_DependencySetLogic(t *testing.T) {
 			require.NotNil(t, chain901)
 			require.NotNil(t, chain902)
 
-			// Verify specific behavior based on test case
-			switch tt.name {
-			case "no flag passed":
-				require.Equal(t, []uint64{902}, chain901.L2Config.DependencySet)
-				require.Equal(t, []uint64{901}, chain902.L2Config.DependencySet)
-			case "flag passed with []":
-				require.Equal(t, []uint64{}, chain901.L2Config.DependencySet)
-				require.Equal(t, []uint64{}, chain902.L2Config.DependencySet)
-			case "flag passed with 1 of the two local chain ids":
-				require.Equal(t, []uint64{}, chain901.L2Config.DependencySet) // excludes self
-				require.Equal(t, []uint64{901}, chain902.L2Config.DependencySet)
-			case "flag passed with both of the two local chain ids":
-				require.Equal(t, []uint64{902}, chain901.L2Config.DependencySet) // excludes self
-				require.Equal(t, []uint64{901}, chain902.L2Config.DependencySet) // excludes self
-			case "flag passed with an external id":
-				require.Equal(t, []uint64{8453}, chain901.L2Config.DependencySet)
-				require.Equal(t, []uint64{8453}, chain902.L2Config.DependencySet)
-			}
+			require.Equal(t, tt.expectedChain901DepSet, chain901.L2Config.DependencySet)
+			require.Equal(t, tt.expectedChain902DepSet, chain902.L2Config.DependencySet)
 		})
 	}
 }
