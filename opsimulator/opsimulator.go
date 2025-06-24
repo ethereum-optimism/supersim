@@ -455,6 +455,24 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 				return fmt.Errorf("no chain found for chain id: %d", identifier.ChainId)
 			}
 
+			// Check dependency set validation
+			sourceChainID := identifier.ChainId.Uint64()
+			executingChainID := opSim.Config().ChainID
+
+			// Check if source chain is in executing chain's dependency set
+			executingChainDependencySet := opSim.Config().L2Config.DependencySet
+			sourceInExecutingDeps := false
+			for _, depChainID := range executingChainDependencySet {
+				if depChainID == sourceChainID {
+					sourceInExecutingDeps = true
+					break
+				}
+			}
+
+			if !sourceInExecutingDeps {
+				return fmt.Errorf("executing message in block (chain %d) may not execute message from chain %d: not in dependency set", executingChainID, sourceChainID)
+			}
+
 			sourceClient := sourceChain.EthClient()
 			identifierBlockHeader, err := sourceClient.HeaderByNumber(ctx, identifier.BlockNumber)
 			if err != nil {
