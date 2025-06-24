@@ -1305,8 +1305,12 @@ func TestEthSubscribeNewHeads(t *testing.T) {
 func TestDependencySetConfiguration(t *testing.T) {
 	t.Parallel()
 	testSuite := createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		// Run 3 chains to test override behavior
+		cfg.L2Count = 3
+
 		// Parse the dependency set and store the parsed values
-		parsedDeps, err := config.ParseDependencySet("[8453]") // base-sepolia chain ID
+		// Only include chains 901 and 902 in the dependency set, excluding 903
+		parsedDeps, err := config.ParseDependencySet("[901,902]") // local chain IDs
 		if err != nil {
 			t.Fatalf("Failed to parse dependency set: %v", err)
 		}
@@ -1316,33 +1320,37 @@ func TestDependencySetConfiguration(t *testing.T) {
 	})
 
 	// Test that the dependency set is properly parsed and stored in the config
-	require.Equal(t, 1, len(testSuite.Cfg.DependencySet))
-	require.Equal(t, uint64(8453), testSuite.Cfg.DependencySet[0])
+	require.Equal(t, 2, len(testSuite.Cfg.DependencySet))
+	require.Contains(t, testSuite.Cfg.DependencySet, uint64(901))
+	require.Contains(t, testSuite.Cfg.DependencySet, uint64(902))
 
 	// Verify supersim started successfully with the dependency set configured
 	require.NotNil(t, testSuite.Supersim)
 	require.True(t, len(testSuite.Supersim.Orchestrator.L2Chains()) > 0)
 
-	// Verify that each local chain's dependency set is overridden to only contain user-provided chain ID
+	// Verify that we have 3 chains running
 	networkConfig := testSuite.Supersim.NetworkConfig
-	require.Equal(t, 2, len(networkConfig.L2Configs)) // Default is 2 L2 chains
+	require.Equal(t, 3, len(networkConfig.L2Configs)) // Should have 3 L2 chains
 
+	// Verify that each local chain's dependency set is overridden correctly
 	for _, l2Config := range networkConfig.L2Configs {
 		require.NotNil(t, l2Config.L2Config)
 		depSet := l2Config.L2Config.DependencySet
 
-		// Should only contain the user-provided chain ID (8453), not other local chains
-		require.Equal(t, 1, len(depSet), "Chain %d should have exactly 1 dependency (override behavior)", l2Config.ChainID)
-		require.Contains(t, depSet, uint64(8453), "Chain %d should include user-provided chain 8453", l2Config.ChainID)
-
-		// Should NOT contain other local chains (override behavior)
-		for _, otherL2Config := range networkConfig.L2Configs {
-			if otherL2Config.ChainID != l2Config.ChainID {
-				require.NotContains(t, depSet, otherL2Config.ChainID, "Chain %d should NOT include other local chain %d (override behavior)", l2Config.ChainID, otherL2Config.ChainID)
-			}
+		if l2Config.ChainID == 903 {
+			// Chain 903 should have empty dependency set since it's not in the user-provided set
+			require.Equal(t, 0, len(depSet), "Chain 903 should have empty dependency set since it's not included in user-provided set")
+		} else if l2Config.ChainID == 901 {
+			// Chain 901 should have dependency set [902] (user-provided set minus itself)
+			require.Equal(t, 1, len(depSet), "Chain 901 should have exactly 1 dependency (902)")
+			require.Contains(t, depSet, uint64(902), "Chain 901 should include chain 902")
+		} else if l2Config.ChainID == 902 {
+			// Chain 902 should have dependency set [901] (user-provided set minus itself)
+			require.Equal(t, 1, len(depSet), "Chain 902 should have exactly 1 dependency (901)")
+			require.Contains(t, depSet, uint64(901), "Chain 902 should include chain 901")
 		}
 
-		// Should NOT contain itself
+		// Should NOT contain itself in its own dependency set
 		require.NotContains(t, depSet, l2Config.ChainID, "Chain %d should not include itself in dependency set", l2Config.ChainID)
 	}
 }

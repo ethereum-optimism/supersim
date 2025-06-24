@@ -74,52 +74,26 @@ DESCRIPTION:
 
 COMMANDS:
    fork     Locally fork a network in the superchain registry
+   docs     Display available docs links
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-
-    --interop.autorelay                 (default: false)                   ($SUPERSIM_INTEROP_AUTORELAY)
-          Automatically relay messages sent to the L2ToL2CrossDomainMessenger using
-          account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
-
-   --interop.l2tol2cdm.override value   (default: "")                      ($SUPERSIM_INTEROP_L2TO2CDM_OVERRIDE)
-          Path to the L2ToL2CrossDomainMessenger build artifact that overrides the default implementation
-
-    --interop.delay value               (default: 0)                       ($SUPERSIM_INTEROP_DELAY)
-          Delay before relaying messages sent to the L2ToL2CrossDomainMessenger
-
-    --l1.port value                     (default: 8545)                    ($SUPERSIM_L1_PORT)
-          Listening port for the L1 instance. `0` binds to any available port
-
-    --l2.starting.port value            (default: 9545)                    ($SUPERSIM_L2_STARTING_PORT)
-          Starting port to increment from for L2 chains. `0` binds each chain to any
-          available port
-
-    --log.color                         (default: false)                   ($SUPERSIM_LOG_COLOR)
-          Color the log output if in terminal mode
-
-    --log.format value                  (default: text)                    ($SUPERSIM_LOG_FORMAT)
-          Format the log output. Supported formats: 'text', 'terminal', 'logfmt', 'json',
-          'json-pretty',
-
-    --log.level value                   (default: INFO)                    ($SUPERSIM_LOG_LEVEL)
-          The lowest log level that will be output
-
-    --log.pid                           (default: false)                   ($SUPERSIM_LOG_PID)
-          Show pid in the log
-
-    --logs.directory value                                                 ($SUPERSIM_LOGS_DIRECTORY)
-          Directory to store logs
-
-    --odyssey.enabled                   (default: false)                   ($SUPERSIM_ODYSSEY_ENABLED)
-          Enable odyssey experimental features
-
-   MISC
-
-
-    --help, -h                          (default: false)
-          show help
-
-    --version, -v                       (default: false)
-          print the version
+   --admin.port value                  Listening port for the admin server (default: 8420) [$SUPERSIM_ADMIN_PORT]
+   --interop.l2tol2cdm.override value  Path to the L2ToL2CrossDomainMessenger build artifact that overrides the default implementation [$SUPERSIM_INTEROP_L2TO2CDM_OVERRIDE]
+   --l1.port 0                         Listening port for the L1 instance. 0 binds to any available port (default: 8545) [$SUPERSIM_L1_PORT]
+   --l2.count value                    Number of L2s. Max of 5 (default: 2) [$SUPERSIM_L2_COUNT]
+   --l2.starting.port 0                Starting port to increment from for L2 chains. 0 binds each chain to any available port (default: 9545) [$SUPERSIM_L2_STARTING_PORT]
+   --interop.autorelay                 Automatically relay messages sent to the L2ToL2CrossDomainMessenger using account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 (default: false) [$SUPERSIM_INTEROP_AUTORELAY]
+   --logs.directory value              Directory to store logs [$SUPERSIM_LOGS_DIRECTORY]
+   --l1.host value                     Host address for the L1 instance (default: "127.0.0.1") [$SUPERSIM_L1_HOST]
+   --l2.host value                     Host address for L2 instances (default: "127.0.0.1") [$SUPERSIM_L2_HOST]
+   --interop.delay value               Delay before relaying messages sent to the L2ToL2CrossDomainMessenger (default: 0) [$SUPERSIM_INTEROP_DELAY]
+   --odyssey.enabled                   Enable odyssey experimental features (default: false) [$SUPERSIM_ODYSSEY_ENABLED]
+   --dependency.set value              Override local chain IDs in the dependency set.(format: '[901,902]' or '[]') [$SUPERSIM_DEPENDENCY_SET]
+   --log.level value                   The lowest log level that will be output (default: INFO) [$SUPERSIM_LOG_LEVEL]
+   --log.format value                  Format the log output. Supported formats: 'text', 'terminal', 'logfmt', 'json', 'json-pretty', (default: text) [$SUPERSIM_LOG_FORMAT]
+   --log.color                         Color the log output if in terminal mode (default: false) [$SUPERSIM_LOG_COLOR]
+   --log.pid                           Show pid in the log (default: false) [$SUPERSIM_LOG_PID]
+   --help, -h                          show help
+   --version, -v                       print the version
 ```
