@@ -5,7 +5,7 @@ build-book:
 
 build-contracts:
     forge --version
-    forge build --sizes --root ./contracts
+    forge build --sizes --root ./contracts src lib/optimism/packages/contracts-bedrock/src/universal/Proxy.sol lib/optimism/packages/contracts-bedrock/src/L2/SuperchainTokenBridge.sol lib/optimism/packages/contracts-bedrock/src/L2/SuperchainETHBridge.sol lib/optimism/packages/contracts-bedrock/src/L2/ETHLiquidity.sol
 
 build-go:
     go build ./...
@@ -42,7 +42,7 @@ install-monorepo-go version:
 
 install-monorepo-contracts version: (fetch-monorepo-contracts version)
     cd contracts && \
-    forge install ethereum-optimism/optimism@{{version}} --no-commit
+    forge install ethereum-optimism/optimism@{{version}}
 
 install-monorepo version: (install-monorepo-go version) (install-monorepo-contracts version)
 

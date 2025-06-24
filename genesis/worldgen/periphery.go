@@ -15,6 +15,10 @@ type DeployL2PeripheryContractsScript struct {
 	Run func() error
 }
 
+type DeployL2ValueTransferInteropContractsScript struct {
+	Run func() error
+}
+
 func createL2PeripheryHost(logger log.Logger, peripheryArtifacts *foundry.ArtifactsFS, l2Cfg *interopgen.L2Config, genesisTimestamp uint64) *script.Host {
 	l2PeripheryContext := script.Context{
 		ChainID:      new(big.Int).SetUint64(l2Cfg.L2ChainID),
@@ -50,6 +54,36 @@ func deployPeripheryContracts(logger log.Logger, l2Host *script.Host, peripheryA
 
 	if err := deployL2PeripheryContractsScript.Run(); err != nil {
 		return fmt.Errorf("failed to run DeployL2PeripheryContracts script: %w", err)
+	}
+
+	peripheryStateDump, err := l2PeripheryHost.StateDump()
+	if err != nil {
+		return fmt.Errorf("failed to dump state after deploying periphery contracts: %w", err)
+	}
+
+	l2Host.ImportState(peripheryStateDump)
+
+	return nil
+}
+
+// Value transfer interop contracts are not included in L2 genesis. So we need to deploy them manually.
+func deployValueTransferInteropContracts(logger log.Logger, l2Host *script.Host, peripheryArtifacts *foundry.ArtifactsFS, l2Cfg *interopgen.L2Config, genesisTimestamp uint64) error {
+	// Note: doesn't directly deploy the contracts
+	// Instead it deploys into a fresh L2 state, and imports the state into the existing L2 state
+	l2PeripheryHost := createL2PeripheryHost(logger, peripheryArtifacts, l2Cfg, genesisTimestamp)
+
+	if err := l2PeripheryHost.EnableCheats(); err != nil {
+		return fmt.Errorf("failed to enable cheats in L2 state %d: %w", l2Cfg.L2ChainID, err)
+	}
+
+	deployL2ValueTransferInteropContractsScript, cleanup, err := script.WithScript[DeployL2ValueTransferInteropContractsScript](l2PeripheryHost, "DeployL2ValueTransferInteropContracts.s.sol", "DeployL2ValueTransferInteropContracts")
+	if err != nil {
+		return fmt.Errorf("failed to load DeployL2ValueTransferInteropContracts script: %w", err)
+	}
+	defer cleanup()
+
+	if err := deployL2ValueTransferInteropContractsScript.Run(); err != nil {
+		return fmt.Errorf("failed to run deployL2ValueTransferInteropContractsScript script: %w", err)
 	}
 
 	peripheryStateDump, err := l2PeripheryHost.StateDump()
