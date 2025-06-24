@@ -26,6 +26,20 @@ var interopPredeploys = []common.Address{
 	predeploys.SuperchainTokenBridgeAddr,
 }
 
+var (
+	poolManagerAddr = common.HexToAddress("0x503ce871243002F3F0faD0CCfCbfC1917A1B62Bf")
+	posmAddr        = common.HexToAddress("0xadEA4114513849C8185179A7f039582cC7C6e34B")
+	stateViewAddr   = common.HexToAddress("0xbd560A8C6f5c8a74CBCB76c5cAf853027D8EAaA6")
+	routerAddr      = common.HexToAddress("0xB0E54aedC4Be08A347f0f3894291f4203e5e4e23")
+)
+
+var uniswapV4Addrs = []common.Address{
+	poolManagerAddr,
+	posmAddr,
+	stateViewAddr,
+	routerAddr,
+}
+
 type predeploy struct {
 	proxy common.Address
 	impl  common.Address
@@ -65,6 +79,17 @@ func Configure(ctx context.Context, chain config.Chain) error {
 		}
 		if err := applyAllocToAddress(ctx, chain, &promiseAlloc, bindings.PromiseAddr); err != nil {
 			return fmt.Errorf("failed to apply alloc for %s: %w", bindings.PromiseAddr, err)
+		}
+
+		// Manually set the code for the UniswapV4 contracts
+		for _, addr := range uniswapV4Addrs {
+			uniswapV4Alloc, ok := l2Genesis.Alloc[strings.ToLower(addr.Hex()[2:])]
+			if !ok {
+				return fmt.Errorf("uniswapV4 alloc not found %s:", addr)
+			}
+			if err := applyAllocToAddress(ctx, chain, &uniswapV4Alloc, addr); err != nil {
+				return fmt.Errorf("failed to apply alloc for %s: %w", addr, err)
+			}
 		}
 	}
 
