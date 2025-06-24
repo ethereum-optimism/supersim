@@ -7,15 +7,15 @@ import {PoolManager} from "@uniswap-v4-core/PoolManager.sol";
 import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
 import {Currency} from "@uniswap-v4-core/types/Currency.sol";
 
+import {PositionManager} from "@uniswap-v4-periphery/PositionManager.sol";
 import {PositionDescriptor} from "@uniswap-v4-periphery/PositionDescriptor.sol";
 import {StateView} from "@uniswap-v4-periphery/lens/StateView.sol";
 import {V4Router} from "@uniswap-v4-periphery/V4Router.sol";
 
 import {Predeploys} from "@contracts-bedrock/libraries/Predeploys.sol";
-import {Preinstall} from "@contracts-bedrock/libraries/Preinstall.sol";
+import {Preinstalls} from "@contracts-bedrock/libraries/Preinstalls.sol";
 
 import {Router} from "../src/uniswap/Router.sol";
-import {PositionManager} from "../src/uniswap/PositionManager.sol";
 
 interface ICreate2Deployer {
     function computeAddress(bytes32 salt, bytes32 codeHash) external view returns (address);
@@ -24,10 +24,10 @@ interface ICreate2Deployer {
 
 contract DeployL2AuxilliaryContracts is Script {
     /// @notice Permit2 address.
-    address _permit2 = Preinstall.Permit2;
+    address _permit2 = Preinstalls.Permit2;
 
     /// @notice Create2 deployer address.
-    ICreate2Deployer internal constant _deployer = ICreate2Deployer(Preinstall.Create2Deployer);
+    ICreate2Deployer internal constant _deployer = ICreate2Deployer(Preinstalls.Create2Deployer);
 
     /// @notice Create2Deployer creationCode.
     bytes internal constant _deployerCode =
@@ -84,7 +84,7 @@ contract DeployL2AuxilliaryContracts is Script {
         internal
         returns (PositionManager)
     {
-        bytes memory args = abi.encode(_manager, _positionsDescriptor);
+        bytes memory args = abi.encode(_manager, _permit2, 300_000, _positionsDescriptor, Predeploys.WETH);
         bytes memory initcode = abi.encodePacked(type(PositionManager).creationCode, args);
         address addr = _deployer.computeAddress(_salt, keccak256(initcode));
         _deployer.deploy(0, _salt, initcode);
