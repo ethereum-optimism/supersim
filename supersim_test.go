@@ -1346,5 +1346,3 @@ func TestDependencySetConfiguration(t *testing.T) {
 		require.NotContains(t, depSet, l2Config.ChainID, "Chain %d should not include itself in dependency set", l2Config.ChainID)
 	}
 }
-
-

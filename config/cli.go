@@ -125,7 +125,7 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:    DependencySetFlagName,
-			Usage:   "Override local chain IDs in the dependency set.(format: [901,902] or [])",
+			Usage:   "Override local chain IDs in the dependency set.(format: '[901,902]' or '[]')",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "DEPENDENCY_SET"),
 		},
 	}

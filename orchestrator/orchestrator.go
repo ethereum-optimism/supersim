@@ -271,7 +271,7 @@ func (o *Orchestrator) ConfigAsString() string {
 	for _, opSim := range opSims {
 		cfg := opSim.Config()
 		fmt.Fprintf(&b, "\n")
-				fmt.Fprintf(&b, "  * Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", cfg.Name, cfg.ChainID, opSim.Endpoint(), opSim.LogPath())
+		fmt.Fprintf(&b, "  * Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", cfg.Name, cfg.ChainID, opSim.Endpoint(), opSim.LogPath())
 
 		// Only log dependency set if user explicitly provided the flag
 		if o.cliConfig != nil && o.cliConfig.DependencySet != nil {
