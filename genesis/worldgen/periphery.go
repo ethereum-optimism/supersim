@@ -61,23 +61,23 @@ func deployPeripheryContracts(logger log.Logger, l2Host *script.Host, peripheryA
 		return fmt.Errorf("failed to dump state after deploying periphery contracts: %w", err)
 	}
 
-	deployL2AuxilliaryContractsScript, cleanup, err := script.WithScript[DeployL2PeripheryContractsScript](l2PeripheryHost, "DeployL2AuxilliaryContracts.s.sol", "DeployL2AuxilliaryContracts")
+	deployL2AuxiliaryContractsScript, cleanup, err := script.WithScript[DeployL2PeripheryContractsScript](l2PeripheryHost, "DeployL2AuxiliaryContracts.s.sol", "DeployL2AuxiliaryContracts")
 	if err != nil {
-		return fmt.Errorf("failed to load DeployL2AuxilliaryContracts script: %w", err)
+		return fmt.Errorf("failed to load DeployL2AuxiliaryContracts script: %w", err)
 	}
 	defer cleanup()
 
-	if err := deployL2AuxilliaryContractsScript.Run(); err != nil {
-		return fmt.Errorf("failed to run DeployL2AuxilliaryContracts script: %w", err)
+	if err := deployL2AuxiliaryContractsScript.Run(); err != nil {
+		return fmt.Errorf("failed to run DeployL2AuxiliaryContracts script: %w", err)
 	}
 
-	auxilliaryStateDump, err := l2PeripheryHost.StateDump()
+	auxiliaryStateDump, err := l2PeripheryHost.StateDump()
 	if err != nil {
-		return fmt.Errorf("failed to dump state after deploying auxilliary contracts: %w", err)
+		return fmt.Errorf("failed to dump state after deploying auxiliary contracts: %w", err)
 	}
 
 	l2Host.ImportState(peripheryStateDump)
-	l2Host.ImportState(auxilliaryStateDump)
+	l2Host.ImportState(auxiliaryStateDump)
 
 	return nil
 }
