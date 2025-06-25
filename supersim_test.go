@@ -1308,7 +1308,6 @@ func TestDependencySetConfiguration(t *testing.T) {
 		// Run 3 chains to test override behavior
 		cfg.L2Count = 3
 
-		// Parse the dependency set and store the parsed values
 		// Only include chains 901 and 902 in the dependency set, excluding 903
 		parsedDeps, err := config.ParseDependencySet("[901,902]") // local chain IDs
 		if err != nil {
@@ -1338,19 +1337,15 @@ func TestDependencySetConfiguration(t *testing.T) {
 		depSet := l2Config.L2Config.DependencySet
 
 		if l2Config.ChainID == 903 {
-			// Chain 903 should have empty dependency set since it's not in the user-provided set
 			require.Equal(t, 0, len(depSet), "Chain 903 should have empty dependency set since it's not included in user-provided set")
 		} else if l2Config.ChainID == 901 {
-			// Chain 901 should have dependency set [902] (user-provided set minus itself)
 			require.Equal(t, 1, len(depSet), "Chain 901 should have exactly 1 dependency (902)")
 			require.Contains(t, depSet, uint64(902), "Chain 901 should include chain 902")
 		} else if l2Config.ChainID == 902 {
-			// Chain 902 should have dependency set [901] (user-provided set minus itself)
 			require.Equal(t, 1, len(depSet), "Chain 902 should have exactly 1 dependency (901)")
 			require.Contains(t, depSet, uint64(901), "Chain 902 should include chain 901")
 		}
 
-		// Should NOT contain itself in its own dependency set
 		require.NotContains(t, depSet, l2Config.ChainID, "Chain %d should not include itself in dependency set", l2Config.ChainID)
 	}
 }
