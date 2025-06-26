@@ -84,20 +84,22 @@ func TestGetNetworkConfig_SelfExclusion(t *testing.T) {
 }
 
 func TestGetNetworkConfig_EmptyDependencySet(t *testing.T) {
-	// Test with empty user dependency set
+	// Test with empty user dependency set across multiple chains
 	cliConfig := &CLIConfig{
-		L2Count:       1,
+		L2Count:       3,
 		DependencySet: []uint64{},
 	}
 
 	networkConfig := GetNetworkConfig(cliConfig)
 
-	require.Equal(t, 1, len(networkConfig.L2Configs))
-	l2Config := networkConfig.L2Configs[0]
-	require.NotNil(t, l2Config.L2Config)
+	require.Equal(t, 3, len(networkConfig.L2Configs))
 
-	// Single chain with no user dependencies should have empty dependency set
-	require.Equal(t, 0, len(l2Config.L2Config.DependencySet))
+	// All chains should have empty dependency sets when explicitly set to empty
+	for _, l2Config := range networkConfig.L2Configs {
+		require.NotNil(t, l2Config.L2Config)
+		require.Equal(t, 0, len(l2Config.L2Config.DependencySet),
+			"Chain %d should have empty dependency set when user explicitly provides empty set", l2Config.ChainID)
+	}
 }
 
 func findChainByID(chains []ChainConfig, chainID uint64) *ChainConfig {
