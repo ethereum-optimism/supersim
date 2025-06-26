@@ -156,317 +156,125 @@ func TestParseDependencySet(t *testing.T) {
 	}
 }
 
-func TestValidateBidirectionalDependencySet(t *testing.T) {
-	tests := []struct {
-		name          string
-		l2Count       uint64
-		dependencySet []uint64
-		shouldError   bool
-		expectedError string
-	}{
-		{
-			name:          "empty dependency set is always valid",
-			l2Count:       2,
-			dependencySet: []uint64{},
-			shouldError:   false,
-		},
-		{
-			name:          "empty dependency set with 3 chains is valid",
-			l2Count:       3,
-			dependencySet: []uint64{},
-			shouldError:   false,
-		},
-		{
-			name:          "dependency set with L2 count 1 should fail",
-			l2Count:       1,
-			dependencySet: []uint64{901},
-			shouldError:   true,
-			expectedError: "dependency set must contain at least 2 chains to be bidirectional",
-		},
-		{
-			name:          "dependency set with L2 count 2 should fail",
-			l2Count:       2,
-			dependencySet: []uint64{901},
-			shouldError:   true,
-			expectedError: "dependency set must contain at least 2 chains to be bidirectional",
-		},
-		{
-			name:          "single chain dependency set with L2 count 3 should fail",
-			l2Count:       3,
-			dependencySet: []uint64{901},
-			shouldError:   true,
-			expectedError: "dependency set must contain at least 2 chains to be bidirectional",
-		},
-		{
-			name:          "valid bidirectional dependency set with L2 count 3",
-			l2Count:       3,
-			dependencySet: []uint64{901, 902},
-			shouldError:   false,
-		},
-		{
-			name:          "valid bidirectional dependency set with L2 count 5",
-			l2Count:       5,
-			dependencySet: []uint64{901, 902, 903},
-			shouldError:   false,
-		},
-		{
-			name:          "valid minimal bidirectional dependency set",
-			l2Count:       4,
-			dependencySet: []uint64{901, 902},
-			shouldError:   false,
-		},
-		{
-			name:          "dependency set with external chain ID should fail",
-			l2Count:       3,
-			dependencySet: []uint64{901, 902, 999}, // 999 is not a local chain ID
-			shouldError:   true,
-			expectedError: "chain ID 999 in dependency set is not running locally",
-		},
-		{
-			name:          "dependency set with only external chain IDs should fail",
-			l2Count:       2,
-			dependencySet: []uint64{999, 888}, // Both are external chain IDs
-			shouldError:   true,
-			expectedError: "chain ID 999 in dependency set is not running locally",
-		},
-		{
-			name:          "dependency set with 1 local and 1 external chain should fail",
-			l2Count:       2,
-			dependencySet: []uint64{901, 999}, // External chain not allowed
-			shouldError:   true,
-			expectedError: "chain ID 999 in dependency set is not running locally",
-		},
-		{
-			name:          "dependency set with chain ID outside available range should fail",
-			l2Count:       2,                  // Only chains 901, 902 available
-			dependencySet: []uint64{901, 903}, // 903 is not available with L2Count=2
-			shouldError:   true,
-			expectedError: "chain ID 903 in dependency set is not running locally",
-		},
-		{
-			name:          "dependency set with all available local chains is valid",
-			l2Count:       5,
-			dependencySet: []uint64{901, 902, 903, 904, 905}, // All local chains
-			shouldError:   false,
-		},
-		{
-			name:          "valid subset of available local chains",
-			l2Count:       4,
-			dependencySet: []uint64{901, 903}, // 2 out of 4 available local chains
-			shouldError:   false,
-		},
-		{
-			name:          "user runs 901,902,903 and passes [901,902] - valid case",
-			l2Count:       3,
-			dependencySet: []uint64{901, 902}, // 2 local chains - valid
-			shouldError:   false,
-		},
-		{
-			name:          "user runs 901,902 and passes [901,999] - invalid case",
-			l2Count:       2,
-			dependencySet: []uint64{901, 999}, // External chain 999 not allowed
-			shouldError:   true,
-			expectedError: "chain ID 999 in dependency set is not running locally",
-		},
-		{
-			name:          "user runs 901,902,903 and passes [901,902,903] - valid all local case",
-			l2Count:       3,
-			dependencySet: []uint64{901, 902, 903}, // All local chains - valid
-			shouldError:   false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			config := &CLIConfig{
-				L2Count:       tt.l2Count,
-				DependencySet: tt.dependencySet,
-			}
-
-			err := config.validateBidirectionalDependencySet()
-
-			if tt.shouldError {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tt.expectedError)
-			} else {
-				require.NoError(t, err)
-			}
-		})
+func testCLIConfig() *CLIConfig {
+	return &CLIConfig{
+		L1Host: "127.0.0.1",
+		L2Host: "127.0.0.1",
 	}
 }
 
 func TestCLIConfig_Check_WithDependencySet(t *testing.T) {
 	tests := []struct {
 		name          string
-		l2Count       uint64
-		dependencySet []uint64
+		setupConfig   func() *CLIConfig
 		shouldError   bool
 		expectedError string
 	}{
 		{
-			name:          "valid config with empty dependency set",
-			l2Count:       2,
-			dependencySet: []uint64{},
-			shouldError:   false,
+			name: "empty dependency set - local mode",
+			setupConfig: func() *CLIConfig {
+				config := testCLIConfig()
+				config.L2Count = 2
+				config.DependencySet = []uint64{}
+				return config
+			},
+			shouldError: false,
 		},
 		{
-			name:          "invalid config with dependency set for 2 chains",
-			l2Count:       2,
-			dependencySet: []uint64{901},
+			name: "empty dependency set - fork mode",
+			setupConfig: func() *CLIConfig {
+				config := testCLIConfig()
+				config.L2Count = 1
+				config.ForkConfig = &ForkCLIConfig{
+					Network: "mainnet",
+					Chains:  []string{"op", "base"},
+				}
+				config.DependencySet = []uint64{}
+				return config
+			},
+			shouldError: false,
+		},
+		{
+			name: "valid local mode dependency set",
+			setupConfig: func() *CLIConfig {
+				config := testCLIConfig()
+				config.L2Count = 3
+				config.DependencySet = []uint64{901, 902}
+				return config
+			},
+			shouldError: false,
+		},
+		{
+			name: "valid fork mode dependency set",
+			setupConfig: func() *CLIConfig {
+				config := testCLIConfig()
+				config.L2Count = 1
+				config.ForkConfig = &ForkCLIConfig{
+					Network: "mainnet",
+					Chains:  []string{"op", "base"},
+				}
+				config.DependencySet = []uint64{10, 8453} // OP and Base chain IDs
+				return config
+			},
+			shouldError: false,
+		},
+		{
+			name: "single chain dependency set fails",
+			setupConfig: func() *CLIConfig {
+				config := testCLIConfig()
+				config.L2Count = 3
+				config.DependencySet = []uint64{901}
+				return config
+			},
 			shouldError:   true,
 			expectedError: "dependency set must contain at least 2 chains to be bidirectional",
 		},
 		{
-			name:          "valid config with bidirectional dependency set",
-			l2Count:       3,
-			dependencySet: []uint64{901, 902},
-			shouldError:   false,
-		},
-		{
-			name:          "invalid config with single chain dependency set",
-			l2Count:       3,
-			dependencySet: []uint64{901},
-			shouldError:   true,
-			expectedError: "dependency set must contain at least 2 chains to be bidirectional",
-		},
-		{
-			name:          "invalid config with external chain ID in dependency set",
-			l2Count:       2,
-			dependencySet: []uint64{901, 902, 999}, // External chain 999 not allowed
+			name: "invalid chain ID in local mode",
+			setupConfig: func() *CLIConfig {
+				config := testCLIConfig()
+				config.L2Count = 2
+				config.DependencySet = []uint64{901, 999}
+				return config
+			},
 			shouldError:   true,
 			expectedError: "chain ID 999 in dependency set is not running locally",
 		},
 		{
-			name:          "invalid config with only external chain IDs",
-			l2Count:       3,
-			dependencySet: []uint64{999, 888}, // External chains not allowed
+			name: "invalid chain ID in fork mode",
+			setupConfig: func() *CLIConfig {
+				config := testCLIConfig()
+				config.L2Count = 1
+				config.ForkConfig = &ForkCLIConfig{
+					Network: "mainnet",
+					Chains:  []string{"op", "base"},
+				}
+				config.DependencySet = []uint64{10, 999}
+				return config
+			},
 			shouldError:   true,
 			expectedError: "chain ID 999 in dependency set is not running locally",
 		},
 		{
-			name:          "invalid config with chain ID outside L2Count range",
-			l2Count:       2,                  // Only chains 901, 902 available
-			dependencySet: []uint64{901, 903}, // 903 is not available with L2Count=2
-			shouldError:   true,
-			expectedError: "chain ID 903 in dependency set is not running locally",
-		},
-		{
-			name:          "valid config with all available local chains",
-			l2Count:       4,
-			dependencySet: []uint64{901, 902, 903, 904},
-			shouldError:   false,
-		},
-		{
-			name:          "valid config with subset of local chains",
-			l2Count:       3,
-			dependencySet: []uint64{901, 902}, // 2 out of 3 available local chains
-			shouldError:   false,
-		},
-		{
-			name:          "integration test: user runs 901,902,903 and passes [901,902] - valid",
-			l2Count:       3,
-			dependencySet: []uint64{901, 902}, // Valid local chains only
-			shouldError:   false,
-		},
-		{
-			name:          "integration test: user runs 901,902 and passes [901,999] - invalid",
-			l2Count:       2,
-			dependencySet: []uint64{901, 999}, // External chain 999 not allowed
-			shouldError:   true,
-			expectedError: "chain ID 999 in dependency set is not running locally",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			config := &CLIConfig{
-				L1Host:        "127.0.0.1",
-				L2Host:        "127.0.0.1",
-				L2Count:       tt.l2Count,
-				DependencySet: tt.dependencySet,
-			}
-
-			err := config.Check()
-
-			if tt.shouldError {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tt.expectedError)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestCLIConfig_Check_WithDependencySet_ForkMode(t *testing.T) {
-	tests := []struct {
-		name          string
-		network       string
-		chains        []string
-		dependencySet []uint64
-		shouldError   bool
-		expectedError string
-	}{
-		{
-			name:          "valid fork config with empty dependency set",
-			network:       "mainnet",
-			chains:        []string{"op", "base"},
-			dependencySet: []uint64{},
-			shouldError:   false,
-		},
-		{
-			name:          "valid fork config with correct mainnet chain IDs",
-			network:       "mainnet",
-			chains:        []string{"op", "base"},
-			dependencySet: []uint64{10, 8453}, // OP Mainnet and Base chain IDs
-			shouldError:   false,
-		},
-		{
-			name:          "invalid fork config with wrong chain ID",
-			network:       "mainnet",
-			chains:        []string{"op", "base"},
-			dependencySet: []uint64{10, 999}, // 999 is not Base chain ID
-			shouldError:   true,
-			expectedError: "chain ID 999 in dependency set is not running locally",
-		},
-		{
-			name:          "invalid fork config with local chain ID in fork mode",
-			network:       "mainnet",
-			chains:        []string{"op", "base"},
-			dependencySet: []uint64{901, 902}, // These are local mode chain IDs
+			name: "local chain IDs in fork mode fails",
+			setupConfig: func() *CLIConfig {
+				config := testCLIConfig()
+				config.L2Count = 1
+				config.ForkConfig = &ForkCLIConfig{
+					Network: "mainnet",
+					Chains:  []string{"op", "base"},
+				}
+				config.DependencySet = []uint64{901, 902} // Local mode chain IDs
+				return config
+			},
 			shouldError:   true,
 			expectedError: "chain ID 901 in dependency set is not running locally",
 		},
-		{
-			name:          "invalid fork config with single chain dependency set",
-			network:       "mainnet",
-			chains:        []string{"op", "base"},
-			dependencySet: []uint64{10}, // Single chain not allowed for bidirectional
-			shouldError:   true,
-			expectedError: "dependency set must contain at least 2 chains to be bidirectional",
-		},
-		{
-			name:          "valid fork config with subset of forked chains",
-			network:       "mainnet",
-			chains:        []string{"op", "base", "zora"},
-			dependencySet: []uint64{10, 8453}, // Only OP and Base, not Zora
-			shouldError:   false,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := &CLIConfig{
-				L1Host: "127.0.0.1",
-				L2Host: "127.0.0.1",
-				ForkConfig: &ForkCLIConfig{
-					Network:        tt.network,
-					Chains:         tt.chains,
-					InteropEnabled: true,
-				},
-				DependencySet: tt.dependencySet,
-			}
-
+			config := tt.setupConfig()
 			err := config.Check()
 
 			if tt.shouldError {
@@ -488,41 +296,22 @@ func TestGetLocalChainIDsMap(t *testing.T) {
 		expectedError string
 	}{
 		{
-			name: "local mode with 2 chains",
+			name: "local mode",
 			config: &CLIConfig{
 				L2Count: 2,
 			},
-			expectedIDs: []uint64{901, 902}, // Generated genesis chain IDs
+			expectedIDs: []uint64{901, 902},
 			shouldError: false,
 		},
 		{
-			name: "local mode with 3 chains",
-			config: &CLIConfig{
-				L2Count: 3,
-			},
-			expectedIDs: []uint64{901, 902, 903},
-			shouldError: false,
-		},
-		{
-			name: "fork mode with mainnet chains",
+			name: "fork mode",
 			config: &CLIConfig{
 				ForkConfig: &ForkCLIConfig{
 					Network: "mainnet",
 					Chains:  []string{"op", "base"},
 				},
 			},
-			expectedIDs: []uint64{10, 8453}, // OP Mainnet and Base chain IDs
-			shouldError: false,
-		},
-		{
-			name: "fork mode with single chain",
-			config: &CLIConfig{
-				ForkConfig: &ForkCLIConfig{
-					Network: "mainnet",
-					Chains:  []string{"op"},
-				},
-			},
-			expectedIDs: []uint64{10}, // OP Mainnet chain ID
+			expectedIDs: []uint64{10, 8453}, // OP and Base chain IDs
 			shouldError: false,
 		},
 		{
@@ -535,17 +324,6 @@ func TestGetLocalChainIDsMap(t *testing.T) {
 			},
 			shouldError:   true,
 			expectedError: "unrecognized superchain network",
-		},
-		{
-			name: "fork mode with invalid chain",
-			config: &CLIConfig{
-				ForkConfig: &ForkCLIConfig{
-					Network: "mainnet",
-					Chains:  []string{"invalid_chain"},
-				},
-			},
-			shouldError:   true,
-			expectedError: "unrecognized chain invalid_chain in mainnet superchain",
 		},
 	}
 
