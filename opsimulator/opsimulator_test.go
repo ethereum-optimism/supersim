@@ -106,7 +106,7 @@ func TestCheckInteropInvariants_DependencySetValidation(t *testing.T) {
 			}
 
 			// Test the dependency set validation directly
-			err := opSim.validateDependencySet(tt.sourceChainID)
+			err := opSim.ValidateDependencySet(tt.sourceChainID)
 
 			if tt.expectError {
 				require.Error(t, err)

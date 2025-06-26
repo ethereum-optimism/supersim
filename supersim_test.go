@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
+	"github.com/ethereum-optimism/supersim/opsimulator"
 	"github.com/ethereum-optimism/supersim/registry"
 	"github.com/joho/godotenv"
 
@@ -1347,5 +1348,68 @@ func TestDependencySetConfiguration(t *testing.T) {
 		}
 
 		require.NotContains(t, depSet, l2Config.ChainID, "Chain %d should not include itself in dependency set", l2Config.ChainID)
+	}
+}
+
+func TestDependencySetValidation(t *testing.T) {
+	t.Parallel()
+	testSuite := createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.L2Count = 3
+		// Only chains 901 and 902 can communicate, 903 is isolated
+		parsedDeps, err := config.ParseDependencySet("[901,902]")
+		require.NoError(t, err)
+		cfg.DependencySet = parsedDeps
+		return cfg
+	})
+
+	testCases := []struct {
+		name          string
+		sourceChainID uint64
+		destChainID   uint64
+		shouldFail    bool
+		expectedError string
+	}{
+		{
+			name:          "Message from isolated chain should fail",
+			sourceChainID: 903, // Chain 903 is isolated
+			destChainID:   901, // Chain 901 only accepts from 902
+			shouldFail:    true,
+			expectedError: "executing message in block (chain 901) may not execute message from chain 903: not in dependency set",
+		},
+		{
+			name:          "Same-chain message should pass",
+			sourceChainID: 901, // Same chain
+			destChainID:   901, // Same chain
+			shouldFail:    false,
+		},
+		{
+			name:          "Message within dependency set should pass",
+			sourceChainID: 902, // Chain 902 is in 901's dependency set
+			destChainID:   901,
+			shouldFail:    false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Get the destination chain's OpSimulator to test validateDependencySet directly
+			destChain := testSuite.Supersim.Orchestrator.L2Chains()[0]
+			for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
+				if chain.Config().ChainID == tc.destChainID {
+					destChain = chain
+					break
+				}
+			}
+
+			// Test the dependency set validation logic
+			err := destChain.(*opsimulator.OpSimulator).ValidateDependencySet(tc.sourceChainID)
+
+			if tc.shouldFail {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
 	}
 }
