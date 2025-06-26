@@ -80,8 +80,8 @@ func TestCheckInteropInvariants_DependencySetValidation(t *testing.T) {
 		{
 			name:                   "Valid: Same-chain message (source == destination)",
 			executingChainID:       901,
-			executingDependencySet: []uint64{902}, // 901 is NOT in its own dependency set
-			sourceChainID:          901,           // Same as executing chain
+			executingDependencySet: []uint64{902},
+			sourceChainID:          901,
 			expectError:            false,
 		},
 	}
