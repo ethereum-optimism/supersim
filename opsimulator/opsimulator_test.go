@@ -1,7 +1,6 @@
 package opsimulator
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -104,6 +103,13 @@ func TestCheckInteropInvariants_DependencySetValidation(t *testing.T) {
 			sourceChainID:          901,
 			expectError:            false,
 		},
+		{
+			name:                   "Valid: Same-chain message (source == destination)",
+			executingChainID:       901,
+			executingDependencySet: []uint64{902}, // 901 is NOT in its own dependency set
+			sourceChainID:          901,           // Same as executing chain
+			expectError:            false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -125,40 +131,14 @@ func TestCheckInteropInvariants_DependencySetValidation(t *testing.T) {
 				interopDelay: 0,
 			}
 
-			// Create mock executing message
-			executingMessage := createMockExecutingMessage(tt.sourceChainID)
+			// Test the dependency set validation directly
+			err := opSim.validateDependencySet(tt.sourceChainID)
 
-			// Test just the dependency set validation part
-			// Extract the validation logic we want to test
-			sourceChainID := executingMessage.Id.ChainId.Uint64()
-			executingChainID := opSim.Config().ChainID
-
-			// Check if source chain is in executing chain's dependency set
-			executingChainDependencySet := opSim.Config().L2Config.DependencySet
-			sourceInExecutingDeps := false
-			for _, depChainID := range executingChainDependencySet {
-				if depChainID == sourceChainID {
-					sourceInExecutingDeps = true
-					break
-				}
-			}
-
-			// Test the validation
-			if !sourceInExecutingDeps {
-				err := fmt.Errorf("executing message in block (chain %d) may not execute message from chain %d: not in dependency set", executingChainID, sourceChainID)
-
-				if tt.expectError {
-					require.Error(t, err)
-					require.Contains(t, err.Error(), tt.expectedErrorContains)
-				} else {
-					t.Errorf("Expected no error but got: %v", err)
-				}
+			if tt.expectError {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.expectedErrorContains)
 			} else {
-				// No dependency set error
-				if tt.expectError {
-					t.Errorf("Expected dependency set validation error but validation passed")
-				}
-				// Test passes - no dependency set validation error
+				require.NoError(t, err)
 			}
 		})
 	}

@@ -518,6 +518,12 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 // validateDependencySet checks if the source chain is allowed to send messages to the executing chain
 func (opSim *OpSimulator) validateDependencySet(sourceChainID uint64) error {
 	executingChainID := opSim.Config().ChainID
+
+	// Allow same-chain messages (source == destination)
+	if sourceChainID == executingChainID {
+		return nil
+	}
+
 	executingChainDependencySet := opSim.Config().L2Config.DependencySet
 
 	// Check if source chain is in executing chain's dependency set
