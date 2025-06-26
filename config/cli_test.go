@@ -397,3 +397,174 @@ func TestCLIConfig_Check_WithDependencySet(t *testing.T) {
 		})
 	}
 }
+
+func TestCLIConfig_Check_WithDependencySet_ForkMode(t *testing.T) {
+	tests := []struct {
+		name          string
+		network       string
+		chains        []string
+		dependencySet []uint64
+		shouldError   bool
+		expectedError string
+	}{
+		{
+			name:          "valid fork config with empty dependency set",
+			network:       "mainnet",
+			chains:        []string{"op", "base"},
+			dependencySet: []uint64{},
+			shouldError:   false,
+		},
+		{
+			name:          "valid fork config with correct mainnet chain IDs",
+			network:       "mainnet",
+			chains:        []string{"op", "base"},
+			dependencySet: []uint64{10, 8453}, // OP Mainnet and Base chain IDs
+			shouldError:   false,
+		},
+		{
+			name:          "invalid fork config with wrong chain ID",
+			network:       "mainnet",
+			chains:        []string{"op", "base"},
+			dependencySet: []uint64{10, 999}, // 999 is not Base chain ID
+			shouldError:   true,
+			expectedError: "chain ID 999 in dependency set is not running locally",
+		},
+		{
+			name:          "invalid fork config with local chain ID in fork mode",
+			network:       "mainnet",
+			chains:        []string{"op", "base"},
+			dependencySet: []uint64{901, 902}, // These are local mode chain IDs
+			shouldError:   true,
+			expectedError: "chain ID 901 in dependency set is not running locally",
+		},
+		{
+			name:          "invalid fork config with single chain dependency set",
+			network:       "mainnet",
+			chains:        []string{"op", "base"},
+			dependencySet: []uint64{10}, // Single chain not allowed for bidirectional
+			shouldError:   true,
+			expectedError: "dependency set must contain at least 2 chains to be bidirectional",
+		},
+		{
+			name:          "valid fork config with subset of forked chains",
+			network:       "mainnet",
+			chains:        []string{"op", "base", "zora"},
+			dependencySet: []uint64{10, 8453}, // Only OP and Base, not Zora
+			shouldError:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &CLIConfig{
+				L1Host: "127.0.0.1",
+				L2Host: "127.0.0.1",
+				ForkConfig: &ForkCLIConfig{
+					Network:        tt.network,
+					Chains:         tt.chains,
+					InteropEnabled: true,
+				},
+				DependencySet: tt.dependencySet,
+			}
+
+			err := config.Check()
+
+			if tt.shouldError {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestGetLocalChainIDsMap(t *testing.T) {
+	tests := []struct {
+		name          string
+		config        *CLIConfig
+		expectedIDs   []uint64
+		shouldError   bool
+		expectedError string
+	}{
+		{
+			name: "local mode with 2 chains",
+			config: &CLIConfig{
+				L2Count: 2,
+			},
+			expectedIDs: []uint64{901, 902}, // Generated genesis chain IDs
+			shouldError: false,
+		},
+		{
+			name: "local mode with 3 chains",
+			config: &CLIConfig{
+				L2Count: 3,
+			},
+			expectedIDs: []uint64{901, 902, 903},
+			shouldError: false,
+		},
+		{
+			name: "fork mode with mainnet chains",
+			config: &CLIConfig{
+				ForkConfig: &ForkCLIConfig{
+					Network: "mainnet",
+					Chains:  []string{"op", "base"},
+				},
+			},
+			expectedIDs: []uint64{10, 8453}, // OP Mainnet and Base chain IDs
+			shouldError: false,
+		},
+		{
+			name: "fork mode with single chain",
+			config: &CLIConfig{
+				ForkConfig: &ForkCLIConfig{
+					Network: "mainnet",
+					Chains:  []string{"op"},
+				},
+			},
+			expectedIDs: []uint64{10}, // OP Mainnet chain ID
+			shouldError: false,
+		},
+		{
+			name: "fork mode with invalid network",
+			config: &CLIConfig{
+				ForkConfig: &ForkCLIConfig{
+					Network: "invalid_network",
+					Chains:  []string{"op"},
+				},
+			},
+			shouldError:   true,
+			expectedError: "unrecognized superchain network",
+		},
+		{
+			name: "fork mode with invalid chain",
+			config: &CLIConfig{
+				ForkConfig: &ForkCLIConfig{
+					Network: "mainnet",
+					Chains:  []string{"invalid_chain"},
+				},
+			},
+			shouldError:   true,
+			expectedError: "unrecognized chain invalid_chain in mainnet superchain",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			chainIDsMap, err := tt.config.getLocalChainIDsMap()
+
+			if tt.shouldError {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.expectedError)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, len(tt.expectedIDs), len(chainIDsMap))
+
+			for _, expectedID := range tt.expectedIDs {
+				require.True(t, chainIDsMap[expectedID], "Expected chain ID %d to be present", expectedID)
+			}
+		})
+	}
+}

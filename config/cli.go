@@ -297,19 +297,51 @@ func (c *CLIConfig) validateBidirectionalDependencySet() error {
 	}
 
 	// Get the chain IDs that will actually be running locally
-	localChainIDs := make(map[uint64]bool)
-	for i := uint64(0); i < c.L2Count; i++ {
-		localChainIDs[genesis.GeneratedGenesisDeployment.L2s[i].ChainID] = true
+	localChainIDs, err := c.getLocalChainIDsMap()
+	if err != nil {
+		return fmt.Errorf("failed to get local chain IDs: %w", err)
 	}
 
 	// Validate that all chain IDs in the dependency set correspond to chains being run locally
 	for _, chainID := range c.DependencySet {
 		if !localChainIDs[chainID] {
-			return fmt.Errorf("chain ID %d in dependency set is not running locally (available chains: %v)", chainID, getLocalChainIDs(c.L2Count))
+			var availableChains []uint64
+			for chainID := range localChainIDs {
+				availableChains = append(availableChains, chainID)
+			}
+			return fmt.Errorf("chain ID %d in dependency set is not running locally (available chains: %v)", chainID, availableChains)
 		}
 	}
 
 	return nil
+}
+
+// Returns a map of chain IDs that will be running locally
+func (c *CLIConfig) getLocalChainIDsMap() (map[uint64]bool, error) {
+	// Local mode: get chain IDs from generated genesis deployment
+	if c.ForkConfig == nil {
+		localChainIDs := make(map[uint64]bool)
+		for i := uint64(0); i < c.L2Count; i++ {
+			localChainIDs[genesis.GeneratedGenesisDeployment.L2s[i].ChainID] = true
+		}
+		return localChainIDs, nil
+	}
+
+	// Fork mode: get chain IDs from superchain configuration
+	superchain, ok := registry.SuperchainsByIdentifier[c.ForkConfig.Network]
+	if !ok {
+		return nil, fmt.Errorf("unrecognized superchain network `%s`", c.ForkConfig.Network)
+	}
+
+	localChainIDs := make(map[uint64]bool)
+	for _, chainName := range c.ForkConfig.Chains {
+		chainCfg := OPChainConfigByName(superchain, chainName)
+		if chainCfg == nil {
+			return nil, fmt.Errorf("unrecognized chain %s in %s superchain", chainName, c.ForkConfig.Network)
+		}
+		localChainIDs[chainCfg.ChainID] = true
+	}
+	return localChainIDs, nil
 }
 
 // getLocalChainIDs returns the chain IDs that will be running locally for the given L2 count
