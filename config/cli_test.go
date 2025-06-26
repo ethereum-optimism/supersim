@@ -287,7 +287,7 @@ func TestCLIConfig_Check_WithDependencySet(t *testing.T) {
 	}
 }
 
-func TestGetLocalChainIDsMap(t *testing.T) {
+func TestGetLocalChainIDs(t *testing.T) {
 	tests := []struct {
 		name          string
 		config        *CLIConfig
@@ -329,7 +329,7 @@ func TestGetLocalChainIDsMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			chainIDsMap, err := tt.config.getLocalChainIDsMap()
+			chainIDsMap, err := tt.config.getLocalChainIDs()
 
 			if tt.shouldError {
 				require.Error(t, err)

@@ -1,17 +1,11 @@
 package opsimulator
 
 import (
-	"math/big"
 	"testing"
 
-	"github.com/ethereum-optimism/optimism/op-service/predeploys"
-	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/testutils"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 
 	"github.com/stretchr/testify/require"
@@ -40,26 +34,6 @@ func (c *MockChainWithDependencySet) Config() *config.ChainConfig {
 		L2Config: &config.L2Config{
 			L1ChainID:     900,
 			DependencySet: c.dependencySet,
-		},
-	}
-}
-
-// createMockExecutingMessage creates a mock CrossL2InboxExecutingMessage for testing
-func createMockExecutingMessage(sourceChainID uint64) *bindings.CrossL2InboxExecutingMessage {
-	return &bindings.CrossL2InboxExecutingMessage{
-		MsgHash: [32]byte{0x12, 0x34}, // mock message hash
-		Id: bindings.Identifier{
-			Origin:      common.HexToAddress("0x1234567890123456789012345678901234567890"),
-			BlockNumber: big.NewInt(100),
-			LogIndex:    big.NewInt(0),
-			Timestamp:   big.NewInt(1234567890),
-			ChainId:     big.NewInt(int64(sourceChainID)),
-		},
-		Raw: types.Log{
-			Address:     predeploys.CrossL2InboxAddr,
-			Topics:      []common.Hash{crypto.Keccak256Hash([]byte("ExecutingMessage"))},
-			Data:        []byte("mock data"),
-			BlockNumber: 100,
 		},
 	}
 }

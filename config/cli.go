@@ -297,7 +297,7 @@ func (c *CLIConfig) validateBidirectionalDependencySet() error {
 	}
 
 	// Get the chain IDs that will actually be running locally
-	localChainIDs, err := c.getLocalChainIDsMap()
+	localChainIDs, err := c.getLocalChainIDs()
 	if err != nil {
 		return fmt.Errorf("failed to get local chain IDs: %w", err)
 	}
@@ -317,7 +317,7 @@ func (c *CLIConfig) validateBidirectionalDependencySet() error {
 }
 
 // Returns a map of chain IDs that will be running locally
-func (c *CLIConfig) getLocalChainIDsMap() (map[uint64]bool, error) {
+func (c *CLIConfig) getLocalChainIDs() (map[uint64]bool, error) {
 	// Local mode: get chain IDs from generated genesis deployment
 	if c.ForkConfig == nil {
 		localChainIDs := make(map[uint64]bool)
@@ -342,15 +342,6 @@ func (c *CLIConfig) getLocalChainIDsMap() (map[uint64]bool, error) {
 		localChainIDs[chainCfg.ChainID] = true
 	}
 	return localChainIDs, nil
-}
-
-// getLocalChainIDs returns the chain IDs that will be running locally for the given L2 count
-func getLocalChainIDs(l2Count uint64) []uint64 {
-	chainIDs := make([]uint64, l2Count)
-	for i := uint64(0); i < l2Count; i++ {
-		chainIDs[i] = genesis.GeneratedGenesisDeployment.L2s[i].ChainID
-	}
-	return chainIDs
 }
 
 func PrintDocLinks() {
