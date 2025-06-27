@@ -456,7 +456,7 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 			}
 
 			// Check dependency set validation
-			if err := opSim.ValidateDependencySet(identifier.ChainId.Uint64()); err != nil {
+			if err := opSim.validateDependencySet(identifier.ChainId.Uint64()); err != nil {
 				return err
 			}
 
@@ -516,7 +516,7 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 }
 
 // ValidateDependencySet checks if the source chain is allowed to send messages to the executing chain
-func (opSim *OpSimulator) ValidateDependencySet(sourceChainID uint64) error {
+func (opSim *OpSimulator) validateDependencySet(sourceChainID uint64) error {
 	executingChainID := opSim.Config().ChainID
 
 	// Allow same-chain messages (source == destination)

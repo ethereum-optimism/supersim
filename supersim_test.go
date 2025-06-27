@@ -16,7 +16,6 @@ import (
 	"github.com/ethereum-optimism/supersim/bindings"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
-	"github.com/ethereum-optimism/supersim/opsimulator"
 	"github.com/ethereum-optimism/supersim/registry"
 	"github.com/joho/godotenv"
 
@@ -1359,8 +1358,12 @@ func TestDependencySetValidation(t *testing.T) {
 		parsedDeps, err := config.ParseDependencySet("[901,902]")
 		require.NoError(t, err)
 		cfg.DependencySet = parsedDeps
+		cfg.InteropAutoRelay = false // Disable autorelay so we can manually test relay failures
 		return cfg
 	})
+
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
+	require.NoError(t, err)
 
 	testCases := []struct {
 		name          string
@@ -1374,14 +1377,9 @@ func TestDependencySetValidation(t *testing.T) {
 			sourceChainID: 903, // Chain 903 is isolated
 			destChainID:   901, // Chain 901 only accepts from 902
 			shouldFail:    true,
-			expectedError: "executing message in block (chain 901) may not execute message from chain 903: not in dependency set",
+			expectedError: "not in dependency set",
 		},
-		{
-			name:          "Same-chain message should pass",
-			sourceChainID: 901, // Same chain
-			destChainID:   901, // Same chain
-			shouldFail:    false,
-		},
+
 		{
 			name:          "Message within dependency set should pass",
 			sourceChainID: 902, // Chain 902 is in 901's dependency set
@@ -1392,17 +1390,64 @@ func TestDependencySetValidation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Get the destination chain's OpSimulator to test validateDependencySet directly
-			destChain := testSuite.Supersim.Orchestrator.L2Chains()[0]
+			// Get source and destination clients
+			var sourceClient, destClient *ethclient.Client
 			for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
+				if chain.Config().ChainID == tc.sourceChainID {
+					sourceClient, _ = ethclient.Dial(chain.Endpoint())
+				}
 				if chain.Config().ChainID == tc.destChainID {
-					destChain = chain
-					break
+					destClient, _ = ethclient.Dial(chain.Endpoint())
 				}
 			}
+			require.NotNil(t, sourceClient)
+			require.NotNil(t, destClient)
+			defer sourceClient.Close()
+			defer destClient.Close()
 
-			// Test the dependency set validation logic
-			err := destChain.(*opsimulator.OpSimulator).ValidateDependencySet(tc.sourceChainID)
+			// Create a cross-chain message using L2ToL2CrossDomainMessenger
+			l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, sourceClient)
+			require.NoError(t, err)
+
+			sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(tc.sourceChainID)))
+			require.NoError(t, err)
+
+			// Use SchemaRegistry as target
+			parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+			data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+			require.NoError(t, err)
+			tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, big.NewInt(int64(tc.destChainID)), predeploys.SchemaRegistryAddr, data)
+			require.NoError(t, err)
+
+			initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), sourceClient, tx)
+			require.NoError(t, err)
+			require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+			// progress forward some blocks before sending tx
+			err = destClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+			require.NoError(t, err)
+			err = sourceClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+			require.NoError(t, err)
+
+			// Execute the message on the destination chain
+			l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, destClient)
+			require.NoError(t, err)
+			initiatingMessageBlockHeader, err := sourceClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+			require.NoError(t, err)
+			initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+			identifier := bindings.Identifier{
+				Origin:      predeploys.L2toL2CrossDomainMessengerAddr,
+				BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+				LogIndex:    big.NewInt(0),
+				Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
+				ChainId:     big.NewInt(int64(tc.sourceChainID)),
+			}
+			destTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(tc.destChainID)))
+			require.NoError(t, err)
+			destTransactor.AccessList = interop.MessageAccessList(&identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
+
+			// Try to relay the message - this is where dependency set validation happens
+			_, err = l2tol2CDM.RelayMessage(destTransactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
 
 			if tc.shouldFail {
 				require.Error(t, err)
