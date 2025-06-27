@@ -455,6 +455,11 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 				return fmt.Errorf("no chain found for chain id: %d", identifier.ChainId)
 			}
 
+			// Check dependency set validation
+			if err := opSim.validateDependencySet(identifier.ChainId.Uint64()); err != nil {
+				return err
+			}
+
 			sourceClient := sourceChain.EthClient()
 			identifierBlockHeader, err := sourceClient.HeaderByNumber(ctx, identifier.BlockNumber)
 			if err != nil {
@@ -510,7 +515,28 @@ func (opSim *OpSimulator) checkInteropInvariants(ctx context.Context, logs []typ
 	return nil
 }
 
-// Overridden such that the port field can appropiately be set
+// ValidateDependencySet checks if the source chain is allowed to send messages to the executing chain
+func (opSim *OpSimulator) validateDependencySet(sourceChainID uint64) error {
+	executingChainID := opSim.Config().ChainID
+
+	// Allow same-chain messages (source == destination)
+	if sourceChainID == executingChainID {
+		return nil
+	}
+
+	executingChainDependencySet := opSim.Config().L2Config.DependencySet
+
+	// Check if source chain is in executing chain's dependency set
+	for _, depChainID := range executingChainDependencySet {
+		if depChainID == sourceChainID {
+			return nil // Source chain is in dependency set
+		}
+	}
+
+	return fmt.Errorf("executing message in block (chain %d) may not execute message from chain %d: not in dependency set", executingChainID, sourceChainID)
+}
+
+// Overridden such that the port field can appropriately be set
 func (opSim *OpSimulator) Config() *config.ChainConfig {
 	// we dereference the config so that a copy is made. This is only okay since
 	// the field were modifying is a non-pointer fields

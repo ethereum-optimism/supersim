@@ -166,15 +166,8 @@ func GetNetworkConfig(cliConfig *CLIConfig) NetworkConfig {
 			InteropL2ToL2CDMOverrideArtifactPath: cliConfig.InteropL2ToL2CDMOverrideArtifactPath,
 		}
 
-		// populate dep set
-		for j := uint64(0); j < cliConfig.L2Count; j++ {
-			if i == j {
-				continue
-			}
-
-			peerChainID := genesis.GeneratedGenesisDeployment.L2s[j].ChainID
-			l2Cfg.L2Config.DependencySet = append(l2Cfg.L2Config.DependencySet, peerChainID)
-		}
+		// Configure bidirectional dependency sets
+		l2Cfg.L2Config.DependencySet = configureDependencySet(cliConfig, l2Cfg.ChainID, i)
 
 		cfg.L2Configs[i] = l2Cfg
 	}
@@ -208,4 +201,41 @@ func DefaultSecretsConfigAsString() string {
 	}
 
 	return b.String()
+}
+
+// configures the dependency set for a given L2 chain based on CLI configuration
+func configureDependencySet(cliConfig *CLIConfig, chainID uint64, chainIndex uint64) []uint64 {
+	// Default behavior: all local chains can communicate with each other
+	if cliConfig.DependencySet == nil {
+		var dependencySet []uint64
+		for j := uint64(0); j < cliConfig.L2Count; j++ {
+			if chainIndex == j {
+				// Skip self
+				continue
+			}
+
+			peerChainID := genesis.GeneratedGenesisDeployment.L2s[j].ChainID
+			dependencySet = append(dependencySet, peerChainID)
+		}
+		return dependencySet
+	}
+
+	// User provided --dependency.set - only chains in the dependency set can execute messages from other chains in the set
+	dependencySet := make([]uint64, 0)
+	chainInDependencySet := false
+
+	for _, userChainID := range cliConfig.DependencySet {
+		if userChainID == chainID {
+			chainInDependencySet = true
+		} else {
+			dependencySet = append(dependencySet, userChainID)
+		}
+	}
+
+	// If chain is not in dependency set, return empty slice (not nil)
+	if !chainInDependencySet {
+		return make([]uint64, 0)
+	}
+
+	return dependencySet
 }

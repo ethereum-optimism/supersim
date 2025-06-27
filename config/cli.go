@@ -2,13 +2,15 @@ package config
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 
 	"net"
-	"regexp"
 
+	"github.com/ethereum-optimism/supersim/genesis"
 	"github.com/ethereum-optimism/supersim/registry"
 
 	"github.com/urfave/cli/v2"
@@ -38,6 +40,8 @@ const (
 	InteropL2ToL2CDMOverrideArtifactPath = "interop.l2tol2cdm.override"
 
 	OdysseyEnabledFlagName = "odyssey.enabled"
+
+	DependencySetFlagName = "dependency.set"
 
 	MaxL2Count = 5
 )
@@ -119,6 +123,11 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "Enable odyssey experimental features",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "ODYSSEY_ENABLED"),
 		},
+		&cli.StringFlag{
+			Name:    DependencySetFlagName,
+			Usage:   "Override local chain IDs in the dependency set.(format: '[901,902]' or '[]')",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "DEPENDENCY_SET"),
+		},
 	}
 }
 
@@ -182,6 +191,8 @@ type CLIConfig struct {
 
 	L1Host string
 	L2Host string
+
+	DependencySet []uint64
 }
 
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
@@ -202,6 +213,8 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		LogsDirectory: ctx.String(LogsDirectoryFlagName),
 
 		OdysseyEnabled: ctx.Bool(OdysseyEnabledFlagName),
+
+		DependencySet: nil, // nil means no flag provided
 	}
 
 	if ctx.Command.Name == ForkCommandName {
@@ -213,6 +226,16 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 			InteropEnabled: ctx.Bool(InteropEnabledFlagName),
 			OdysseyEnabled: ctx.Bool(OdysseyEnabledFlagName),
 		}
+	}
+
+	// Parse dependency set once during config reading
+	dependencySetString := ctx.String(DependencySetFlagName)
+	if len(dependencySetString) > 0 {
+		parsedDeps, err := ParseDependencySet(dependencySetString)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse dependency set: %w", err)
+		}
+		cfg.DependencySet = parsedDeps
 	}
 
 	return cfg, cfg.Check()
@@ -229,6 +252,13 @@ func (c *CLIConfig) Check() error {
 
 	if c.L2Count == 0 || c.L2Count > MaxL2Count {
 		return fmt.Errorf("min 1, max %d L2 chains", MaxL2Count)
+	}
+
+	// Validate bidirectional dependency set requirements
+	if c.DependencySet != nil {
+		if err := c.validateBidirectionalDependencySet(); err != nil {
+			return err
+		}
 	}
 
 	if c.ForkConfig != nil {
@@ -254,6 +284,64 @@ func (c *CLIConfig) Check() error {
 	}
 
 	return nil
+}
+
+func (c *CLIConfig) validateBidirectionalDependencySet() error {
+	if len(c.DependencySet) == 0 {
+		return nil // Empty dependency set is always valid
+	}
+
+	// Dependency sets must contain at least 2 chains to be bidirectional
+	if len(c.DependencySet) < 2 {
+		return fmt.Errorf("dependency set must contain at least 2 chains to be bidirectional, got %v", c.DependencySet)
+	}
+
+	// Get the chain IDs that will actually be running locally
+	localChainIDs, err := c.getLocalChainIDs()
+	if err != nil {
+		return fmt.Errorf("failed to get local chain IDs: %w", err)
+	}
+
+	// Validate that all chain IDs in the dependency set correspond to chains being run locally
+	for _, chainID := range c.DependencySet {
+		if !localChainIDs[chainID] {
+			var availableChains []uint64
+			for chainID := range localChainIDs {
+				availableChains = append(availableChains, chainID)
+			}
+			return fmt.Errorf("chain ID %d in dependency set is not running locally (available chains: %v)", chainID, availableChains)
+		}
+	}
+
+	return nil
+}
+
+// Returns a map of chain IDs that will be running locally
+func (c *CLIConfig) getLocalChainIDs() (map[uint64]bool, error) {
+	// Local mode: get chain IDs from generated genesis deployment
+	if c.ForkConfig == nil {
+		localChainIDs := make(map[uint64]bool)
+		for i := uint64(0); i < c.L2Count; i++ {
+			localChainIDs[genesis.GeneratedGenesisDeployment.L2s[i].ChainID] = true
+		}
+		return localChainIDs, nil
+	}
+
+	// Fork mode: get chain IDs from superchain configuration
+	superchain, ok := registry.SuperchainsByIdentifier[c.ForkConfig.Network]
+	if !ok {
+		return nil, fmt.Errorf("unrecognized superchain network `%s`", c.ForkConfig.Network)
+	}
+
+	localChainIDs := make(map[uint64]bool)
+	for _, chainName := range c.ForkConfig.Chains {
+		chainCfg := OPChainConfigByName(superchain, chainName)
+		if chainCfg == nil {
+			return nil, fmt.Errorf("unrecognized chain %s in %s superchain", chainName, c.ForkConfig.Network)
+		}
+		localChainIDs[chainCfg.ChainID] = true
+	}
+	return localChainIDs, nil
 }
 
 func PrintDocLinks() {
@@ -282,4 +370,48 @@ func validateHost(host string) error {
 	}
 
 	return nil
+}
+
+func ParseDependencySet(dependencySet string) ([]uint64, error) {
+	if dependencySet == "" {
+		return nil, fmt.Errorf("dependency set cannot be empty string: use '[]' for empty dependency set")
+	}
+
+	dependencySet = strings.TrimSpace(dependencySet)
+
+	// Validate format: must be in square brackets [1,2,3] or empty []
+	emptyPattern := `^\[\s*\]$`
+	bracketPattern := `^\[\s*\d+(\s*,\s*\d+)*\s*\]$`
+
+	emptyMatch, _ := regexp.MatchString(emptyPattern, dependencySet)
+	bracketMatch, _ := regexp.MatchString(bracketPattern, dependencySet)
+
+	if !emptyMatch && !bracketMatch {
+		return nil, fmt.Errorf("invalid dependency set format: expected '[1,2,3]' or '[]', got '%s'", dependencySet)
+	}
+
+	// Handle empty array case
+	if emptyMatch {
+		return []uint64{}, nil
+	}
+
+	// Extract numbers - regex \d+ only matches positive integers
+	re := regexp.MustCompile(`\d+`)
+	matches := re.FindAllString(dependencySet, -1)
+
+	result := make([]uint64, 0, len(matches))
+	for _, match := range matches {
+		num, err := strconv.ParseUint(match, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid positive number in dependency set: %s", match)
+		}
+
+		if num == 0 {
+			return nil, fmt.Errorf("chain ID 0 is not allowed in dependency set")
+		}
+
+		result = append(result, num)
+	}
+
+	return result, nil
 }

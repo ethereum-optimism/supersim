@@ -20,8 +20,9 @@ import (
 )
 
 type Orchestrator struct {
-	log    log.Logger
-	config *config.NetworkConfig
+	log       log.Logger
+	cliConfig *config.CLIConfig
+	config    *config.NetworkConfig
 
 	l1Chain config.Chain
 
@@ -69,7 +70,7 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig
 		}
 	}
 
-	o := Orchestrator{log: log, config: networkConfig, l1Chain: l1Anvil, l2Chains: l2Anvils, l2OpSims: l2OpSims}
+	o := Orchestrator{log: log, cliConfig: cliConfig, config: networkConfig, l1Chain: l1Anvil, l2Chains: l2Anvils, l2OpSims: l2OpSims}
 
 	// Interop Setup
 	if networkConfig.InteropEnabled {
@@ -271,6 +272,16 @@ func (o *Orchestrator) ConfigAsString() string {
 		cfg := opSim.Config()
 		fmt.Fprintf(&b, "\n")
 		fmt.Fprintf(&b, "  * Name: %s  ChainID: %d  RPC: %s  LogPath: %s\n", cfg.Name, cfg.ChainID, opSim.Endpoint(), opSim.LogPath())
+
+		// Only log dependency set if user explicitly provided the flag
+		if o.cliConfig != nil && o.cliConfig.DependencySet != nil {
+			depSetStrs := make([]string, len(cfg.L2Config.DependencySet))
+			for i, chainID := range cfg.L2Config.DependencySet {
+				depSetStrs[i] = fmt.Sprintf("%d", chainID)
+			}
+			fmt.Fprintf(&b, "    Dependency Set: [%s]\n", strings.Join(depSetStrs, ", "))
+		}
+
 		fmt.Fprintf(&b, "    L1 Contracts:\n")
 		fmt.Fprintf(&b, "     - OptimismPortal:         %s\n", cfg.L2Config.L1Addresses.OptimismPortalProxy)
 		fmt.Fprintf(&b, "     - L1CrossDomainMessenger: %s\n", cfg.L2Config.L1Addresses.L1CrossDomainMessengerProxy)

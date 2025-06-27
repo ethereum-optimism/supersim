@@ -1301,3 +1301,160 @@ func TestEthSubscribeNewHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, unsubscribeResponse["result"].(bool))
 }
+
+func TestDependencySetConfiguration(t *testing.T) {
+	t.Parallel()
+	testSuite := createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		// Run 3 chains to test override behavior
+		cfg.L2Count = 3
+
+		// Only include chains 901 and 902 in the dependency set, excluding 903
+		parsedDeps, err := config.ParseDependencySet("[901,902]") // local chain IDs
+		if err != nil {
+			t.Fatalf("Failed to parse dependency set: %v", err)
+		}
+		cfg.DependencySet = parsedDeps
+
+		return cfg
+	})
+
+	// Test that the dependency set is properly parsed and stored in the config
+	require.Equal(t, 2, len(testSuite.Cfg.DependencySet))
+	require.Contains(t, testSuite.Cfg.DependencySet, uint64(901))
+	require.Contains(t, testSuite.Cfg.DependencySet, uint64(902))
+
+	// Verify supersim started successfully with the dependency set configured
+	require.NotNil(t, testSuite.Supersim)
+	require.True(t, len(testSuite.Supersim.Orchestrator.L2Chains()) > 0)
+
+	// Verify that we have 3 chains running
+	networkConfig := testSuite.Supersim.NetworkConfig
+	require.Equal(t, 3, len(networkConfig.L2Configs)) // Should have 3 L2 chains
+
+	// Verify that each local chain's dependency set is overridden correctly
+	for _, l2Config := range networkConfig.L2Configs {
+		require.NotNil(t, l2Config.L2Config)
+		depSet := l2Config.L2Config.DependencySet
+
+		if l2Config.ChainID == 903 {
+			require.Equal(t, 0, len(depSet), "Chain 903 should have empty dependency set since it's not included in user-provided set")
+		} else if l2Config.ChainID == 901 {
+			require.Equal(t, 1, len(depSet), "Chain 901 should have exactly 1 dependency (902)")
+			require.Contains(t, depSet, uint64(902), "Chain 901 should include chain 902")
+		} else if l2Config.ChainID == 902 {
+			require.Equal(t, 1, len(depSet), "Chain 902 should have exactly 1 dependency (901)")
+			require.Contains(t, depSet, uint64(901), "Chain 902 should include chain 901")
+		}
+
+		require.NotContains(t, depSet, l2Config.ChainID, "Chain %d should not include itself in dependency set", l2Config.ChainID)
+	}
+}
+
+func TestDependencySetValidation(t *testing.T) {
+	t.Parallel()
+	testSuite := createTestSuite(t, func(cfg *config.CLIConfig) *config.CLIConfig {
+		cfg.L2Count = 3
+		// Only chains 901 and 902 can communicate, 903 is isolated
+		parsedDeps, err := config.ParseDependencySet("[901,902]")
+		require.NoError(t, err)
+		cfg.DependencySet = parsedDeps
+		cfg.InteropAutoRelay = false // Disable autorelay so we can manually test relay failures
+		return cfg
+	})
+
+	privateKey, err := testSuite.DevKeys.Secret(devkeys.UserKey(0))
+	require.NoError(t, err)
+
+	testCases := []struct {
+		name          string
+		sourceChainID uint64
+		destChainID   uint64
+		shouldFail    bool
+		expectedError string
+	}{
+		{
+			name:          "Message from isolated chain should fail",
+			sourceChainID: 903, // Chain 903 is isolated
+			destChainID:   901,
+			shouldFail:    true,
+			expectedError: "not in dependency set",
+		},
+
+		{
+			name:          "Message within dependency set should pass",
+			sourceChainID: 902, // Chain 902 is in 901's dependency set
+			destChainID:   901,
+			shouldFail:    false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Get source and destination clients
+			var sourceClient, destClient *ethclient.Client
+			for _, chain := range testSuite.Supersim.Orchestrator.L2Chains() {
+				if chain.Config().ChainID == tc.sourceChainID {
+					sourceClient, _ = ethclient.Dial(chain.Endpoint())
+				}
+				if chain.Config().ChainID == tc.destChainID {
+					destClient, _ = ethclient.Dial(chain.Endpoint())
+				}
+			}
+			require.NotNil(t, sourceClient)
+			require.NotNil(t, destClient)
+			defer sourceClient.Close()
+			defer destClient.Close()
+
+			// Create a cross-chain message using L2ToL2CrossDomainMessenger
+			l2ToL2CrossDomainMessenger, err := bindings.NewL2ToL2CrossDomainMessenger(predeploys.L2toL2CrossDomainMessengerAddr, sourceClient)
+			require.NoError(t, err)
+
+			sourceTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(tc.sourceChainID)))
+			require.NoError(t, err)
+
+			// Use SchemaRegistry as target
+			parsedSchemaRegistryAbi, _ := abi.JSON(strings.NewReader(opbindings.SchemaRegistryABI))
+			data, err := parsedSchemaRegistryAbi.Pack("register", "uint256 value", common.HexToAddress("0x0000000000000000000000000000000000000000"), false)
+			require.NoError(t, err)
+			tx, err := l2ToL2CrossDomainMessenger.SendMessage(sourceTransactor, big.NewInt(int64(tc.destChainID)), predeploys.SchemaRegistryAddr, data)
+			require.NoError(t, err)
+
+			initiatingMessageTxReceipt, err := bind.WaitMined(context.Background(), sourceClient, tx)
+			require.NoError(t, err)
+			require.True(t, initiatingMessageTxReceipt.Status == 1, "initiating message transaction failed")
+
+			// progress forward some blocks before sending tx
+			err = destClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+			require.NoError(t, err)
+			err = sourceClient.Client().CallContext(context.Background(), nil, "anvil_mine", uint64(3), uint64(2))
+			require.NoError(t, err)
+
+			// Execute the message on the destination chain
+			l2tol2CDM, err := bindings.NewL2ToL2CrossDomainMessengerTransactor(predeploys.L2toL2CrossDomainMessengerAddr, destClient)
+			require.NoError(t, err)
+			initiatingMessageBlockHeader, err := sourceClient.HeaderByNumber(context.Background(), initiatingMessageTxReceipt.BlockNumber)
+			require.NoError(t, err)
+			initiatingMessageLog := initiatingMessageTxReceipt.Logs[0]
+			identifier := bindings.Identifier{
+				Origin:      predeploys.L2toL2CrossDomainMessengerAddr,
+				BlockNumber: initiatingMessageTxReceipt.BlockNumber,
+				LogIndex:    big.NewInt(0),
+				Timestamp:   new(big.Int).SetUint64(initiatingMessageBlockHeader.Time),
+				ChainId:     big.NewInt(int64(tc.sourceChainID)),
+			}
+			destTransactor, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(int64(tc.destChainID)))
+			require.NoError(t, err)
+			destTransactor.AccessList = interop.MessageAccessList(&identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
+
+			// Try to relay the message - this is where dependency set validation happens
+			_, err = l2tol2CDM.RelayMessage(destTransactor, identifier, interop.ExecutingMessagePayloadBytes(initiatingMessageLog))
+
+			if tc.shouldFail {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

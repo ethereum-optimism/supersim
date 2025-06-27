@@ -30,7 +30,7 @@ func NewSupersim(log log.Logger, envPrefix string, closeApp context.CancelCauseF
 		return nil, fmt.Errorf("failed config check: %w", err)
 	}
 
-	// Generate conifg. If Forking, override the network config with the generated fork config
+	// Generate config. If Forking, override the network config with the generated fork config
 	networkConfig := config.GetNetworkConfig(cliConfig)
 	if cliConfig.ForkConfig != nil {
 		superchain := registry.SuperchainsByIdentifier[cliConfig.ForkConfig.Network]
