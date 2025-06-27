@@ -1375,7 +1375,7 @@ func TestDependencySetValidation(t *testing.T) {
 		{
 			name:          "Message from isolated chain should fail",
 			sourceChainID: 903, // Chain 903 is isolated
-			destChainID:   901, // Chain 901 only accepts from 902
+			destChainID:   901,
 			shouldFail:    true,
 			expectedError: "not in dependency set",
 		},
