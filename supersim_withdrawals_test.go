@@ -207,10 +207,13 @@ func TestPermissionedDisputeGame(t *testing.T) {
 	require.NotNil(t, testSuite.DisputeGameFactory, "DisputeGameFactory should be deployed when L1Withdraw is enabled")
 
 	// Test 2: Verify PERMISSIONED_CANNON game type is registered
-	gameType := big.NewInt(1) // PERMISSIONED_CANNON = 1
-	impl, bond, err := testSuite.DisputeGameFactory.GameImpls(nil, gameType)
+	gameType := uint32(1) // PERMISSIONED_CANNON = 1
+	impl, err := testSuite.DisputeGameFactory.GameImpls(nil, gameType)
 	require.NoError(t, err, "Should be able to query PERMISSIONED_CANNON game type")
 	require.NotEqual(t, common.Address{}, impl, "PERMISSIONED_CANNON implementation should be set")
+	
+	bond, err := testSuite.DisputeGameFactory.InitBonds(nil, gameType)
+	require.NoError(t, err, "Should be able to query PERMISSIONED_CANNON init bond")
 	require.Greater(t, bond.Uint64(), uint64(0), "PERMISSIONED_CANNON should have non-zero bond")
 
 	t.Logf("✓ PERMISSIONED_CANNON game type found: impl=%s, bond=%s", impl.Hex(), bond.String())
