@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity ^0.8.25;
 
 import {SuperchainERC20} from "@contracts-bedrock/L2/SuperchainERC20.sol";
 import {ISemver} from "@contracts-bedrock-interfaces/universal/ISemver.sol";
