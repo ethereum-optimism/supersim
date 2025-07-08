@@ -29,6 +29,7 @@ type withdrawalTestSuite struct {
 	L2ChainIDs              []*big.Int
 	OptimismPortalContracts map[uint64]*opbindings.OptimismPortal
 	L1StandardBridges       map[uint64]*opbindings.L1StandardBridge
+	DisputeGameFactory      *opbindings.DisputeGameFactory
 }
 
 func createWithdrawalTestSuite(t *testing.T, cliConfigMutator func(*config.CLIConfig) *config.CLIConfig) *withdrawalTestSuite {
@@ -92,6 +93,19 @@ func createWithdrawalTestSuite(t *testing.T, cliConfigMutator func(*config.CLICo
 		l1StandardBridges[l2Config.ChainID] = l1StandardBridge
 	}
 
+	// Initialize DisputeGameFactory - expect this to fail until implemented
+	var disputeGameFactory *opbindings.DisputeGameFactory
+	if supersim.NetworkConfig.L1Config.DisputeGameFactoryAddress != nil {
+		disputeGameFactory, err = opbindings.NewDisputeGameFactory(
+			*supersim.NetworkConfig.L1Config.DisputeGameFactoryAddress,
+			l1Client,
+		)
+		// Don't require success yet - this will fail until we implement dispute games
+		if err != nil {
+			t.Logf("DisputeGameFactory not available yet: %v", err)
+		}
+	}
+
 	return &withdrawalTestSuite{
 		Supersim:                supersim,
 		DevKeys:                 devKeys,
@@ -101,6 +115,7 @@ func createWithdrawalTestSuite(t *testing.T, cliConfigMutator func(*config.CLICo
 		L2ChainIDs:              l2ChainIDs,
 		OptimismPortalContracts: optimismPortals,
 		L1StandardBridges:       l1StandardBridges,
+		DisputeGameFactory:      disputeGameFactory,
 	}
 }
 
@@ -186,27 +201,55 @@ func TestERC20WithdrawalFlow(t *testing.T) {
 func TestPermissionedDisputeGame(t *testing.T) {
 	t.Parallel()
 
-	t.Log("✗ EXPECTED FAILURE: Permissioned dispute game not yet configured")
+	testSuite := createWithdrawalTestSuite(t, nil)
 
-	// TODO: Verify dispute game factory is configured with permissioned games
-	// TODO: Verify special proposer address can post output roots
-	// TODO: Verify automatic output root posting every 1 minute
-	// TODO: Verify fast finalization (no 1-week delay)
+	// Test 1: DisputeGameFactory should exist
+	require.NotNil(t, testSuite.DisputeGameFactory, "DisputeGameFactory should be deployed when L1Withdraw is enabled")
 
-	t.Skip("Permissioned dispute game test - implementation pending")
+	// Test 2: Verify PERMISSIONED_CANNON game type is registered
+	gameType := big.NewInt(1) // PERMISSIONED_CANNON = 1
+	impl, bond, err := testSuite.DisputeGameFactory.GameImpls(nil, gameType)
+	require.NoError(t, err, "Should be able to query PERMISSIONED_CANNON game type")
+	require.NotEqual(t, common.Address{}, impl, "PERMISSIONED_CANNON implementation should be set")
+	require.Greater(t, bond.Uint64(), uint64(0), "PERMISSIONED_CANNON should have non-zero bond")
+
+	t.Logf("✓ PERMISSIONED_CANNON game type found: impl=%s, bond=%s", impl.Hex(), bond.String())
+
+	// Test 3: Each L2 should have a proposer address configured
+	for chainID := range testSuite.OptimismPortalContracts {
+		// TODO: Verify proposer address exists for this chain
+		// For now, just log that we need to check this
+		t.Logf("TODO: Verify proposer address configured for chain %d", chainID)
+	}
+
+	// Test 4: Verify dispute games can be created (this will fail until proposer posts output roots)
+	t.Log("✗ EXPECTED FAILURE: Cannot create dispute games until output roots are posted")
 }
 
 // Test automatic output root posting - should fail initially
 func TestAutomaticOutputRootPosting(t *testing.T) {
 	t.Parallel()
 
-	t.Log("✗ EXPECTED FAILURE: Automatic output root posting not yet implemented")
+	testSuite := createWithdrawalTestSuite(t, nil)
 
-	// TODO: Wait for output root to be posted automatically
-	// TODO: Verify output root matches L2 state
-	// TODO: Verify posting happens every 1 minute
+	require.NotNil(t, testSuite.DisputeGameFactory, "DisputeGameFactory should be deployed")
 
-	t.Skip("Automatic output root posting test - implementation pending")
+	// Check if any games have been created (indicating output roots are being posted)
+	gameCount, err := testSuite.DisputeGameFactory.GameCount(nil)
+	require.NoError(t, err)
+
+	t.Logf("Current dispute game count: %s", gameCount.String())
+
+	if gameCount.Uint64() == 0 {
+		t.Log("✗ EXPECTED FAILURE: No dispute games found - output root posting not yet implemented")
+		t.Fail()
+	} else {
+		// If games exist, verify they are being created regularly
+		t.Logf("✓ Found %s dispute games - output root posting appears to be working", gameCount.String())
+
+		// TODO: Verify output root posting frequency (every 1 minute)
+		// TODO: Verify output roots match L2 state
+	}
 }
 
 // Test OptimismPortal ETH seeding - should fail initially
@@ -215,43 +258,62 @@ func TestOptimismPortalETHSeeding(t *testing.T) {
 
 	testSuite := createWithdrawalTestSuite(t, nil)
 
-	t.Log("✗ EXPECTED FAILURE: OptimismPortal ETH seeding not yet implemented")
-
-	// TODO: Verify OptimismPortal has sufficient ETH balance for withdrawals
-	// TODO: Verify balance equals total L2 ETH supply
+	// Each OptimismPortal should have ETH balance to back L2 ETH supply
+	expectedMinBalance := big.NewInt(1000) // At least 1000 wei for basic functionality
 
 	for chainID, portal := range testSuite.OptimismPortalContracts {
-		balance, err := testSuite.L1EthClient.BalanceAt(
-			context.Background(),
-			*testSuite.Supersim.NetworkConfig.L2Configs[0].L2Config.L1Addresses.OptimismPortalProxy,
-			nil,
-		)
+		// Get portal address for this chain
+		var portalAddr common.Address
+		for _, l2Config := range testSuite.Supersim.NetworkConfig.L2Configs {
+			if l2Config.ChainID == chainID {
+				portalAddr = *l2Config.L2Config.L1Addresses.OptimismPortalProxy
+				break
+			}
+		}
+
+		balance, err := testSuite.L1EthClient.BalanceAt(context.Background(), portalAddr, nil)
 		require.NoError(t, err)
 
-		t.Logf("Chain %d OptimismPortal balance: %s", chainID, balance.String())
-		// For now, just log the balance - actual seeding verification comes later
+		t.Logf("Chain %d OptimismPortal balance: %s (address: %s)", chainID, balance.String(), portalAddr.Hex())
 
 		// Verify portal contract exists
 		assert.NotNil(t, portal, "OptimismPortal contract should be accessible")
-	}
 
-	t.Skip("OptimismPortal ETH seeding test - implementation pending")
+		// Check if portal has sufficient ETH for withdrawals
+		if balance.Cmp(expectedMinBalance) < 0 {
+			t.Logf("✗ EXPECTED FAILURE: OptimismPortal for chain %d has insufficient ETH balance: %s < %s",
+				chainID, balance.String(), expectedMinBalance.String())
+			t.Fail()
+		} else {
+			t.Logf("✓ OptimismPortal for chain %d has sufficient ETH balance: %s", chainID, balance.String())
+		}
+	}
 }
 
 // Test withdrawal proving flow - comprehensive test for the proving mechanism
 func TestWithdrawalProvingFlow(t *testing.T) {
 	t.Parallel()
 
+	testSuite := createWithdrawalTestSuite(t, nil)
+
+	// Prerequisites for proving withdrawals
+	require.NotNil(t, testSuite.DisputeGameFactory, "DisputeGameFactory required for withdrawal proving")
+
+	// Check if we have output roots to prove against
+	gameCount, err := testSuite.DisputeGameFactory.GameCount(nil)
+	require.NoError(t, err)
+
+	if gameCount.Uint64() == 0 {
+		t.Log("✗ EXPECTED FAILURE: No dispute games found - cannot prove withdrawals without output roots")
+		t.Fail()
+		return
+	}
+
+	// If we have games, attempt to prove a withdrawal
+	// This will fail until we implement the full proving infrastructure
 	t.Log("✗ EXPECTED FAILURE: Withdrawal proving flow not yet implemented")
-
-	// TODO: Initiate withdrawal on L2
-	// TODO: Wait for withdrawal to be included in output root
-	// TODO: Generate withdrawal proof
-	// TODO: Call proveWithdrawalTransaction on OptimismPortal
-	// TODO: Verify withdrawal is marked as proven
-	// TODO: Verify cannot prove same withdrawal twice
-
-	t.Skip("Withdrawal proving flow test - implementation pending")
+	t.Log("TODO: Implement withdrawal proof generation and submission")
+	t.Fail()
 }
 
 // Test withdrawal finalization flow

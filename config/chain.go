@@ -77,6 +77,9 @@ type ChainConfig struct {
 
 	// Optional
 	InteropL2ToL2CDMOverrideArtifactPath string
+
+	// Optional - Dispute Game Factory address (L1 only)
+	DisputeGameFactoryAddress *common.Address
 }
 
 type NetworkConfig struct {
