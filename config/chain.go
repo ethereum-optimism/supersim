@@ -47,6 +47,7 @@ type L2Config struct {
 	L1ChainID     uint64
 	L1Addresses   *superchain.AddressesConfig
 	DependencySet []uint64
+	ProposerAddress common.Address
 }
 
 type ChainConfig struct {
@@ -149,6 +150,7 @@ func GetNetworkConfig(cliConfig *CLIConfig) NetworkConfig {
 			GenesisJSON:       genesis.GeneratedGenesisDeployment.L1.GenesisJSON,
 			StartingTimestamp: startingTimestamp,
 			LogsDirectory:     cliConfig.LogsDirectory,
+			DisputeGameFactoryAddress: genesis.GeneratedGenesisDeployment.L2s[0].RegistryAddressList().DisputeGameFactoryProxy,
 		},
 	}
 
@@ -162,9 +164,10 @@ func GetNetworkConfig(cliConfig *CLIConfig) NetworkConfig {
 			LogsDirectory:     cliConfig.LogsDirectory,
 			BlockTime:         DefaultL2BlockTime,
 			L2Config: &L2Config{
-				L1ChainID:     genesis.GeneratedGenesisDeployment.L1.ChainID,
-				L1Addresses:   genesis.GeneratedGenesisDeployment.L2s[i].RegistryAddressList(),
-				DependencySet: []uint64{},
+				L1ChainID:       genesis.GeneratedGenesisDeployment.L1.ChainID,
+				L1Addresses:     genesis.GeneratedGenesisDeployment.L2s[i].RegistryAddressList(),
+				DependencySet:   []uint64{},
+				ProposerAddress: generateProposerAddress(genesis.GeneratedGenesisDeployment.L2s[i].ChainID),
 			},
 			InteropL2ToL2CDMOverrideArtifactPath: cliConfig.InteropL2ToL2CDMOverrideArtifactPath,
 		}
@@ -241,4 +244,24 @@ func configureDependencySet(cliConfig *CLIConfig, chainID uint64, chainIndex uin
 	}
 
 	return dependencySet
+}
+
+// generateProposerAddress generates a deterministic proposer address for an L2 chain
+// This creates a unique address per chain for posting output roots to the dispute game factory
+func generateProposerAddress(chainID uint64) common.Address {
+	// Create a deterministic seed based on chain ID and a constant
+	seed := fmt.Sprintf("supersim-proposer-%d", chainID)
+	hash := crypto.Keccak256Hash([]byte(seed))
+	
+	// Generate a private key from the hash
+	privateKey, err := crypto.ToECDSA(hash[:])
+	if err != nil {
+		// Fallback to a simple deterministic address if key generation fails
+		var addr common.Address
+		copy(addr[:], hash[:20])
+		return addr
+	}
+	
+	// Derive the address from the private key
+	return crypto.PubkeyToAddress(privateKey.PublicKey)
 }

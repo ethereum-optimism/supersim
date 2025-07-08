@@ -109,6 +109,7 @@ func (d *L2GenesisDeployment) RegistryAddressList() *superchain.AddressesConfig 
 		OptimismPortalProxy:               &d.L1DeploymentAddresses.OptimismPortalProxy,
 		SystemConfigProxy:                 &d.L1DeploymentAddresses.SystemConfigProxy,
 		ProxyAdmin:                        &d.L1DeploymentAddresses.ProxyAdmin,
+		DisputeGameFactoryProxy:           &d.L1DeploymentAddresses.DisputeGameFactoryProxy,
 	}
 }
 
