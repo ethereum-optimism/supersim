@@ -40,7 +40,6 @@ func createWithdrawalTestSuite(t *testing.T, cliConfigMutator func(*config.CLICo
 		L2Count:        2,
 		L1Host:         "127.0.0.1", // required host setting
 		L2Host:         "127.0.0.1", // required host setting
-		L1Withdraw:     true,        // Enable withdrawal support
 	}
 
 	if cliConfigMutator != nil {

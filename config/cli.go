@@ -25,7 +25,6 @@ const (
 	L1ForkHeightFlagName = "l1.fork.height"
 	L1PortFlagName       = "l1.port"
 	L1HostFlagName       = "l1.host"
-	L1WithdrawFlagName   = "l1.withdraw"
 
 	ChainsFlagName         = "chains"
 	NetworkFlagName        = "network"
@@ -129,12 +128,6 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Usage:   "Override local chain IDs in the dependency set.(format: '[901,902]' or '[]')",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "DEPENDENCY_SET"),
 		},
-		&cli.BoolFlag{
-			Name:    L1WithdrawFlagName,
-			Value:   false,
-			Usage:   "Enable L1 withdrawal support with permissioned dispute game configuration",
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "L1_WITHDRAW"),
-		},
 	}
 }
 
@@ -201,7 +194,6 @@ type CLIConfig struct {
 
 	DependencySet []uint64
 
-	L1Withdraw bool
 }
 
 func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
@@ -247,7 +239,6 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		cfg.DependencySet = parsedDeps
 	}
 
-	cfg.L1Withdraw = ctx.Bool(L1WithdrawFlagName)
 
 	return cfg, cfg.Check()
 }

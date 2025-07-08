@@ -125,12 +125,10 @@ func (s *Supersim) ConfigAsString() string {
 		fmt.Fprintf(&b, " - GasTank:                    %s\n", "0x420bEEF000000000000000000000000000000002")
 	}
 
-	if s.CLIConfig.L1Withdraw {
-		fmt.Fprintln(&b, "(EXPERIMENTAL) L1 Withdrawal Support!")
-		fmt.Fprintln(&b, "-----------------------")
-		fmt.Fprintln(&b, "L1 withdrawal functionality enabled with permissioned dispute game configuration")
-		fmt.Fprintln(&b, "Withdrawals can be processed without the 1-week delay for testing purposes")
-	}
+	fmt.Fprintln(&b, "L1 Withdrawal Support!")
+	fmt.Fprintln(&b, "-----------------------")
+	fmt.Fprintln(&b, "L1 withdrawal functionality enabled with permissioned dispute game configuration")
+	fmt.Fprintln(&b, "Withdrawals can be processed without the 1-week delay for testing purposes")
 
 	return b.String()
 }
