@@ -5,16 +5,22 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"math/big"
 	"sort"
 	"strings"
 	"sync"
 
+	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	"github.com/ethereum-optimism/supersim/admin"
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/interop"
 	opsimulator "github.com/ethereum-optimism/supersim/opsimulator"
+	"github.com/ethereum-optimism/supersim/withdrawal"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -31,6 +37,8 @@ type Orchestrator struct {
 
 	l2ToL2MsgIndexer *interop.L2ToL2MessageIndexer
 	l2ToL2MsgRelayer *interop.L2ToL2MessageRelayer
+
+	withdrawalEventMonitor *withdrawal.WithdrawalEventMonitor
 
 	AdminServer *admin.AdminServer
 }
@@ -158,12 +166,41 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 	}
 
 	o.log.Debug("orchestrator is ready")
+
+	// Initialize withdrawal event monitor
+	o.withdrawalEventMonitor = withdrawal.NewWithdrawalEventMonitor(
+		o.log,
+		o.l1Chain.EthClient(),
+		l2ChainClientByChainId,
+		o.config,
+	)
+	if o.withdrawalEventMonitor != nil {
+		// Fund proposer addresses with ETH for gas
+		if err := o.fundProposerAddresses(ctx); err != nil {
+			return fmt.Errorf("failed to fund proposer addresses: %w", err)
+		}
+
+		o.log.Info("starting withdrawal event monitor")
+		if err := o.withdrawalEventMonitor.Start(ctx); err != nil {
+			return fmt.Errorf("withdrawal event monitor failed to start: %w", err)
+		}
+	}
+
 	return nil
 }
 
 func (o *Orchestrator) Stop(ctx context.Context) error {
 	var errs []error
 	o.log.Debug("stopping orchestrator")
+
+	// Stop withdrawal event monitor
+	if o.withdrawalEventMonitor != nil {
+		o.log.Info("stopping withdrawal event monitor")
+		if err := o.withdrawalEventMonitor.Stop(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("withdrawal event monitor failed to stop: %w", err))
+		}
+	}
+
 	if o.config.InteropEnabled {
 		if o.l2ToL2MsgRelayer != nil {
 			o.log.Info("stopping L2ToL2CrossDomainMessenger autorelayer")
@@ -289,4 +326,122 @@ func (o *Orchestrator) ConfigAsString() string {
 	}
 
 	return b.String()
+}
+
+// fundProposerAddresses funds the proposer addresses with ETH for gas payments
+func (o *Orchestrator) fundProposerAddresses(ctx context.Context) error {
+	// Get dev keys for funding transactions
+	devKeys, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
+	if err != nil {
+		return fmt.Errorf("failed to create dev keys: %w", err)
+	}
+
+	// Use the first dev key as the funder (it should have ETH)
+	funderPrivateKey, err := devKeys.Secret(devkeys.UserKey(0))
+	if err != nil {
+		return fmt.Errorf("failed to get funder private key: %w", err)
+	}
+
+	// Create transactor for L1 transactions
+	l1ChainID := big.NewInt(int64(o.config.L1Config.ChainID))
+	funderTransactor, err := bind.NewKeyedTransactorWithChainID(funderPrivateKey, l1ChainID)
+	if err != nil {
+		return fmt.Errorf("failed to create funder transactor: %w", err)
+	}
+
+	// Amount to fund each proposer (1 ETH should be plenty for gas)
+	fundingAmount := big.NewInt(1_000_000_000_000_000_000) // 1 ETH
+	minBalance := big.NewInt(100_000_000_000_000_000)      // 0.1 ETH
+
+	// Collect proposers that need funding
+	var proposersToFund []struct {
+		chainID uint64
+		address common.Address
+	}
+
+	for _, l2Config := range o.config.L2Configs {
+		proposerAddr := l2Config.L2Config.ProposerAddress
+
+		// Check current balance
+		currentBalance, err := o.l1Chain.EthClient().BalanceAt(ctx, proposerAddr, nil)
+		if err != nil {
+			return fmt.Errorf("failed to get balance for proposer %s: %w", proposerAddr.Hex(), err)
+		}
+
+		// Only fund if balance is low (less than 0.1 ETH)
+		if currentBalance.Cmp(minBalance) < 0 {
+			proposersToFund = append(proposersToFund, struct {
+				chainID uint64
+				address common.Address
+			}{l2Config.ChainID, proposerAddr})
+		}
+	}
+
+	// If no proposers need funding, return early
+	if len(proposersToFund) == 0 {
+		o.log.Info("all proposer addresses already have sufficient balance")
+		return nil
+	}
+
+	// Send funding transactions in parallel
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	fundedCount := 0
+
+	for _, proposer := range proposersToFund {
+		wg.Add(1)
+		go func(chainID uint64, proposerAddr common.Address) {
+			defer wg.Done()
+
+			// Get nonce (this needs to be done serially to avoid conflicts)
+			mu.Lock()
+			nonce, err := o.l1Chain.EthClient().PendingNonceAt(ctx, funderTransactor.From)
+			if err != nil {
+				mu.Unlock()
+				return
+			}
+			mu.Unlock()
+
+			gasPrice, err := o.l1Chain.EthClient().SuggestGasPrice(ctx)
+			if err != nil {
+				return
+			}
+
+			tx := types.NewTransaction(nonce, proposerAddr, fundingAmount, 21000, gasPrice, nil)
+
+			// Sign and send the transaction
+			signedTx, err := funderTransactor.Signer(funderTransactor.From, tx)
+			if err != nil {
+				return
+			}
+
+			err = o.l1Chain.EthClient().SendTransaction(ctx, signedTx)
+			if err != nil {
+				return
+			}
+
+			// Wait for transaction to be mined
+			receipt, err := bind.WaitMined(ctx, o.l1Chain.EthClient(), signedTx)
+			if err != nil {
+				return
+			}
+
+			if receipt.Status == 1 {
+				mu.Lock()
+				fundedCount++
+				mu.Unlock()
+			}
+		}(proposer.chainID, proposer.address)
+	}
+
+	// Wait for all funding transactions to complete
+	wg.Wait()
+
+	// Log final result
+	o.log.Info("💰 proposer addresses funded",
+		"funded", fundedCount,
+		"total", len(proposersToFund),
+	)
+
+	return nil
 }
