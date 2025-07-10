@@ -93,6 +93,41 @@ func (p *OutputRootPoster) PostOutputRoot(chainID uint64, blockNumber uint64, tx
 		return fmt.Errorf("failed to create transactor for chain %d: %w", chainID, err)
 	}
 
+	// Set gas parameters to avoid estimation issues
+	gasPrice, err := p.l1Client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to get gas price for chain %d: %w", chainID, err)
+	}
+	transactor.GasPrice = gasPrice
+	transactor.GasLimit = 500000 // Set explicit gas limit for dispute game creation
+	
+	// Get the required bond for PERMISSIONED_CANNON game type
+	gameType := uint32(1) // PERMISSIONED_CANNON
+	requiredBond, err := p.disputeGameFactory.InitBonds(nil, gameType)
+	if err != nil {
+		return fmt.Errorf("failed to get required bond for game type %d: %w", gameType, err)
+	}
+	transactor.Value = requiredBond // Set the required bond as transaction value
+
+	// Check proposer balance before transaction
+	balance, err := p.l1Client.BalanceAt(context.Background(), transactor.From, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get proposer balance for chain %d: %w", chainID, err)
+	}
+	
+	// Calculate required gas cost
+	requiredGas := big.NewInt(0).Mul(gasPrice, big.NewInt(int64(transactor.GasLimit)))
+	
+	p.log.Info("💰 proposer balance check",
+		"chainID", chainID,
+		"proposerAddress", transactor.From.Hex(),
+		"balance", balance.String(),
+		"requiredGas", requiredGas.String(),
+		"gasPrice", gasPrice.String(),
+		"gasLimit", transactor.GasLimit,
+		"sufficientFunds", balance.Cmp(requiredGas) >= 0,
+	)
+
 	// Calculate the output root (simplified for now)
 	outputRoot, err := p.calculateOutputRoot(chainID, blockNumber)
 	if err != nil {
@@ -100,7 +135,6 @@ func (p *OutputRootPoster) PostOutputRoot(chainID uint64, blockNumber uint64, tx
 	}
 
 	// Create dispute game parameters
-	gameType := uint32(1) // PERMISSIONED_CANNON
 	extraData := p.encodeExtraData(chainID, blockNumber)
 
 	p.log.Info("🎯 creating dispute game",
@@ -110,6 +144,10 @@ func (p *OutputRootPoster) PostOutputRoot(chainID uint64, blockNumber uint64, tx
 		"extraDataLength", len(extraData),
 		"proposerAddress", transactor.From.Hex(),
 		"disputeGameFactoryAddress", p.networkConfig.L1Config.DisputeGameFactoryAddress.Hex(),
+		"gasPrice", gasPrice.String(),
+		"gasLimit", transactor.GasLimit,
+		"requiredBond", requiredBond.String(),
+		"transactorValue", transactor.Value.String(),
 	)
 
 	// Create the dispute game
@@ -132,17 +170,53 @@ func (p *OutputRootPoster) PostOutputRoot(chainID uint64, blockNumber uint64, tx
 		"outputRoot", outputRoot.Hex(),
 	)
 
-	// Wait for the transaction to be mined
-	receipt, err := bind.WaitMined(context.Background(), p.l1Client, tx)
+	// Wait for the transaction to be mined with timeout (accommodate 12s block time)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	receipt, err := bind.WaitMined(ctx, p.l1Client, tx)
 	if err != nil {
+		p.log.Error("❌ failed to wait for dispute game transaction",
+			"chainID", chainID,
+			"txHash", tx.Hash().Hex(),
+			"error", err,
+		)
 		return fmt.Errorf("failed to wait for dispute game creation for chain %d: %w", chainID, err)
 	}
 
+	p.log.Info("📋 dispute game transaction mined",
+		"chainID", chainID,
+		"txHash", tx.Hash().Hex(),
+		"status", receipt.Status,
+		"gasUsed", receipt.GasUsed,
+		"gasLimit", transactor.GasLimit,
+		"blockNumber", receipt.BlockNumber.Uint64(),
+		"contractAddress", receipt.ContractAddress.Hex(),
+		"logsCount", len(receipt.Logs),
+	)
+
 	if receipt.Status != 1 {
+		p.log.Error("❌ dispute game transaction reverted",
+			"chainID", chainID,
+			"txHash", tx.Hash().Hex(),
+			"gasUsed", receipt.GasUsed,
+			"gasLimit", transactor.GasLimit,
+		)
 		return fmt.Errorf("dispute game creation failed for chain %d: transaction reverted", chainID)
 	}
 
-	p.log.Info("output root posted successfully", 
+	// Log any events from the transaction
+	for i, eventLog := range receipt.Logs {
+		p.log.Info("📜 transaction log",
+			"chainID", chainID,
+			"txHash", tx.Hash().Hex(),
+			"logIndex", i,
+			"address", eventLog.Address.Hex(),
+			"topicsCount", len(eventLog.Topics),
+			"dataLength", len(eventLog.Data),
+		)
+	}
+
+	p.log.Info("✅ output root posted successfully", 
 		"chainID", chainID,
 		"blockNumber", blockNumber,
 		"outputRoot", outputRoot.Hex(),

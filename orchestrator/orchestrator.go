@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	"github.com/ethereum-optimism/supersim/admin"
@@ -175,17 +176,20 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 		o.config,
 	)
 	if o.withdrawalEventMonitor != nil {
-		// Fund proposer addresses with ETH for gas
-		if err := o.fundProposerAddresses(ctx); err != nil {
-			return fmt.Errorf("failed to fund proposer addresses: %w", err)
-		}
-
 		o.log.Info("starting withdrawal event monitor")
 		if err := o.withdrawalEventMonitor.Start(ctx); err != nil {
 			return fmt.Errorf("withdrawal event monitor failed to start: %w", err)
 		}
 	}
 
+	return nil
+}
+
+// FundProposerAddresses funds the proposer addresses with ETH for gas payments
+func (o *Orchestrator) FundProposerAddresses(ctx context.Context) error {
+	if o.withdrawalEventMonitor != nil {
+		return o.fundProposerAddresses(ctx)
+	}
 	return nil
 }
 
@@ -349,8 +353,8 @@ func (o *Orchestrator) fundProposerAddresses(ctx context.Context) error {
 		return fmt.Errorf("failed to create funder transactor: %w", err)
 	}
 
-	// Amount to fund each proposer (1 ETH should be plenty for gas)
-	fundingAmount := big.NewInt(1_000_000_000_000_000_000) // 1 ETH
+	// Amount to fund each proposer (2 ETH should be sufficient for gas)
+	fundingAmount, _ := big.NewInt(0).SetString("2000000000000000000", 10) // 2 ETH
 	minBalance := big.NewInt(100_000_000_000_000_000)      // 0.1 ETH
 
 	// Collect proposers that need funding
@@ -383,59 +387,66 @@ func (o *Orchestrator) fundProposerAddresses(ctx context.Context) error {
 		return nil
 	}
 
-	// Send funding transactions in parallel
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	fundedCount := 0
-
-	for _, proposer := range proposersToFund {
-		wg.Add(1)
-		go func(chainID uint64, proposerAddr common.Address) {
-			defer wg.Done()
-
-			// Get nonce (this needs to be done serially to avoid conflicts)
-			mu.Lock()
-			nonce, err := o.l1Chain.EthClient().PendingNonceAt(ctx, funderTransactor.From)
-			if err != nil {
-				mu.Unlock()
-				return
-			}
-			mu.Unlock()
-
-			gasPrice, err := o.l1Chain.EthClient().SuggestGasPrice(ctx)
-			if err != nil {
-				return
-			}
-
-			tx := types.NewTransaction(nonce, proposerAddr, fundingAmount, 21000, gasPrice, nil)
-
-			// Sign and send the transaction
-			signedTx, err := funderTransactor.Signer(funderTransactor.From, tx)
-			if err != nil {
-				return
-			}
-
-			err = o.l1Chain.EthClient().SendTransaction(ctx, signedTx)
-			if err != nil {
-				return
-			}
-
-			// Wait for transaction to be mined
-			receipt, err := bind.WaitMined(ctx, o.l1Chain.EthClient(), signedTx)
-			if err != nil {
-				return
-			}
-
-			if receipt.Status == 1 {
-				mu.Lock()
-				fundedCount++
-				mu.Unlock()
-			}
-		}(proposer.chainID, proposer.address)
+	// Send funding transactions serially to avoid nonce conflicts
+	gasPrice, err := o.l1Chain.EthClient().SuggestGasPrice(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get gas price: %w", err)
 	}
 
-	// Wait for all funding transactions to complete
-	wg.Wait()
+	baseNonce, err := o.l1Chain.EthClient().PendingNonceAt(ctx, funderTransactor.From)
+	if err != nil {
+		return fmt.Errorf("failed to get base nonce: %w", err)
+	}
+
+	fundedCount := 0
+	for i, proposer := range proposersToFund {
+		o.log.Info("💸 funding proposer address",
+			"chainID", proposer.chainID,
+			"proposerAddress", proposer.address.Hex(),
+			"amount", fundingAmount.String(),
+		)
+
+		nonce := baseNonce + uint64(i)
+		tx := types.NewTransaction(nonce, proposer.address, fundingAmount, 21000, gasPrice, nil)
+
+		// Sign and send the transaction
+		signedTx, err := funderTransactor.Signer(funderTransactor.From, tx)
+		if err != nil {
+			o.log.Error("failed to sign funding transaction", "error", err)
+			continue
+		}
+
+		err = o.l1Chain.EthClient().SendTransaction(ctx, signedTx)
+		if err != nil {
+			o.log.Error("failed to send funding transaction", "error", err)
+			continue
+		}
+
+		// Wait for transaction to be mined (use longer timeout to accommodate 12s block time)
+		fundingCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+		receipt, err := bind.WaitMined(fundingCtx, o.l1Chain.EthClient(), signedTx)
+		cancel()
+		if err != nil {
+			o.log.Error("failed to wait for funding transaction", "error", err)
+			continue
+		}
+
+		if receipt.Status == 1 {
+			fundedCount++
+			o.log.Info("✅ proposer funding successful",
+				"chainID", proposer.chainID,
+				"proposerAddress", proposer.address.Hex(),
+				"amount", fundingAmount.String(),
+				"txHash", signedTx.Hash().Hex(),
+			)
+		} else {
+			o.log.Error("funding transaction failed",
+				"chainID", proposer.chainID,
+				"proposerAddress", proposer.address.Hex(),
+				"txHash", signedTx.Hash().Hex(),
+			)
+		}
+	}
 
 	// Log final result
 	o.log.Info("💰 proposer addresses funded",

@@ -84,6 +84,12 @@ func (s *Supersim) Start(ctx context.Context) error {
 
 	s.log.Info("supersim is ready")
 	s.log.Info(s.ConfigAsString())
+	
+	// Fund proposer addresses after all configuration is complete
+	if err := s.Orchestrator.FundProposerAddresses(ctx); err != nil {
+		return fmt.Errorf("failed to fund proposer addresses: %w", err)
+	}
+	
 	return nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	opbindings "github.com/ethereum-optimism/optimism/op-e2e/bindings"
@@ -286,8 +287,11 @@ func TestEventDrivenOutputRootPosting(t *testing.T) {
 
 	t.Logf("✓ Withdrawal initiated successfully with %d events", len(withdrawReceipt.Logs))
 
-	// Step 2: Check if output root was posted in response to withdrawal
-	// The event-driven system is now implemented but fails due to gas constraints
+	// Step 2: Wait a moment for the event-driven output root posting to complete
+	// The withdrawal event monitor should detect the event and attempt to create a dispute game
+	time.Sleep(5 * time.Second)
+
+	// Step 3: Check if output root was posted in response to withdrawal
 	finalGameCount, err := testSuite.DisputeGameFactory.GameCount(nil)
 	require.NoError(t, err)
 
