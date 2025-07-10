@@ -170,8 +170,8 @@ func (p *OutputRootPoster) PostOutputRoot(chainID uint64, blockNumber uint64, tx
 		"outputRoot", outputRoot.Hex(),
 	)
 
-	// Wait for the transaction to be mined with timeout (accommodate 12s block time)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	// Wait for the transaction to be mined with timeout (L1 has 12s block time)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	receipt, err := bind.WaitMined(ctx, p.l1Client, tx)
 	if err != nil {

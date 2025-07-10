@@ -387,7 +387,7 @@ func (o *Orchestrator) fundProposerAddresses(ctx context.Context) error {
 		return nil
 	}
 
-	// Send funding transactions serially to avoid nonce conflicts
+	// Send all funding transactions simultaneously for faster execution
 	gasPrice, err := o.l1Chain.EthClient().SuggestGasPrice(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get gas price: %w", err)
@@ -398,60 +398,110 @@ func (o *Orchestrator) fundProposerAddresses(ctx context.Context) error {
 		return fmt.Errorf("failed to get base nonce: %w", err)
 	}
 
-	fundedCount := 0
-	for i, proposer := range proposersToFund {
-		o.log.Info("💸 funding proposer address",
-			"chainID", proposer.chainID,
-			"proposerAddress", proposer.address.Hex(),
-			"amount", fundingAmount.String(),
-		)
+	// Step 1: Create and send all transactions simultaneously
+	type fundingTx struct {
+		chainID   uint64
+		address   common.Address
+		signedTx  *types.Transaction
+		sentAt    time.Time
+	}
+	
+	var sentTxs []fundingTx
+	start := time.Now()
+	
+	o.log.Info("💸 funding all proposer addresses simultaneously",
+		"count", len(proposersToFund),
+		"amount", fundingAmount.String(),
+	)
 
+	for i, proposer := range proposersToFund {
 		nonce := baseNonce + uint64(i)
 		tx := types.NewTransaction(nonce, proposer.address, fundingAmount, 21000, gasPrice, nil)
 
-		// Sign and send the transaction
+		// Sign the transaction
 		signedTx, err := funderTransactor.Signer(funderTransactor.From, tx)
 		if err != nil {
-			o.log.Error("failed to sign funding transaction", "error", err)
+			o.log.Error("failed to sign funding transaction", 
+				"chainID", proposer.chainID,
+				"error", err)
 			continue
 		}
 
+		// Send the transaction
 		err = o.l1Chain.EthClient().SendTransaction(ctx, signedTx)
 		if err != nil {
-			o.log.Error("failed to send funding transaction", "error", err)
+			o.log.Error("failed to send funding transaction", 
+				"chainID", proposer.chainID,
+				"error", err)
 			continue
 		}
 
-		// Wait for transaction to be mined (use longer timeout to accommodate 12s block time)
-		fundingCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
-		receipt, err := bind.WaitMined(fundingCtx, o.l1Chain.EthClient(), signedTx)
+		sentTxs = append(sentTxs, fundingTx{
+			chainID:  proposer.chainID,
+			address:  proposer.address,
+			signedTx: signedTx,
+			sentAt:   time.Now(),
+		})
+
+		o.log.Debug("📤 funding transaction sent",
+			"chainID", proposer.chainID,
+			"proposerAddress", proposer.address.Hex(),
+			"txHash", signedTx.Hash().Hex(),
+		)
+	}
+
+	// Force mine a block immediately to settle all funding transactions
+	if len(sentTxs) > 0 {
+		o.log.Debug("⛏️ forcing block mine to settle funding transactions immediately")
+		if err := o.l1Chain.Mine(ctx, nil); err != nil {
+			o.log.Warn("failed to force mine block for funding transactions", "error", err)
+		}
+	}
+
+	// Step 2: Wait for all transactions to be mined
+	fundedCount := 0
+	for _, fundingTx := range sentTxs {
+		fundingCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		receipt, err := bind.WaitMined(fundingCtx, o.l1Chain.EthClient(), fundingTx.signedTx)
 		cancel()
+		
+		waitDuration := time.Since(fundingTx.sentAt)
+		
 		if err != nil {
-			o.log.Error("failed to wait for funding transaction", "error", err)
+			o.log.Error("failed to wait for funding transaction", 
+				"chainID", fundingTx.chainID,
+				"error", err, 
+				"waitDuration", waitDuration,
+				"txHash", fundingTx.signedTx.Hash().Hex(),
+			)
 			continue
 		}
 
 		if receipt.Status == 1 {
 			fundedCount++
 			o.log.Info("✅ proposer funding successful",
-				"chainID", proposer.chainID,
-				"proposerAddress", proposer.address.Hex(),
+				"chainID", fundingTx.chainID,
+				"proposerAddress", fundingTx.address.Hex(),
 				"amount", fundingAmount.String(),
-				"txHash", signedTx.Hash().Hex(),
+				"txHash", fundingTx.signedTx.Hash().Hex(),
+				"waitDuration", waitDuration,
 			)
 		} else {
 			o.log.Error("funding transaction failed",
-				"chainID", proposer.chainID,
-				"proposerAddress", proposer.address.Hex(),
-				"txHash", signedTx.Hash().Hex(),
+				"chainID", fundingTx.chainID,
+				"proposerAddress", fundingTx.address.Hex(),
+				"txHash", fundingTx.signedTx.Hash().Hex(),
 			)
 		}
 	}
+
+	totalDuration := time.Since(start)
 
 	// Log final result
 	o.log.Info("💰 proposer addresses funded",
 		"funded", fundedCount,
 		"total", len(proposersToFund),
+		"totalDuration", totalDuration,
 	)
 
 	return nil

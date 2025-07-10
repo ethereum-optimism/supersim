@@ -3,6 +3,7 @@ package withdrawal
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/tasks"
@@ -24,6 +25,8 @@ type WithdrawalEventMonitor struct {
 	tasks           tasks.Group
 	tasksCtx        context.Context
 	tasksCancel     context.CancelFunc
+	processedTxs    map[common.Hash]bool // Track processed transaction hashes to avoid duplicates
+	txMutex         sync.Mutex           // Protect the processedTxs map
 }
 
 // NewWithdrawalEventMonitor creates a new withdrawal event monitor
@@ -41,8 +44,9 @@ func NewWithdrawalEventMonitor(log log.Logger, l1Client *ethclient.Client, l2Cli
 				log.Error("unhandled withdrawal monitor error", "error", err)
 			},
 		},
-		tasksCtx:    tasksCtx,
-		tasksCancel: tasksCancel,
+		tasksCtx:     tasksCtx,
+		tasksCancel:  tasksCancel,
+		processedTxs: make(map[common.Hash]bool),
 	}
 }
 
@@ -110,6 +114,20 @@ func (m *WithdrawalEventMonitor) monitorChain(chainID uint64, client *ethclient.
 
 // processWithdrawalEvent processes a withdrawal event and triggers output root posting
 func (m *WithdrawalEventMonitor) processWithdrawalEvent(chainID uint64, eventLog *types.Log) error {
+	// Check if we've already processed this transaction
+	m.txMutex.Lock()
+	if m.processedTxs[eventLog.TxHash] {
+		m.txMutex.Unlock()
+		m.log.Debug("skipping already processed withdrawal transaction",
+			"chainID", chainID,
+			"txHash", eventLog.TxHash.Hex(),
+		)
+		return nil
+	}
+	// Mark this transaction as processed
+	m.processedTxs[eventLog.TxHash] = true
+	m.txMutex.Unlock()
+	
 	// Determine the event type for better logging
 	var eventType string
 	switch eventLog.Topics[0].Hex() {
