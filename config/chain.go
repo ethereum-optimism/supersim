@@ -125,6 +125,7 @@ type Chain interface {
 	SetStorageAt(ctx context.Context, result interface{}, address common.Address, storageSlot string, storageValue string) error
 	SetBalance(ctx context.Context, result interface{}, address common.Address, value *big.Int) error
 	SetIntervalMining(ctx context.Context, result interface{}, interval int64) error
+	Mine(ctx context.Context, result interface{}) error
 
 	// Lifecycle
 	Start(ctx context.Context) error

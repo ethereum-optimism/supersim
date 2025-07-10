@@ -306,6 +306,10 @@ func (a *Anvil) SetIntervalMining(ctx context.Context, result interface{}, inter
 	return a.rpcClient.CallContext(ctx, result, "evm_setIntervalMining", interval)
 }
 
+func (a *Anvil) Mine(ctx context.Context, result interface{}) error {
+	return a.rpcClient.CallContext(ctx, result, "evm_mine")
+}
+
 // DebugTraceCall internal types
 type txArgs struct {
 	From       common.Address   `json:"from"`
