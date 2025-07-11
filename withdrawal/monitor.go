@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/optimism/op-service/tasks"
@@ -22,6 +23,7 @@ type WithdrawalEventMonitor struct {
 	l2Clients       map[uint64]*ethclient.Client
 	networkConfig   *config.NetworkConfig
 	outputRootPoster *OutputRootPoster
+	withdrawalProver *WithdrawalProver
 	tasks           tasks.Group
 	tasksCtx        context.Context
 	tasksCancel     context.CancelFunc
@@ -39,6 +41,7 @@ func NewWithdrawalEventMonitor(log log.Logger, l1Client *ethclient.Client, l2Cli
 		l2Clients:     l2Clients,
 		networkConfig: networkConfig,
 		outputRootPoster: NewOutputRootPoster(log, l1Client, networkConfig),
+		withdrawalProver: NewWithdrawalProver(log, l1Client, l2Clients, networkConfig),
 		tasks: tasks.Group{
 			HandleCrit: func(err error) {
 				log.Error("unhandled withdrawal monitor error", "error", err)
@@ -197,6 +200,34 @@ func (m *WithdrawalEventMonitor) processWithdrawalEvent(chainID uint64, eventLog
 		"blockNumber", eventLog.BlockNumber,
 		"txHash", eventLog.TxHash.Hex(),
 	)
+
+	// Step 2: Prove the withdrawal after output root is posted
+	m.log.Info("🚀 triggering withdrawal proving",
+		"chainID", chainID,
+		"blockNumber", eventLog.BlockNumber,
+		"txHash", eventLog.TxHash.Hex(),
+	)
+
+	// Add a small delay to ensure the output root is properly settled
+	time.Sleep(2 * time.Second)
+
+	err = m.withdrawalProver.ProveWithdrawal(context.Background(), chainID, eventLog.TxHash, eventLog.BlockNumber)
+	if err != nil {
+		m.log.Error("❌ withdrawal proving failed",
+			"chainID", chainID,
+			"blockNumber", eventLog.BlockNumber,
+			"txHash", eventLog.TxHash.Hex(),
+			"error", err,
+		)
+		// Don't return error here - we want to continue processing other withdrawals
+		// The user can still manually prove the withdrawal later
+	} else {
+		m.log.Info("✅ withdrawal proving completed successfully",
+			"chainID", chainID,
+			"blockNumber", eventLog.BlockNumber,
+			"txHash", eventLog.TxHash.Hex(),
+		)
+	}
 
 	return nil
 }
