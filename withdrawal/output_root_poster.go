@@ -10,6 +10,7 @@ import (
 	opbindings "github.com/ethereum-optimism/optimism/op-e2e/bindings"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -101,13 +102,54 @@ func (p *OutputRootPoster) PostOutputRoot(chainID uint64, blockNumber uint64, tx
 	transactor.GasPrice = gasPrice
 	transactor.GasLimit = 500000 // Set explicit gas limit for dispute game creation
 	
-	// Get the required bond for PERMISSIONED_CANNON game type
-	gameType := uint32(1) // PERMISSIONED_CANNON
+	// Use game type 1 which has an implementation (from the logs above)
+	gameType := uint32(1) // PERMISSIONED_CANNON - this has implementation 0xC77c081d3245bE490949E4C2E5Dd8b522a194927
+	
+	// Check what game types are available
+	for testGameType := uint32(0); testGameType <= 2; testGameType++ {
+		testBond, err := p.disputeGameFactory.InitBonds(nil, testGameType)
+		if err != nil {
+			p.log.Info("game type not supported", "gameType", testGameType, "error", err)
+		} else {
+			p.log.Info("supported game type found", "gameType", testGameType, "bond", testBond.String())
+		}
+		
+		// Also check if there's an implementation for this game type
+		testImpl, err := p.disputeGameFactory.GameImpls(nil, testGameType)
+		if err != nil {
+			p.log.Info("failed to get game implementation", "gameType", testGameType, "error", err)
+		} else {
+			p.log.Info("game implementation", "gameType", testGameType, "impl", testImpl.Hex())
+			
+			// If this is game type 1 (PermissionedDisputeGame), get the proposer address
+			if testGameType == 1 && testImpl != (common.Address{}) {
+				p.log.Info("🔍 checking PermissionedDisputeGame proposer address")
+				if proposerAddr, err := p.getPermissionedGameProposer(testImpl); err != nil {
+					p.log.Warn("failed to get proposer address", "error", err)
+				} else {
+					p.log.Info("✅ found hardcoded proposer address", "proposerAddr", proposerAddr.Hex())
+				}
+			}
+		}
+	}
+	
 	requiredBond, err := p.disputeGameFactory.InitBonds(nil, gameType)
 	if err != nil {
 		return fmt.Errorf("failed to get required bond for game type %d: %w", gameType, err)
 	}
+	
+	// The contract requires exact bond amount - don't modify it
+	p.log.Info("using exact required bond", "requiredBond", requiredBond.String())
+	
 	transactor.Value = requiredBond // Set the required bond as transaction value
+	
+	// Debug: Check if this proposer is allowed to create games
+	p.log.Info("🔍 checking dispute game factory configuration",
+		"chainID", chainID,
+		"proposerAddress", transactor.From.Hex(),
+		"gameType", gameType,
+		"requiredBond", requiredBond.String(),
+	)
 
 	// Check proposer balance before transaction
 	balance, err := p.l1Client.BalanceAt(context.Background(), transactor.From, nil)
@@ -150,6 +192,56 @@ func (p *OutputRootPoster) PostOutputRoot(chainID uint64, blockNumber uint64, tx
 		"transactorValue", transactor.Value.String(),
 	)
 
+	// First, let's check what the call would return without sending
+	p.log.Info("🔬 simulating dispute game creation call",
+		"chainID", chainID,
+		"gameType", gameType,
+		"outputRoot", outputRoot.Hex(),
+		"extraDataHex", fmt.Sprintf("0x%x", extraData),
+		"extraDataLength", len(extraData),
+	)
+
+	// Try to simulate the call first to see if we get a revert reason
+	callOpts := &bind.CallOpts{
+		From: transactor.From,
+	}
+	
+	// Check if we can call gameCount to verify the contract is working
+	gameCount, err := p.disputeGameFactory.GameCount(callOpts)
+	if err != nil {
+		p.log.Error("failed to call gameCount", "error", err)
+	} else {
+		p.log.Info("current game count before creation", "gameCount", gameCount.Uint64())
+	}
+	
+	// Try to simulate the create call to see if we get a revert reason
+	p.log.Info("attempting to simulate create call")
+	simulateTransactor := *transactor
+	simulateTransactor.NoSend = true
+	
+	simulateTx, err := p.disputeGameFactory.Create(&simulateTransactor, gameType, outputRoot, extraData)
+	if err != nil {
+		p.log.Error("simulation failed", "error", err)
+	} else {
+		p.log.Info("simulation succeeded", "txHash", simulateTx.Hash().Hex())
+	}
+	
+	// Check if the game already exists (GameAlreadyExists error)
+	gameUuid, err := p.disputeGameFactory.GetGameUUID(nil, gameType, outputRoot, extraData)
+	if err != nil {
+		p.log.Error("failed to get game UUID", "error", err)
+	} else {
+		p.log.Info("game UUID calculated", "uuid", common.BytesToHash(gameUuid[:]).Hex())
+		
+		// Check if a game with this UUID already exists
+		existingGame, timestamp := p.disputeGameFactory.Games(nil, gameType, outputRoot, extraData)
+		if existingGame.Proxy != (common.Address{}) {
+			p.log.Info("game already exists", "existingGame", existingGame.Proxy.Hex(), "timestamp", timestamp)
+		} else {
+			p.log.Info("no existing game found")
+		}
+	}
+
 	// Create the dispute game
 	tx, err := p.disputeGameFactory.Create(transactor, gameType, outputRoot, extraData)
 	if err != nil {
@@ -158,6 +250,7 @@ func (p *OutputRootPoster) PostOutputRoot(chainID uint64, blockNumber uint64, tx
 			"gameType", gameType,
 			"outputRoot", outputRoot.Hex(),
 			"proposerAddress", transactor.From.Hex(),
+			"extraDataHex", fmt.Sprintf("0x%x", extraData),
 			"error", err,
 		)
 		return fmt.Errorf("failed to create dispute game for chain %d: %w", chainID, err)
@@ -195,12 +288,44 @@ func (p *OutputRootPoster) PostOutputRoot(chainID uint64, blockNumber uint64, tx
 	)
 
 	if receipt.Status != 1 {
+		// Try to get revert reason by tracing the transaction
 		p.log.Error("❌ dispute game transaction reverted",
 			"chainID", chainID,
 			"txHash", tx.Hash().Hex(),
 			"gasUsed", receipt.GasUsed,
 			"gasLimit", transactor.GasLimit,
+			"blockNumber", receipt.BlockNumber.Uint64(),
 		)
+		
+		// Try to get more details about the revert
+		p.log.Info("🔍 attempting to trace transaction for revert reason")
+		// Skip tracing for now - ethclient doesn't expose CallContext directly
+		
+		// Let's also check the current game count to debug
+		gameCount, err := p.disputeGameFactory.GameCount(nil)
+		if err != nil {
+			p.log.Warn("failed to get game count after revert", "error", err)
+		} else {
+			p.log.Info("current dispute game count after revert", "gameCount", gameCount.Uint64())
+		}
+		
+		// Try to call the contract directly to see if we get a revert reason
+		p.log.Info("🔍 attempting direct contract call to get revert reason")
+		// Create a simple call to simulate the transaction
+		result, err := p.l1Client.CallContract(context.Background(), ethereum.CallMsg{
+			From:     transactor.From,
+			To:       p.networkConfig.L1Config.DisputeGameFactoryAddress,
+			Gas:      transactor.GasLimit,
+			GasPrice: transactor.GasPrice,
+			Value:    transactor.Value,
+			Data:     tx.Data(), // Use the transaction data
+		}, receipt.BlockNumber)
+		if err != nil {
+			p.log.Info("direct call revert reason", "error", err.Error())
+		} else {
+			p.log.Info("direct call succeeded unexpectedly", "result", common.Bytes2Hex(result))
+		}
+		
 		return fmt.Errorf("dispute game creation failed for chain %d: transaction reverted", chainID)
 	}
 
@@ -250,7 +375,8 @@ func (p *OutputRootPoster) calculateOutputRoot(chainID uint64, blockNumber uint6
 	// 2. Extract the state root
 	// 3. Calculate the proper output root hash
 	
-	data := fmt.Sprintf("output-root-%d-%d-%d", chainID, blockNumber, time.Now().Unix())
+	// Make it unique each time to avoid GameAlreadyExists error
+	data := fmt.Sprintf("output-root-%d-%d-%d", chainID, blockNumber, time.Now().UnixNano())
 	hash := crypto.Keccak256Hash([]byte(data))
 	
 	p.log.Debug("calculated output root", 
@@ -264,8 +390,41 @@ func (p *OutputRootPoster) calculateOutputRoot(chainID uint64, blockNumber uint6
 
 // encodeExtraData encodes extra data for the dispute game
 func (p *OutputRootPoster) encodeExtraData(chainID uint64, blockNumber uint64) []byte {
-	// TODO: Implement proper extra data encoding
-	// For now, return a simple encoding of chain ID and block number
-	data := fmt.Sprintf("chain-%d-block-%d", chainID, blockNumber)
-	return []byte(data)
+	// Based on the contract code, extraData should be the L2 block number as 32 bytes
+	// common.BigToHash(big.NewInt(int64(l2BlockNum))).Bytes()
+	blockNumBig := big.NewInt(int64(blockNumber))
+	blockNumHash := common.BigToHash(blockNumBig)
+	
+	p.log.Debug("encoding extra data", 
+		"chainID", chainID,
+		"blockNumber", blockNumber,
+		"blockNumBig", blockNumBig.String(),
+		"blockNumHash", blockNumHash.Hex(),
+		"extraDataLength", len(blockNumHash.Bytes()),
+	)
+	
+	return blockNumHash.Bytes()
+}
+
+// getPermissionedGameProposer calls the proposer() function on the PermissionedDisputeGame contract
+func (p *OutputRootPoster) getPermissionedGameProposer(gameImplAddr common.Address) (common.Address, error) {
+	// Create a call to the proposer() function
+	// proposer() is a view function that returns the hardcoded PROPOSER address
+	callData := crypto.Keccak256([]byte("proposer()"))[:4] // Function selector
+	
+	result, err := p.l1Client.CallContract(context.Background(), ethereum.CallMsg{
+		To:   &gameImplAddr,
+		Data: callData,
+	}, nil)
+	if err != nil {
+		return common.Address{}, fmt.Errorf("failed to call proposer(): %w", err)
+	}
+	
+	if len(result) != 32 {
+		return common.Address{}, fmt.Errorf("unexpected result length: %d", len(result))
+	}
+	
+	// The result is 32 bytes with the address in the last 20 bytes
+	proposerAddr := common.BytesToAddress(result[12:32])
+	return proposerAddr, nil
 }
