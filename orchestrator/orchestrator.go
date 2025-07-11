@@ -327,7 +327,7 @@ func (o *Orchestrator) makeDisputePeriodInstant(ctx context.Context) error {
 		// Try common storage slots for dispute periods (0, 1, 2, 3)
 		for slot := 0; slot < 10; slot++ {
 			slotHex := fmt.Sprintf("0x%x", slot)
-			if err := o.l1Chain.SetStorageAt(ctx, nil, optimismPortalAddr, slotHex, zeroValue); err != nil {
+			if err := o.l1Chain.SetStorageAt(ctx, nil, *optimismPortalAddr, slotHex, zeroValue); err != nil {
 				o.log.Debug("failed to set storage slot", "slot", slot, "error", err)
 			}
 		}
