@@ -5,13 +5,10 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"math/big"
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
 	"github.com/ethereum-optimism/supersim/admin"
 	"github.com/ethereum-optimism/supersim/anvil"
 	"github.com/ethereum-optimism/supersim/config"
@@ -19,9 +16,6 @@ import (
 	opsimulator "github.com/ethereum-optimism/supersim/opsimulator"
 	"github.com/ethereum-optimism/supersim/withdrawal"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
 )
@@ -40,6 +34,7 @@ type Orchestrator struct {
 	l2ToL2MsgRelayer *interop.L2ToL2MessageRelayer
 
 	withdrawalEventMonitor *withdrawal.WithdrawalEventMonitor
+	proposalManager        *withdrawal.ProposalManager
 
 	AdminServer *admin.AdminServer
 }
@@ -80,6 +75,9 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig
 	}
 
 	o := Orchestrator{log: log, cliConfig: cliConfig, config: networkConfig, l1Chain: l1Anvil, l2Chains: l2Anvils, l2OpSims: l2OpSims}
+
+	// Initialize withdrawal proposal manager
+	o.proposalManager = withdrawal.NewProposalManager(log, l1Anvil, networkConfig)
 
 	// Interop Setup
 	if networkConfig.InteropEnabled {
@@ -188,155 +186,10 @@ func (o *Orchestrator) Start(ctx context.Context) error {
 // FundProposerAddresses funds the proposer addresses with ETH for gas payments
 func (o *Orchestrator) FundProposerAddresses(ctx context.Context) error {
 	if o.withdrawalEventMonitor != nil {
-		// First configure proposer permissions for dispute games
-		if err := o.configureProposerPermissions(ctx); err != nil {
-			return fmt.Errorf("failed to configure proposer permissions: %w", err)
-		}
-		return o.fundProposerAddresses(ctx)
+		return o.proposalManager.FundProposerAddresses(ctx)
 	}
 	return nil
 }
-
-// configureProposerPermissions sets up the necessary permissions for proposers to create dispute games
-func (o *Orchestrator) configureProposerPermissions(ctx context.Context) error {
-	o.log.Info("configuring proposer permissions for dispute games")
-	
-	// Get dev keys for admin operations
-	devKeys, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
-	if err != nil {
-		return fmt.Errorf("failed to create dev keys: %w", err)
-	}
-	
-	// Use the first dev key as admin (it should have ownership/admin rights)
-	adminPrivateKey, err := devKeys.Secret(devkeys.UserKey(0))
-	if err != nil {
-		return fmt.Errorf("failed to get admin private key: %w", err)
-	}
-	
-	// Create transactor for L1 admin operations
-	l1ChainID := big.NewInt(int64(o.config.L1Config.ChainID))
-	adminTransactor, err := bind.NewKeyedTransactorWithChainID(adminPrivateKey, l1ChainID)
-	if err != nil {
-		return fmt.Errorf("failed to create admin transactor: %w", err)
-	}
-	
-	// For each L2 config, grant the proposer permission to create dispute games
-	for _, l2Config := range o.config.L2Configs {
-		proposerAddr := l2Config.L2Config.ProposerAddress
-		
-		o.log.Info("granting dispute game permissions", 
-			"chainID", l2Config.ChainID,
-			"proposerAddress", proposerAddr.Hex(),
-		)
-		
-		// Try to set the proposer as an authorized challenger/proposer
-		// This is a supersim-specific setup for testing
-		if err := o.grantProposerPermission(ctx, adminTransactor, proposerAddr); err != nil {
-			o.log.Warn("failed to grant proposer permission", 
-				"chainID", l2Config.ChainID,
-				"proposerAddress", proposerAddr.Hex(),
-				"error", err,
-			)
-			// Continue with other proposers even if one fails
-		}
-	}
-	
-	return nil
-}
-
-// grantProposerPermission attempts to grant permission to a proposer address
-func (o *Orchestrator) grantProposerPermission(ctx context.Context, adminTransactor *bind.TransactOpts, proposerAddr common.Address) error {
-	// For testing in supersim, we can try to set up basic permissions
-	// This might involve calling admin functions on the dispute game factory or related contracts
-	
-	// In a real implementation, this would depend on the specific permission model
-	// For now, we'll log what we're attempting and return success
-	o.log.Debug("attempting to grant proposer permission", 
-		"proposerAddress", proposerAddr.Hex(),
-		"adminAddress", adminTransactor.From.Hex(),
-	)
-	
-	// For supersim testing, let's try to give the proposer admin-level permissions
-	// This is a testing-only setup to enable withdrawal functionality
-	
-	// Try to make the proposer an admin or grant necessary roles
-	// We'll use L1 chain's SetBalance to ensure proposer has enough ETH
-	if err := o.l1Chain.SetBalance(ctx, nil, proposerAddr, big.NewInt(0).Mul(big.NewInt(100), big.NewInt(1e18))); err != nil {
-		o.log.Warn("failed to set proposer balance", "error", err)
-	}
-	
-	// For supersim testing, replace the PermissionedDisputeGame with a simpler version
-	if err := o.replacePermissionedDisputeGameContract(ctx); err != nil {
-		o.log.Warn("failed to replace permissioned dispute game contract", "error", err)
-	}
-	
-	return nil
-}
-
-// replacePermissionedDisputeGameContract replaces the PermissionedDisputeGame contract with a simpler version
-func (o *Orchestrator) replacePermissionedDisputeGameContract(ctx context.Context) error {
-	// Get the game implementation address for game type 1
-	gameImplAddr := common.HexToAddress("0xC77c081d3245bE490949E4C2E5Dd8b522a194927")
-	
-	// Create a simple contract that accepts any function call and returns success
-	// This is a minimal contract that just returns for any function call
-	// The bytecode represents: contract { fallback() external payable { /* do nothing */ } }
-	simpleBytecode := "0x600160005260206000f3" // Simple contract that returns true for any call
-	
-	o.log.Info("🔄 replacing PermissionedDisputeGame contract with permissionless version", 
-		"gameImplAddr", gameImplAddr.Hex(),
-		"newBytecode", simpleBytecode,
-	)
-	
-	// Use anvil's setCode to replace the contract bytecode
-	if err := o.l1Chain.SetCode(ctx, nil, gameImplAddr, simpleBytecode); err != nil {
-		return fmt.Errorf("failed to replace contract bytecode: %w", err)
-	}
-	
-	o.log.Info("✅ successfully replaced PermissionedDisputeGame contract")
-	
-	// Also modify the dispute period to be instant for testing
-	if err := o.makeDisputePeriodInstant(ctx); err != nil {
-		o.log.Warn("failed to make dispute period instant", "error", err)
-	}
-	
-	return nil
-}
-
-// makeDisputePeriodInstant modifies the dispute game and portal to have instant finalization
-func (o *Orchestrator) makeDisputePeriodInstant(ctx context.Context) error {
-	// For supersim testing, we want withdrawals to be instant
-	// This involves modifying the OptimismPortal and dispute game timing
-	
-	o.log.Info("🕒 configuring instant withdrawal finalization for testing")
-	
-	// The dispute period is typically stored in the OptimismPortal or dispute game factory
-	// We can use anvil_setStorageAt to set these values to 0
-	
-	// Find the OptimismPortal address from L2 configs
-	if len(o.config.L2Configs) > 0 {
-		optimismPortalAddr := o.config.L2Configs[0].L2Config.L1Addresses.OptimismPortalProxy
-		
-		o.log.Info("setting instant dispute period", 
-			"optimismPortalAddr", optimismPortalAddr.Hex(),
-		)
-		
-		// Set dispute period to 0 at various storage slots that might contain timing
-		zeroValue := "0x0000000000000000000000000000000000000000000000000000000000000000"
-		
-		// Try common storage slots for dispute periods (0, 1, 2, 3)
-		for slot := 0; slot < 10; slot++ {
-			slotHex := fmt.Sprintf("0x%x", slot)
-			if err := o.l1Chain.SetStorageAt(ctx, nil, *optimismPortalAddr, slotHex, zeroValue); err != nil {
-				o.log.Debug("failed to set storage slot", "slot", slot, "error", err)
-			}
-		}
-	}
-	
-	o.log.Info("✅ configured instant withdrawal finalization")
-	return nil
-}
-
 
 func (o *Orchestrator) Stop(ctx context.Context) error {
 	var errs []error
@@ -475,179 +328,4 @@ func (o *Orchestrator) ConfigAsString() string {
 	}
 
 	return b.String()
-}
-
-// fundProposerAddresses funds the proposer addresses with ETH for gas payments
-func (o *Orchestrator) fundProposerAddresses(ctx context.Context) error {
-	// Get dev keys for funding transactions
-	devKeys, err := devkeys.NewMnemonicDevKeys(devkeys.TestMnemonic)
-	if err != nil {
-		return fmt.Errorf("failed to create dev keys: %w", err)
-	}
-
-	// Use the first dev key as the funder (it should have ETH)
-	funderPrivateKey, err := devKeys.Secret(devkeys.UserKey(0))
-	if err != nil {
-		return fmt.Errorf("failed to get funder private key: %w", err)
-	}
-
-	// Create transactor for L1 transactions
-	l1ChainID := big.NewInt(int64(o.config.L1Config.ChainID))
-	funderTransactor, err := bind.NewKeyedTransactorWithChainID(funderPrivateKey, l1ChainID)
-	if err != nil {
-		return fmt.Errorf("failed to create funder transactor: %w", err)
-	}
-
-	// Amount to fund each proposer (2 ETH should be sufficient for gas)
-	fundingAmount, _ := big.NewInt(0).SetString("2000000000000000000", 10) // 2 ETH
-	minBalance := big.NewInt(100_000_000_000_000_000)      // 0.1 ETH
-
-	// Collect proposers that need funding
-	var proposersToFund []struct {
-		chainID uint64
-		address common.Address
-	}
-
-	for _, l2Config := range o.config.L2Configs {
-		proposerAddr := l2Config.L2Config.ProposerAddress
-
-		// Check current balance
-		currentBalance, err := o.l1Chain.EthClient().BalanceAt(ctx, proposerAddr, nil)
-		if err != nil {
-			return fmt.Errorf("failed to get balance for proposer %s: %w", proposerAddr.Hex(), err)
-		}
-
-		// Only fund if balance is low (less than 0.1 ETH)
-		if currentBalance.Cmp(minBalance) < 0 {
-			proposersToFund = append(proposersToFund, struct {
-				chainID uint64
-				address common.Address
-			}{l2Config.ChainID, proposerAddr})
-		}
-	}
-
-	// If no proposers need funding, return early
-	if len(proposersToFund) == 0 {
-		o.log.Info("all proposer addresses already have sufficient balance")
-		return nil
-	}
-
-	// Send all funding transactions simultaneously for faster execution
-	gasPrice, err := o.l1Chain.EthClient().SuggestGasPrice(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get gas price: %w", err)
-	}
-
-	baseNonce, err := o.l1Chain.EthClient().PendingNonceAt(ctx, funderTransactor.From)
-	if err != nil {
-		return fmt.Errorf("failed to get base nonce: %w", err)
-	}
-
-	// Step 1: Create and send all transactions simultaneously
-	type fundingTx struct {
-		chainID   uint64
-		address   common.Address
-		signedTx  *types.Transaction
-		sentAt    time.Time
-	}
-	
-	var sentTxs []fundingTx
-	start := time.Now()
-	
-	o.log.Info("💸 funding all proposer addresses simultaneously",
-		"count", len(proposersToFund),
-		"amount", fundingAmount.String(),
-	)
-
-	for i, proposer := range proposersToFund {
-		nonce := baseNonce + uint64(i)
-		tx := types.NewTransaction(nonce, proposer.address, fundingAmount, 21000, gasPrice, nil)
-
-		// Sign the transaction
-		signedTx, err := funderTransactor.Signer(funderTransactor.From, tx)
-		if err != nil {
-			o.log.Error("failed to sign funding transaction", 
-				"chainID", proposer.chainID,
-				"error", err)
-			continue
-		}
-
-		// Send the transaction
-		err = o.l1Chain.EthClient().SendTransaction(ctx, signedTx)
-		if err != nil {
-			o.log.Error("failed to send funding transaction", 
-				"chainID", proposer.chainID,
-				"error", err)
-			continue
-		}
-
-		sentTxs = append(sentTxs, fundingTx{
-			chainID:  proposer.chainID,
-			address:  proposer.address,
-			signedTx: signedTx,
-			sentAt:   time.Now(),
-		})
-
-		o.log.Debug("📤 funding transaction sent",
-			"chainID", proposer.chainID,
-			"proposerAddress", proposer.address.Hex(),
-			"txHash", signedTx.Hash().Hex(),
-		)
-	}
-
-	// Force mine a block immediately to settle all funding transactions
-	if len(sentTxs) > 0 {
-		o.log.Debug("⛏️ forcing block mine to settle funding transactions immediately")
-		if err := o.l1Chain.Mine(ctx, nil); err != nil {
-			o.log.Warn("failed to force mine block for funding transactions", "error", err)
-		}
-	}
-
-	// Step 2: Wait for all transactions to be mined
-	fundedCount := 0
-	for _, fundingTx := range sentTxs {
-		fundingCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-		receipt, err := bind.WaitMined(fundingCtx, o.l1Chain.EthClient(), fundingTx.signedTx)
-		cancel()
-		
-		waitDuration := time.Since(fundingTx.sentAt)
-		
-		if err != nil {
-			o.log.Error("failed to wait for funding transaction", 
-				"chainID", fundingTx.chainID,
-				"error", err, 
-				"waitDuration", waitDuration,
-				"txHash", fundingTx.signedTx.Hash().Hex(),
-			)
-			continue
-		}
-
-		if receipt.Status == 1 {
-			fundedCount++
-			o.log.Info("✅ proposer funding successful",
-				"chainID", fundingTx.chainID,
-				"proposerAddress", fundingTx.address.Hex(),
-				"amount", fundingAmount.String(),
-				"txHash", fundingTx.signedTx.Hash().Hex(),
-				"waitDuration", waitDuration,
-			)
-		} else {
-			o.log.Error("funding transaction failed",
-				"chainID", fundingTx.chainID,
-				"proposerAddress", fundingTx.address.Hex(),
-				"txHash", fundingTx.signedTx.Hash().Hex(),
-			)
-		}
-	}
-
-	totalDuration := time.Since(start)
-
-	// Log final result
-	o.log.Info("💰 proposer addresses funded",
-		"funded", fundedCount,
-		"total", len(proposersToFund),
-		"totalDuration", totalDuration,
-	)
-
-	return nil
 }
