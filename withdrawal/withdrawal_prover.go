@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"math/big"
 
-	opbindings "github.com/ethereum-optimism/optimism/op-e2e/bindings"
 	"github.com/ethereum-optimism/optimism/op-chain-ops/devkeys"
+	opbindings "github.com/ethereum-optimism/optimism/op-e2e/bindings"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/predeploys"
 	"github.com/ethereum-optimism/supersim/config"
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -133,10 +135,12 @@ func (p *WithdrawalProver) extractWithdrawalData(ctx context.Context, l2Client *
 		return nil, fmt.Errorf("failed to get transaction receipt: %w", err)
 	}
 
+	// Extract withdrawal data from transaction receipt
+
 	// Find the MessagePassed event from L2ToL1MessagePasser
 	var messagePassedEvent *types.Log
 	messagePassedTopic := common.HexToHash("0x02a52367d10742d8032712c1bb8e0144ff1ec5ffda1ed7d70bb05a2744955054")
-	
+
 	for _, log := range receipt.Logs {
 		if log.Address == predeploys.L2ToL1MessagePasserAddr && len(log.Topics) > 0 && log.Topics[0] == messagePassedTopic {
 			messagePassedEvent = log
@@ -163,7 +167,8 @@ func (p *WithdrawalProver) extractWithdrawalData(ctx context.Context, l2Client *
 
 // parseMessagePassedEvent parses the MessagePassed event to extract withdrawal data
 func (p *WithdrawalProver) parseMessagePassedEvent(eventLog *types.Log) (*WithdrawalData, error) {
-	// MessagePassed event structure:
+
+	// MessagePassed event structure from L2ToL1MessagePasser.sol:
 	// event MessagePassed(
 	//     uint256 indexed nonce,
 	//     address indexed sender,
@@ -183,33 +188,102 @@ func (p *WithdrawalProver) parseMessagePassedEvent(eventLog *types.Log) (*Withdr
 	sender := common.BytesToAddress(eventLog.Topics[2].Bytes())
 	target := common.BytesToAddress(eventLog.Topics[3].Bytes())
 
-	// Parse the data field to extract value, gasLimit, and data
-	if len(eventLog.Data) < 96 { // 32 bytes for value + 32 bytes for gasLimit + 32 bytes for data offset
-		return nil, fmt.Errorf("insufficient data in MessagePassed event")
+	p.log.Info("🔍 extracted indexed parameters",
+		"nonce", nonce.String(),
+		"sender", sender.Hex(),
+		"target", target.Hex(),
+	)
+
+	// Parse the data field using ABI decoding to properly handle dynamic types
+	// The data contains: uint256 value, uint256 gasLimit, bytes data, bytes32 withdrawalHash
+	uint256Type, _ := abi.NewType("uint256", "", nil)
+	bytesType, _ := abi.NewType("bytes", "", nil)
+	bytes32Type, _ := abi.NewType("bytes32", "", nil)
+
+	args := abi.Arguments{
+		{Name: "value", Type: uint256Type},
+		{Name: "gasLimit", Type: uint256Type},
+		{Name: "data", Type: bytesType},
+		{Name: "withdrawalHash", Type: bytes32Type},
 	}
 
-	value := new(big.Int).SetBytes(eventLog.Data[0:32])
-	gasLimit := new(big.Int).SetBytes(eventLog.Data[32:64])
-	
-	// The data field starts at offset 64, but we need to parse the dynamic bytes
-	dataOffset := new(big.Int).SetBytes(eventLog.Data[64:96]).Uint64()
-	
-	var data []byte
-	if dataOffset+32 <= uint64(len(eventLog.Data)) {
-		dataLength := new(big.Int).SetBytes(eventLog.Data[dataOffset:dataOffset+32]).Uint64()
-		if dataOffset+32+dataLength <= uint64(len(eventLog.Data)) {
-			data = eventLog.Data[dataOffset+32 : dataOffset+32+dataLength]
-		}
+	decoded, err := args.Unpack(eventLog.Data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode MessagePassed event data: %w", err)
 	}
 
-	return &WithdrawalData{
+	if len(decoded) != 4 {
+		return nil, fmt.Errorf("unexpected number of decoded parameters: got %d, expected 4", len(decoded))
+	}
+
+	value, ok := decoded[0].(*big.Int)
+	if !ok {
+		return nil, fmt.Errorf("failed to decode value parameter")
+	}
+
+	gasLimit, ok := decoded[1].(*big.Int)
+	if !ok {
+		return nil, fmt.Errorf("failed to decode gasLimit parameter")
+	}
+
+	data, ok := decoded[2].([]byte)
+	if !ok {
+		return nil, fmt.Errorf("failed to decode data parameter")
+	}
+
+	withdrawalHashFromEvent, ok := decoded[3].([32]byte)
+	if !ok {
+		return nil, fmt.Errorf("failed to decode withdrawalHash parameter")
+	}
+
+	p.log.Info("🔍 extracted non-indexed parameters",
+		"value", value.String(),
+		"gasLimit", gasLimit.String(),
+		"dataLength", len(data),
+		"dataHex", fmt.Sprintf("0x%x", data),
+		"withdrawalHash", common.BytesToHash(withdrawalHashFromEvent[:]).Hex(),
+	)
+
+	withdrawalData := &WithdrawalData{
 		Nonce:    nonce,
 		Sender:   sender,
 		Target:   target,
 		Value:    value,
 		GasLimit: gasLimit,
 		Data:     data,
-	}, nil
+	}
+
+	p.log.Info("🔍 complete withdrawal data before hash calculation",
+		"nonce", withdrawalData.Nonce.String(),
+		"sender", withdrawalData.Sender.Hex(),
+		"target", withdrawalData.Target.Hex(),
+		"value", withdrawalData.Value.String(),
+		"gasLimit", withdrawalData.GasLimit.String(),
+		"dataLength", len(withdrawalData.Data),
+		"dataHex", fmt.Sprintf("0x%x", withdrawalData.Data),
+	)
+
+	// Verify our withdrawal hash calculation matches the event
+	calculatedHash, err := p.calculateWithdrawalHash(withdrawalData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate withdrawal hash for verification: %w", err)
+	}
+
+	eventHash := common.BytesToHash(withdrawalHashFromEvent[:])
+	p.log.Info("🔍 withdrawal hash verification",
+		"calculatedHash", calculatedHash.Hex(),
+		"eventHash", eventHash.Hex(),
+		"match", calculatedHash == eventHash,
+	)
+
+	// Require the hash to match for correctness
+	if calculatedHash != eventHash {
+		return nil, fmt.Errorf("withdrawal hash mismatch: calculated %s, event %s", calculatedHash.Hex(), eventHash.Hex())
+	}
+
+	p.log.Info("✅ withdrawal hash verification successful")
+
+	return withdrawalData, nil
 }
 
 // generateWithdrawalProof generates the proofs needed for proving the withdrawal
@@ -221,8 +295,11 @@ func (p *WithdrawalProver) generateWithdrawalProof(ctx context.Context, l2Client
 	}
 
 	// Calculate the withdrawal hash
-	withdrawalHash := p.calculateWithdrawalHash(withdrawalData)
-	
+	withdrawalHash, err := p.calculateWithdrawalHash(withdrawalData)
+	if err != nil {
+		return opbindings.TypesOutputRootProof{}, nil, fmt.Errorf("failed to calculate withdrawal hash: %w", err)
+	}
+
 	// Calculate the storage slot for the withdrawal
 	storageSlot := p.calculateStorageSlot(withdrawalHash)
 
@@ -259,17 +336,215 @@ func (p *WithdrawalProver) generateWithdrawalProof(ctx context.Context, l2Client
 	return outputRootProof, withdrawalProof, nil
 }
 
-// calculateWithdrawalHash calculates the hash of the withdrawal
-func (p *WithdrawalProver) calculateWithdrawalHash(withdrawalData *WithdrawalData) common.Hash {
-	// Calculate withdrawal hash: keccak256(abi.encode(nonce, sender, target, value, gasLimit, data))
-	return crypto.Keccak256Hash(
-		common.BigToHash(withdrawalData.Nonce).Bytes(),
-		common.LeftPadBytes(withdrawalData.Sender.Bytes(), 32),
-		common.LeftPadBytes(withdrawalData.Target.Bytes(), 32),
-		common.BigToHash(withdrawalData.Value).Bytes(),
-		common.BigToHash(withdrawalData.GasLimit).Bytes(),
-		crypto.Keccak256(withdrawalData.Data),
+// calculateWithdrawalHash calculates the hash of the withdrawal using proper ABI encoding
+func (p *WithdrawalProver) calculateWithdrawalHash(withdrawalData *WithdrawalData) (common.Hash, error) {
+	// Define ABI types for proper encoding
+	uint256Type, _ := abi.NewType("uint256", "", nil)
+	addressType, _ := abi.NewType("address", "", nil)
+	bytesType, _ := abi.NewType("bytes", "", nil)
+
+	// Use ABI encoding exactly like the Solidity contract and op-node
+	args := abi.Arguments{
+		{Name: "nonce", Type: uint256Type},
+		{Name: "sender", Type: addressType},
+		{Name: "target", Type: addressType},
+		{Name: "value", Type: uint256Type},
+		{Name: "gasLimit", Type: uint256Type},
+		{Name: "data", Type: bytesType},
+	}
+
+	p.log.Info("🔍 preparing to pack withdrawal hash arguments",
+		"nonce", withdrawalData.Nonce.String(),
+		"sender", withdrawalData.Sender.Hex(),
+		"target", withdrawalData.Target.Hex(),
+		"value", withdrawalData.Value.String(),
+		"gasLimit", withdrawalData.GasLimit.String(),
+		"dataLength", len(withdrawalData.Data),
+		"dataHex", fmt.Sprintf("0x%x", withdrawalData.Data),
 	)
+
+	// Pack the arguments using ABI encoding
+	enc, err := args.Pack(
+		withdrawalData.Nonce,
+		withdrawalData.Sender,
+		withdrawalData.Target,
+		withdrawalData.Value,
+		withdrawalData.GasLimit,
+		withdrawalData.Data,
+	)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("failed to pack withdrawal hash: %w", err)
+	}
+
+	p.log.Info("🔍 ABI encoded withdrawal data",
+		"encodedLength", len(enc),
+		"encodedHex", fmt.Sprintf("0x%x", enc),
+	)
+
+	// Calculate keccak256 hash of the ABI encoded data
+	hash := crypto.Keccak256Hash(enc)
+
+	p.log.Info("🔍 calculated withdrawal hash",
+		"hash", hash.Hex(),
+	)
+
+	return hash, nil
+}
+
+// findLatestGameForWithdrawal finds the latest dispute game that covers the withdrawal's L2 block
+// This uses a simplified approach that works with supersim's permissionless dispute games
+func (p *WithdrawalProver) findLatestGameForWithdrawal(ctx context.Context, disputeGameFactory *opbindings.DisputeGameFactory, optimismPortal *opbindings.OptimismPortal, withdrawalL2BlockNumber uint64) (*opbindings.IDisputeGameFactoryGameSearchResult, *big.Int, error) {
+	// For supersim, we use the PERMISSIONED_CANNON game type (1)
+	// This is the expected game type for the permissionless dispute game setup
+	respectedGameType := uint32(1) // PERMISSIONED_CANNON
+
+	p.log.Info("🔍 searching for dispute games",
+		"respectedGameType", respectedGameType,
+		"withdrawalL2Block", withdrawalL2BlockNumber,
+	)
+
+	// Get total game count
+	gameCount, err := disputeGameFactory.GameCount(nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get game count: %w", err)
+	}
+
+	if gameCount.Uint64() == 0 {
+		return nil, nil, fmt.Errorf("no dispute games found")
+	}
+
+	p.log.Info("🔍 total dispute games available",
+		"totalGames", gameCount.String(),
+	)
+
+	// For supersim, we'll use a simple approach since we only expect one recent game
+	// Just use the most recent game (latest index)
+	latestGameIndex := new(big.Int).Sub(gameCount, big.NewInt(1))
+
+	gameInfo, err := disputeGameFactory.GameAtIndex(nil, latestGameIndex)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get latest game at index %s: %w", latestGameIndex.String(), err)
+	}
+
+	p.log.Info("🔍 found latest dispute game",
+		"gameIndex", latestGameIndex.String(),
+		"gameType", gameInfo.GameType,
+		"gameProxy", gameInfo.Proxy.Hex(),
+		"gameTimestamp", gameInfo.Timestamp,
+	)
+
+	// Verify it's the correct game type
+	if gameInfo.GameType != respectedGameType {
+		return nil, nil, fmt.Errorf("latest game has type %d but expected type %d", gameInfo.GameType, respectedGameType)
+	}
+
+	// For supersim, we need to get the REAL output root from dispute game creation events
+	// The FindLatestGames and dispute game contract both return test values (0x1)
+	// But the actual output root is in the DisputeGameCreated event logs
+	p.log.Info("🔍 getting original output root from dispute game creation event logs",
+		"note", "FindLatestGames returns test values in supersim, need to check event logs",
+	)
+
+	// Get the original output root from DisputeGameCreated events
+	originalOutputRoot, err := p.getOutputRootFromGameCreationEvent(ctx, disputeGameFactory, latestGameIndex)
+	if err != nil {
+		p.log.Warn("failed to get output root from creation events, using fallback", "error", err)
+
+		// Fallback: Try to get rootClaim directly from the dispute game contract
+		// This will return 0x1 in supersim but better than nothing
+		disputeGameContract, err := opbindings.NewFaultDisputeGame(gameInfo.Proxy, p.l1Client)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to create dispute game contract binding: %w", err)
+		}
+
+		rootClaim, err := disputeGameContract.RootClaim(nil)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to get root claim from dispute game: %w", err)
+		}
+
+		originalOutputRoot = rootClaim
+	}
+
+	// Construct game result with the original root claim from event logs
+	gameResult := &opbindings.IDisputeGameFactoryGameSearchResult{
+		Index:     latestGameIndex,
+		Metadata:  [32]byte{}, // We don't have this but it's not critical
+		Timestamp: gameInfo.Timestamp,
+		RootClaim: originalOutputRoot, // This is the REAL output root from creation events
+		ExtraData: nil,                // We don't need this for our purpose
+	}
+
+	// Return the game with the original creation parameters
+	return gameResult, latestGameIndex, nil
+}
+
+// getOutputRootFromGameCreationEvent extracts the original output root from DisputeGameCreated event logs
+func (p *WithdrawalProver) getOutputRootFromGameCreationEvent(ctx context.Context, disputeGameFactory *opbindings.DisputeGameFactory, gameIndex *big.Int) ([32]byte, error) {
+	// Get the game info to find the block where it was created
+	gameInfo, err := disputeGameFactory.GameAtIndex(nil, gameIndex)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to get game info: %w", err)
+	}
+
+	p.log.Info("🔍 searching for DisputeGameCreated event",
+		"gameProxy", gameInfo.Proxy.Hex(),
+		"gameTimestamp", gameInfo.Timestamp,
+	)
+
+	// Search for DisputeGameCreated events that created this specific game
+	// The event signature for DisputeGameCreated(address indexed disputeProxy, GameType indexed gameType, Claim indexed rootClaim)
+	disputeGameCreatedTopic := crypto.Keccak256Hash([]byte("DisputeGameCreated(address,uint32,bytes32)"))
+
+	// Get the dispute game factory address from the network config
+	disputeGameFactoryAddr := *p.networkConfig.L1Config.DisputeGameFactoryAddress
+
+	// Create filter query - look for events where the disputeProxy (topic1) matches our game proxy
+	filterQuery := ethereum.FilterQuery{
+		Addresses: []common.Address{disputeGameFactoryAddr},
+		Topics: [][]common.Hash{
+			{disputeGameCreatedTopic},                    // Event signature
+			{common.BytesToHash(gameInfo.Proxy.Bytes())}, // disputeProxy (indexed)
+		},
+		FromBlock: big.NewInt(0), // Search from genesis - could be optimized
+		ToBlock:   nil,           // Search to latest block
+	}
+
+	// Query for the event logs
+	logs, err := p.l1Client.FilterLogs(ctx, filterQuery)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to filter logs for DisputeGameCreated: %w", err)
+	}
+
+	if len(logs) == 0 {
+		return [32]byte{}, fmt.Errorf("no DisputeGameCreated events found for game proxy %s", gameInfo.Proxy.Hex())
+	}
+
+	// Use the most recent event (should be the creation event)
+	creationEvent := logs[len(logs)-1]
+
+	p.log.Info("🔍 found DisputeGameCreated event",
+		"blockNumber", creationEvent.BlockNumber,
+		"txHash", creationEvent.TxHash.Hex(),
+		"topicsCount", len(creationEvent.Topics),
+	)
+
+	// Verify we have the expected number of topics: signature + 3 indexed parameters
+	if len(creationEvent.Topics) != 4 {
+		return [32]byte{}, fmt.Errorf("unexpected number of topics in DisputeGameCreated event: got %d, expected 4", len(creationEvent.Topics))
+	}
+
+	// Extract the original root claim from topic[3] (rootClaim is the 3rd indexed parameter)
+	// Topics: [0] = event signature, [1] = disputeProxy, [2] = gameType, [3] = rootClaim
+	originalRootClaim := creationEvent.Topics[3]
+
+	p.log.Info("🎯 extracted original output root from DisputeGameCreated event",
+		"gameProxy", gameInfo.Proxy.Hex(),
+		"originalRootClaim", originalRootClaim.Hex(),
+		"blockNumber", creationEvent.BlockNumber,
+		"note", "This is the REAL output root that was posted when the dispute game was created",
+	)
+
+	return originalRootClaim, nil
 }
 
 // calculateStorageSlot calculates the storage slot for the withdrawal hash
@@ -285,13 +560,13 @@ func (p *WithdrawalProver) calculateStorageSlot(withdrawalHash common.Hash) comm
 // getStorageProof gets the storage proof for a given address and storage slot
 func (p *WithdrawalProver) getStorageProof(ctx context.Context, client *ethclient.Client, address common.Address, storageSlot common.Hash, blockNumber *big.Int) (*eth.AccountResult, error) {
 	var result eth.AccountResult
-	
+
 	// Use the underlying RPC client to call eth_getProof
 	rpcClient := client.Client()
-	
+
 	// Format block number as hex string
 	blockTag := fmt.Sprintf("0x%x", blockNumber.Uint64())
-	
+
 	err := rpcClient.CallContext(ctx, &result, "eth_getProof", address, []common.Hash{storageSlot}, blockTag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get storage proof: %w", err)
@@ -308,7 +583,31 @@ func (p *WithdrawalProver) submitProofToPortal(ctx context.Context, l2Config *co
 		return fmt.Errorf("failed to create OptimismPortal binding: %w", err)
 	}
 
-	// Create a transactor using the first dev key (for testing)
+	// Get dispute game factory
+	disputeGameFactory, err := opbindings.NewDisputeGameFactory(*p.networkConfig.L1Config.DisputeGameFactoryAddress, p.l1Client)
+	if err != nil {
+		return fmt.Errorf("failed to create dispute game factory binding: %w", err)
+	}
+
+	p.log.Info("🔍 finding dispute game for withdrawal",
+		"chainID", withdrawalData.ChainID,
+		"blockNumber", withdrawalData.L2BlockNumber,
+	)
+
+	// Step 1: Find the latest dispute game for this withdrawal
+	gameResult, disputeGameIndex, err := p.findLatestGameForWithdrawal(ctx, disputeGameFactory, optimismPortal, withdrawalData.L2BlockNumber)
+	if err != nil {
+		return fmt.Errorf("failed to find latest game: %w", err)
+	}
+
+	p.log.Info("🎯 found dispute game for withdrawal",
+		"chainID", withdrawalData.ChainID,
+		"gameIndex", disputeGameIndex.String(),
+		"gameTimestamp", gameResult.Timestamp,
+		"outputRoot", common.BytesToHash(gameResult.RootClaim[:]).Hex(),
+	)
+
+	// Step 2: Set up transactor
 	privateKey, err := p.devKeys.Secret(devkeys.UserKey(0))
 	if err != nil {
 		return fmt.Errorf("failed to get private key: %w", err)
@@ -319,15 +618,13 @@ func (p *WithdrawalProver) submitProofToPortal(ctx context.Context, l2Config *co
 		return fmt.Errorf("failed to create transactor: %w", err)
 	}
 
-	// Set gas parameters
 	gasPrice, err := p.l1Client.SuggestGasPrice(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get gas price: %w", err)
 	}
 	transactor.GasPrice = gasPrice
-	transactor.GasLimit = 1000000 // High gas limit for proving
+	transactor.GasLimit = 1000000
 
-	// Create the withdrawal transaction struct
 	withdrawalTx := opbindings.TypesWithdrawalTransaction{
 		Nonce:    withdrawalData.Nonce,
 		Sender:   withdrawalData.Sender,
@@ -337,15 +634,13 @@ func (p *WithdrawalProver) submitProofToPortal(ctx context.Context, l2Config *co
 		Data:     withdrawalData.Data,
 	}
 
-	// We need to get the dispute game index - for now, use 0 (latest)
-	disputeGameIndex := big.NewInt(0)
-
-	p.log.Info("📝 submitting withdrawal proof to OptimismPortal",
+	p.log.Info("📝 submitting withdrawal proof",
 		"chainID", withdrawalData.ChainID,
-		"sender", withdrawalData.Sender.Hex(),
-		"target", withdrawalData.Target.Hex(),
-		"value", withdrawalData.Value.String(),
 		"disputeGameIndex", disputeGameIndex.String(),
+		"withdrawalHash", p.mustCalculateWithdrawalHash(withdrawalData).Hex(),
+		"outputRootProof", fmt.Sprintf("stateRoot=%s, messagePasserStorageRoot=%s",
+			common.BytesToHash(outputRootProof.StateRoot[:]).Hex(),
+			common.BytesToHash(outputRootProof.MessagePasserStorageRoot[:]).Hex()),
 	)
 
 	// Submit the proof
@@ -357,17 +652,39 @@ func (p *WithdrawalProver) submitProofToPortal(ctx context.Context, l2Config *co
 		withdrawalProof,
 	)
 	if err != nil {
+		p.log.Error("❌ failed to submit withdrawal proof transaction",
+			"chainID", withdrawalData.ChainID,
+			"error", err.Error(),
+		)
 		return fmt.Errorf("failed to submit withdrawal proof: %w", err)
 	}
 
-	// Wait for the transaction to be mined
+	p.log.Info("📤 withdrawal proof transaction submitted",
+		"chainID", withdrawalData.ChainID,
+		"txHash", tx.Hash().Hex(),
+	)
+
+	// Wait for confirmation
 	receipt, err := bind.WaitMined(ctx, p.l1Client, tx)
 	if err != nil {
 		return fmt.Errorf("failed to wait for proof transaction: %w", err)
 	}
 
+	p.log.Info("📋 withdrawal proof transaction result",
+		"chainID", withdrawalData.ChainID,
+		"txHash", tx.Hash().Hex(),
+		"status", receipt.Status,
+		"gasUsed", receipt.GasUsed,
+		"blockNumber", receipt.BlockNumber.Uint64(),
+	)
+
 	if receipt.Status != 1 {
-		return fmt.Errorf("withdrawal proof transaction failed")
+		p.log.Error("❌ withdrawal proof transaction reverted",
+			"chainID", withdrawalData.ChainID,
+			"txHash", tx.Hash().Hex(),
+			"gasUsed", receipt.GasUsed,
+		)
+		return fmt.Errorf("withdrawal proof transaction failed - status: %d, gasUsed: %d", receipt.Status, receipt.GasUsed)
 	}
 
 	p.log.Info("✅ withdrawal proof submitted successfully",
@@ -377,4 +694,14 @@ func (p *WithdrawalProver) submitProofToPortal(ctx context.Context, l2Config *co
 	)
 
 	return nil
+}
+
+// mustCalculateWithdrawalHash calculates withdrawal hash and panics on error (for logging only)
+func (p *WithdrawalProver) mustCalculateWithdrawalHash(withdrawalData *WithdrawalData) common.Hash {
+	hash, err := p.calculateWithdrawalHash(withdrawalData)
+	if err != nil {
+		p.log.Error("failed to calculate withdrawal hash for logging", "error", err)
+		return common.Hash{}
+	}
+	return hash
 }

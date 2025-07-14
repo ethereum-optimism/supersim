@@ -18,17 +18,17 @@ import (
 
 // WithdrawalEventMonitor monitors withdrawal events from L2 chains and triggers output root posting
 type WithdrawalEventMonitor struct {
-	log             log.Logger
-	l1Client        *ethclient.Client
-	l2Clients       map[uint64]*ethclient.Client
-	networkConfig   *config.NetworkConfig
+	log              log.Logger
+	l1Client         *ethclient.Client
+	l2Clients        map[uint64]*ethclient.Client
+	networkConfig    *config.NetworkConfig
 	outputRootPoster *OutputRootPoster
 	withdrawalProver *WithdrawalProver
-	tasks           tasks.Group
-	tasksCtx        context.Context
-	tasksCancel     context.CancelFunc
-	processedTxs    map[common.Hash]bool // Track processed transaction hashes to avoid duplicates
-	txMutex         sync.Mutex           // Protect the processedTxs map
+	tasks            tasks.Group
+	tasksCtx         context.Context
+	tasksCancel      context.CancelFunc
+	processedTxs     map[common.Hash]bool // Track processed transaction hashes to avoid duplicates
+	txMutex          sync.Mutex           // Protect the processedTxs map
 }
 
 // NewWithdrawalEventMonitor creates a new withdrawal event monitor
@@ -36,11 +36,11 @@ func NewWithdrawalEventMonitor(log log.Logger, l1Client *ethclient.Client, l2Cli
 	tasksCtx, tasksCancel := context.WithCancel(context.Background())
 
 	return &WithdrawalEventMonitor{
-		log:           log,
-		l1Client:      l1Client,
-		l2Clients:     l2Clients,
-		networkConfig: networkConfig,
-		outputRootPoster: NewOutputRootPoster(log, l1Client, networkConfig),
+		log:              log,
+		l1Client:         l1Client,
+		l2Clients:        l2Clients,
+		networkConfig:    networkConfig,
+		outputRootPoster: NewOutputRootPoster(log, l1Client, l2Clients, networkConfig),
 		withdrawalProver: NewWithdrawalProver(log, l1Client, l2Clients, networkConfig),
 		tasks: tasks.Group{
 			HandleCrit: func(err error) {
@@ -84,7 +84,7 @@ func (m *WithdrawalEventMonitor) monitorChain(chainID uint64, client *ethclient.
 	// Monitor both L2StandardBridge (WithdrawalInitiated) and L2ToL1MessagePasser (MessagePassed)
 	fq := ethereum.FilterQuery{
 		Addresses: []common.Address{
-			predeploys.L2StandardBridgeAddr,     // 0x4200000000000000000000000000000000000010
+			predeploys.L2StandardBridgeAddr,    // 0x4200000000000000000000000000000000000010
 			predeploys.L2ToL1MessagePasserAddr, // 0x4200000000000000000000000000000000000016
 		},
 		Topics: [][]common.Hash{
@@ -130,7 +130,7 @@ func (m *WithdrawalEventMonitor) processWithdrawalEvent(chainID uint64, eventLog
 	// Mark this transaction as processed
 	m.processedTxs[eventLog.TxHash] = true
 	m.txMutex.Unlock()
-	
+
 	// Determine the event type for better logging
 	var eventType string
 	switch eventLog.Topics[0].Hex() {
@@ -154,7 +154,7 @@ func (m *WithdrawalEventMonitor) processWithdrawalEvent(chainID uint64, eventLog
 	}
 
 	// Log the withdrawal event with detailed information
-	m.log.Info("🔔 WITHDRAWAL EVENT DETECTED", 
+	m.log.Info("🔔 WITHDRAWAL EVENT DETECTED",
 		"chainID", chainID,
 		"eventType", eventType,
 		"contractName", contractName,
