@@ -89,7 +89,7 @@ contract DeployL2AuxiliaryContracts is Script {
         //bytes memory initcode = abi.encodePacked(type(PositionManager).creationCode, args);
 
         bytes memory args = abi.encode(_manager, _positionsDescriptor);
-        bytes memory initcode = abi.encodePacked(PositionManagerLib.MIGRATION_CODE, args);
+        bytes memory initcode = abi.encodePacked(PositionManagerLib.MODIFIED_BYTECODE, args);
 
         address addr = _deployer.computeAddress(_salt, keccak256(initcode));
         _deployer.deploy(0, _salt, initcode);
