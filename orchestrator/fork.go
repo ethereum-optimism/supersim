@@ -98,7 +98,7 @@ func NetworkConfigFromForkCLIConfig(log log.Logger, envPrefix string, cliConfig 
 		l2ChainConfig := config.ChainConfig{
 			Name:          chainCfg.Name,
 			ChainID:       chainCfg.ChainID,
-			BlockTime:     config.DefaultL1BlockTime,
+			BlockTime:     config.DefaultL2BlockTime,
 			SecretsConfig: config.DefaultSecretsConfig,
 			LogsDirectory: cliConfig.LogsDirectory,
 			ForkConfig: &config.ForkConfig{
