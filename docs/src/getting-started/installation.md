@@ -19,6 +19,13 @@ brew tap ethereum-optimism/tap
 brew install supersim
 ```
 
+If you are on WSL, install brew using 
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+and then run the commands given earlier.
+
 ## 3. Start `supersim` in vanilla mode
 
 ```sh
