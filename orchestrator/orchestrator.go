@@ -76,7 +76,11 @@ func NewOrchestrator(log log.Logger, closeApp context.CancelCauseFunc, cliConfig
 	if networkConfig.InteropEnabled {
 		o.l2ToL2MsgIndexer = interop.NewL2ToL2MessageIndexer(log)
 		if networkConfig.InteropAutoRelay {
-			o.l2ToL2MsgRelayer = interop.NewL2ToL2MessageRelayer(log)
+			o.l2ToL2MsgRelayer = interop.NewL2ToL2MessageRelayer(
+				log,
+				int(cliConfig.InteropAutoRelayRetries),
+				cliConfig.InteropAutoRelayRetryBackoffMax,
+			)
 		}
 	}
 
