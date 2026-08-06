@@ -67,7 +67,7 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Name:    InteropL2ToL2CDMOverrideArtifactPath,
 			Usage:   "Path to the L2ToL2CrossDomainMessenger build artifact that overrides the default implementation",
 			Value:   "",
-			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_L2TO2CDM_OVERRIDE"),
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_L2TOL2CDM_OVERRIDE"),
 		},
 		&cli.Uint64Flag{
 			Name:    L1PortFlagName,
