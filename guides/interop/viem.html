@@ -158,7 +158,18 @@
                         <!-- omit in toc -->
 <h1 id="viem-to-send-and-relay-interop-messages"><a class="header" href="#viem-to-send-and-relay-interop-messages">Viem to send and relay interop messages</a></h1>
 <p>This guide describes how to use <a href="https://viem.sh/"><code>viem</code></a> to send and relay interop messages using the <code>L2ToL2CrossDomainMessenger</code></p>
-<p>We'll perform the SuperchainERC20 interop transfer in <a href="../../getting-started/first-steps.html#send-an-interoperable-superchainerc20-token-from-chain-901-to-902-l2-to-l2-message-passing">First steps</a> and <a href="./manually-relaying-interop-messages-cast.html">Manually relaying interop messages with <code>cast</code></a> again, this time using <code>viem</code> to relay the message without the autorelayer.</p>
+<p>We'll perform a SuperchainERC20 interop transfer, this time using <code>viem</code> to relay the message without the autorelayer. For the same walkthrough with <code>cast</code>, see <a href="./cast.html">Relay with Cast</a>.</p>
+<blockquote>
+<p><strong>This guide does not work on supersim releases after <code>0.1.0-alpha.59</code>.</strong></p>
+<p>It moves tokens with the <code>SuperchainTokenBridge</code> predeploy at
+<code>0x4200000000000000000000000000000000000028</code>, which was deleted from the OP Stack in
+<a href="https://github.com/ethereum-optimism/optimism/pull/19999">ethereum-optimism/optimism#19999</a>
+and is no longer deployed. Nothing replaced it, so SuperchainERC20 tokens cannot move between
+chains today.</p>
+<p>The relaying mechanics below are still correct. To follow them on a current supersim, send a
+message through <code>L2ToL2CrossDomainMessenger</code> at <code>0x4200000000000000000000000000000000000023</code>,
+or transfer ETH with <code>SuperchainETHBridge</code> at <code>0x4200000000000000000000000000000000000024</code>.</p>
+</blockquote>
 <ul>
 <li><a href="#steps">Steps</a>
 <ul>
