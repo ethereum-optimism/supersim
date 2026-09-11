@@ -79,7 +79,7 @@ COMMANDS:
 
 GLOBAL OPTIONS:
    --admin.port value                  Listening port for the admin server (default: 8420) [$SUPERSIM_ADMIN_PORT]
-   --interop.l2tol2cdm.override value  Path to the L2ToL2CrossDomainMessenger build artifact that overrides the default implementation [$SUPERSIM_INTEROP_L2TO2CDM_OVERRIDE]
+   --interop.l2tol2cdm.override value  Path to the L2ToL2CrossDomainMessenger build artifact that overrides the default implementation [$SUPERSIM_INTEROP_L2TOL2CDM_OVERRIDE]
    --l1.port 0                         Listening port for the L1 instance. 0 binds to any available port (default: 8545) [$SUPERSIM_L1_PORT]
    --l2.count value                    Number of L2s. Max of 5 (default: 2) [$SUPERSIM_L2_COUNT]
    --l2.starting.port 0                Starting port to increment from for L2 chains. 0 binds each chain to any available port (default: 9545) [$SUPERSIM_L2_STARTING_PORT]
