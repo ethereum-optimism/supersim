@@ -16,7 +16,7 @@ check_prerequisites() {
         exit 1
     fi
 
-    COMMIT_HASH=$(cat "$COMMIT_FILE" | tr -d '[:space:]')
+    COMMIT_HASH=$(tr -d '[:space:]' < "$COMMIT_FILE")
     if [ -z "$COMMIT_HASH" ]; then
         echo "Error: $COMMIT_FILE is empty" >&2
         exit 1
