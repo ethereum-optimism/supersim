@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	opservice "github.com/ethereum-optimism/optimism/op-service"
 
@@ -34,10 +35,12 @@ const (
 
 	LogsDirectoryFlagName = "logs.directory"
 
-	InteropEnabledFlagName               = "interop.enabled"
-	InteropAutoRelayFlagName             = "interop.autorelay"
-	InteropDelayFlagName                 = "interop.delay"
-	InteropL2ToL2CDMOverrideArtifactPath = "interop.l2tol2cdm.override"
+	InteropEnabledFlagName                  = "interop.enabled"
+	InteropAutoRelayFlagName                = "interop.autorelay"
+	InteropAutoRelayRetriesFlagName         = "interop.autorelay.retries"
+	InteropAutoRelayRetryBackoffMaxFlagName = "interop.autorelay.retry.backoff.max"
+	InteropDelayFlagName                    = "interop.delay"
+	InteropL2ToL2CDMOverrideArtifactPath    = "interop.l2tol2cdm.override"
 
 	OdysseyEnabledFlagName = "odyssey.enabled"
 
@@ -92,6 +95,18 @@ func BaseCLIFlags(envPrefix string) []cli.Flag {
 			Value:   false,
 			Usage:   "Automatically relay messages sent to the L2ToL2CrossDomainMessenger using account 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720",
 			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_AUTORELAY"),
+		},
+		&cli.Uint64Flag{
+			Name:    InteropAutoRelayRetriesFlagName,
+			Value:   3,
+			Usage:   "Maximum auto-relay attempts per cross-chain message before giving up. Set to 1 to preserve historical (no-retry) behavior.",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_AUTORELAY_RETRIES"),
+		},
+		&cli.DurationFlag{
+			Name:    InteropAutoRelayRetryBackoffMaxFlagName,
+			Value:   8 * time.Second,
+			Usage:   "Cap on the exponential backoff between auto-relay retries (e.g. '8s', '500ms').",
+			EnvVars: opservice.PrefixEnvVar(envPrefix, "INTEROP_AUTORELAY_RETRY_BACKOFF_MAX"),
 		},
 		&cli.StringFlag{
 			Name:    LogsDirectoryFlagName,
@@ -180,6 +195,8 @@ type CLIConfig struct {
 	L2Count        uint64
 
 	InteropAutoRelay                     bool
+	InteropAutoRelayRetries              uint64
+	InteropAutoRelayRetryBackoffMax      time.Duration
 	InteropDelay                         uint64
 	InteropL2ToL2CDMOverrideArtifactPath string
 
@@ -207,6 +224,8 @@ func ReadCLIConfig(ctx *cli.Context) (*CLIConfig, error) {
 		L2Host:         ctx.String(L2HostFlagName),
 
 		InteropAutoRelay:                     ctx.Bool(InteropAutoRelayFlagName),
+		InteropAutoRelayRetries:              ctx.Uint64(InteropAutoRelayRetriesFlagName),
+		InteropAutoRelayRetryBackoffMax:      ctx.Duration(InteropAutoRelayRetryBackoffMaxFlagName),
 		InteropDelay:                         ctx.Uint64(InteropDelayFlagName),
 		InteropL2ToL2CDMOverrideArtifactPath: ctx.String(InteropL2ToL2CDMOverrideArtifactPath),
 

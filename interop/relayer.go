@@ -42,6 +42,13 @@ type L2ToL2MessageRelayer struct {
 	messageWaitingPool            map[common.Hash][]*L2ToL2MessageStoreEntry
 	messageWaitingPoolMutex       sync.RWMutex
 	checkForDependentMsgHashMutex sync.RWMutex
+
+	// retry tuning for relayMessageWithRetry. Without these, the previous
+	// implementation hard-coded maxRetries=1 at every call site, so the
+	// exponential backoff in relayMessageWithRetry was dead code and a single
+	// transient destination-chain RPC failure dropped a message permanently.
+	maxRetries      int
+	retryBackoffMax time.Duration
 }
 
 var (
@@ -50,8 +57,18 @@ var (
 	)
 )
 
-func NewL2ToL2MessageRelayer(logger log.Logger) *L2ToL2MessageRelayer {
+// NewL2ToL2MessageRelayer constructs an auto-relayer.
+//
+// maxRetries controls how many attempts relayMessageWithRetry will make per
+// message before giving up; values <= 0 are treated as 1 to preserve the
+// historical no-retry behavior. retryBackoffMax caps the exponential backoff
+// between attempts; values <= 0 disable the cap.
+func NewL2ToL2MessageRelayer(logger log.Logger, maxRetries int, retryBackoffMax time.Duration) *L2ToL2MessageRelayer {
 	tasksCtx, tasksCancel := context.WithCancel(context.Background())
+
+	if maxRetries <= 0 {
+		maxRetries = 1
+	}
 
 	return &L2ToL2MessageRelayer{
 		logger: logger,
@@ -65,6 +82,8 @@ func NewL2ToL2MessageRelayer(logger log.Logger) *L2ToL2MessageRelayer {
 		messageWaitingPool:            make(map[common.Hash][]*L2ToL2MessageStoreEntry),
 		messageWaitingPoolMutex:       sync.RWMutex{},
 		checkForDependentMsgHashMutex: sync.RWMutex{},
+		maxRetries:                    maxRetries,
+		retryBackoffMax:               retryBackoffMax,
 	}
 
 }
@@ -118,7 +137,7 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 						r.messageWaitingPoolMutex.Unlock()
 
 						for _, waitingMsg := range waitingMsgs {
-							if err := r.relayMessageWithRetry(l2tol2CDM, transactor, waitingMsg, 1); err != nil {
+							if err := r.relayMessageWithRetry(l2tol2CDM, transactor, waitingMsg, r.maxRetries); err != nil {
 								r.logger.Error("failed to relay message", "msgHash", waitingMsg.msgHash.Hex(), "err", err)
 							}
 						}
@@ -185,7 +204,7 @@ func (r *L2ToL2MessageRelayer) Start(indexer *L2ToL2MessageIndexer, clients map[
 						continue
 					}
 					if dependentMsgHash == nil {
-						if err := r.relayMessageWithRetry(l2tol2CDM, transactor, sentMessage, 1); err != nil {
+						if err := r.relayMessageWithRetry(l2tol2CDM, transactor, sentMessage, r.maxRetries); err != nil {
 							r.logger.Error("failed to relay message after retries", "msgHash", sentMessage.msgHash.Hex(), "err", err)
 							continue
 						}
@@ -285,7 +304,11 @@ func (r *L2ToL2MessageRelayer) relayMessageWithRetry(l2tol2CDM *bindings.L2ToL2C
 			if attempt == maxRetries-1 {
 				return fmt.Errorf("failed to relay message after %d attempts: %w", maxRetries, err)
 			}
-			time.Sleep(time.Second * time.Duration(1<<attempt))
+			backoff := time.Second * time.Duration(1<<attempt)
+			if r.retryBackoffMax > 0 && backoff > r.retryBackoffMax {
+				backoff = r.retryBackoffMax
+			}
+			time.Sleep(backoff)
 			continue
 		}
 		return nil
