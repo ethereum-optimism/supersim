@@ -1,15 +1,51 @@
 package opsimulator
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/ethereum-optimism/supersim/config"
 	"github.com/ethereum-optimism/supersim/testutils"
 
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/stretchr/testify/require"
 )
+
+type rpcMockChain struct {
+	*testutils.MockChain
+	client *ethclient.Client
+}
+
+func (c *rpcMockChain) EthClient() *ethclient.Client { return c.client }
+
+type chainIDAPI struct{}
+
+func (chainIDAPI) ChainId() string { return "0x1" }
+
+func TestHTTPRPCResponseHasJSONContentType(t *testing.T) {
+	rpcServer := rpc.NewServer()
+	require.NoError(t, rpcServer.RegisterName("eth", chainIDAPI{}))
+	defer rpcServer.Stop()
+
+	rpcClient := rpc.DialInProc(rpcServer)
+	defer rpcClient.Close()
+	opSim := &OpSimulator{
+		Chain: &rpcMockChain{MockChain: testutils.NewMockChain(), client: ethclient.NewClient(rpcClient)},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}`))
+	recorder := httptest.NewRecorder()
+	opSim.handler(context.Background()).ServeHTTP(recorder, req)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	require.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
+	require.JSONEq(t, `{"jsonrpc":"2.0","id":1,"result":"0x1"}`, recorder.Body.String())
+}
 
 // MockChainWithDependencySet extends MockChain to support dependency set configuration
 type MockChainWithDependencySet struct {

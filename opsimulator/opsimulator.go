@@ -370,6 +370,7 @@ func (opSim *OpSimulator) handler(ctx context.Context) http.HandlerFunc {
 		}
 
 		// write to response
+		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Content-Length", strconv.Itoa(len(encdata)))
 		w.Header().Set("Transfer-Encoding", "identity")
 		if _, err := w.Write(encdata); err != nil {
